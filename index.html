@@ -91,7 +91,7 @@ class WebMDI extends QMainWindow {
 
     //Build Menus
     this.mFile = new QMenu('File');
-      this.fNew = new QAction('images/status.ico','New Server Window',this.mFile).connect('triggered',this,() => { this._NewSession('',''); });
+      this.fNew = new QAction('images/status.ico','New Server Window',this.mFile).connect('triggered',this,() => { this._NewSession('','',''); });
       new QAction('','',this.mFile).setSeparator();
       this.fOptions = new QAction('images/options.ico','Options',this.mFile);
     this._MenuBar.addMenu(this.mFile);
