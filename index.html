@@ -9,37 +9,6 @@
       <script src="jsqtv4.js"></script>
       <script src="ircclient.js"></script>
       <script>
-function CC2Html(linecolor,text,ii,ia,iy) {
-  // === CC var is a direct rip of $rgb($color(N)) converted to base 16. N is 0-99 for all 100 new colors added to mIRC.
-  var cc = new Array("#FFFFFF","#000000","#00009D","#009300","#FF0000","#7F0000","#9C009C","#FC7F00","#FFFF00","#00FC00","#009393","#00FFFF","#0000FC","#FF00FF","#7F7F7F","#D2D2D2","#470000","#472100","#474700","#324700","#004700","#00472C","#004747","#002747","#000047","#2E0047","#470047","#47002A","#740000","#743A00","#747400","#517400","#007400","#007449","#007474","#004074","#000074","#4B0074","#740074","#740045","#B50000","#B56300","#B5B500","#7DB500","#00B500","#00B571","#00B5B5","#0063B5","#0000B5","#7500B5","#B500B5","#B5006B","#FF0000","#FF8C00","#FFFF00","#B2FF00","#00FF00","#00FFA0","#00FFFF","#008CFF","#0000FF","#A500FF","#FF00FF","#FF0098","#FF5959","#FFB459","#FFFF71","#CFFF60","#6FFF6F","#65FFC9","#6DFFFF","#59B4FF","#5959FF","#C459FF","#FF66FF","#FF59BC","#FF9C9C","#FFD39C","#FFFF9C","#E2FF9C","#9CFF9C","#9CFFDB","#9CFFFF","#9CD3FF","#9C9CFF","#DC9CFF","#FF9CFF","#FF94D3","#000000","#131313","#282828","#363636","#4D4D4D","#656565","#818181","#9F9F9F","#BCBCBC","#E2E2E2","#FFFFFF","#D2D2D2");
-    var b = 0, u = 0, r = 0 , i = 0, s = 0, bg = cc.length, fg = cc.length;
-
-  text = text.replace(/([&<>])/g,(m,e) => { return "&#" + e.charCodeAt(0) + ";"; }).replace(/((?:https?|ftp):\/\/(?:[\w_-]+(?:(?:\.[\w_-]+)+))(?:[\w.,@?^=%&:/~+#-;]*[\w@?^=%&/~+#-])?)/ig,function(match,url) {   
-    if (ii && /\.(?:bmp|cgm|g3|gif|ief|jpe?g?|png|btif|svgz?|tiff?|psd|djvu?|dwg|dxf|fbs|fpx|fst|mmr|rlc|mdi|npx|wbmp|xif|ras|cmx|ico|pcx|pic|pct|pnm|pbm|pgm|ppm|rgb|xbm|xpm|xwd)/i.test(url)) { return '<a href="' + url + '" target="_blank"><img alt="image" src="' + url + '" style="max-width: 300px; max-height: 300px; aspect-ratio: 300 / 300;"></a>'; }
-    else if (ia && /\.(?:au|snd|midi?|kar|rmi|mp4a?|mpga?|mp?2a?|mp?3a?|eol|lvp|ecelp4800|ecelp7470|ecelp9600|wav|aif(?:f|c)?|m3u|wax|wma|ram?|rmp)/i.test(url)) { return '<audio controls src="' + url + '" style="text-indent: 0;"><a href="' + url + '">Download audio</a></audio>'; }
-    else if (iy && /^https?:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=)?(.+)/g.test(url)) { return '<iframe width="320" height="280" src="//www.youtube.com/embed/' + RegExp.$1 + '" frameborder="0" allowfullscreen></iframe>'; }
-    return '<a href="' + url + '" target="_blank">' + url + '</a>'; 
-  });
-  
-  var ret = text.replace(/(\x03(?:(?:\d\d?),)?(?:\d\d?)|[\x02\x03\x16\x1d\x1e\x0f\x1f])([^\x02\x03\x16\x1d\x1e\x0f\x1f]*)/g,function(match,control,string) {
-    if (control == '\x03') { fg = bg = cc.length; } //Blank ctrl+k
-    else if (control == '\x02') { b = !b } //ctrl+b (bold)
-    else if (control == '\x1f') { u = !u }  //ctrl+u (underline)
-    else if (control == '\x16') { var tmp = bg; bg = fg; fg = tmp; }  //ctrl+r (reverse)
-    else if (control == '\x1d') { i = !i } //ctrl+i (italic)
-    else if (control == '\x1e') { s = !s } //ctrl+s (strikethru)
-    else if (control == '\x0f') { b = u = r = i = s = 0; fg = bg = cc.length; } //ctrl+o (stop all control codes)
-    else { //ctrl+k (color)
-      var fgt = /^\x03(\d\d?)$/.exec(control), bt = /^\x03(\d\d?),(\d\d?)$/.exec(control);
-      if (Array.isArray(fgt) && fgt.length > 0) { fg = parseInt(fgt[1]) + 0; }
-      else if (Array.isArray(bt) && bt.length > 0) { fg = parseInt(bt[1]) + 0; bg = parseInt(bt[2]) + 0; }
-    }
-    var style = (b ? 'font-weight:bold;' : '') + (u ? 'text-decoration:underline;' : (s ? 'text-decoration:line-through;' : '')) + (i ? 'font-style:italic;' : '') + (bg < cc.length ? 'background-color:' + cc[bg] + ';' : '') + (fg < cc.length ? 'color:' + cc[fg] + ';' : '');
-    if (!style) { return string; }
-    else { return "<span style=\"" + style + "\">" + string + "</span>"; }
-  });
-  return "<span style=\"color:" + (isNaN(linecolor) ? linecolor : cc[linecolor]) + "\">" + ret + "</span>";
-}
 function AscTime(date,format) {
   let DayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] , MonthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   let Second = date.getSeconds(), Minute = date.getMinutes(), Hour = date.getHours(), Day = date.getDay(), Month = date.getMonth(), Year = date.getFullYear(), OffsetHrs = date.getTimezoneOffset() / -60, OffsetMns = (Math.abs(OffsetHrs) % 1 * 60).toString().padStart(2,0);
@@ -145,7 +114,7 @@ class WebMDI extends QMainWindow {
     this._MenuBar.addMenu(this.mView);
     
     this.MDI = new QMdiArea(this);
-    this.TreeDock = new QDockWidget('Treebar').setAllowedAreas(Qt.RightDockWidgetArea | Qt.LeftDockWidgetArea).setBaseSize(150,null);
+    this.TreeDock = new QDockWidget('Treebar').setAllowedAreas(Qt.RightDockWidgetArea | Qt.LeftDockWidgetArea).setBaseSize(150,null).setResizable(true);
     this.Treebar = new QTreeWidget();
     this.TreeDock.setCentralWidget(this.Treebar);
     this.addDockWidget(Qt.LeftDockWidgetArea,this.TreeDock);
@@ -186,7 +155,8 @@ class WebMDI extends QMainWindow {
     /*-------------------------------------------------------------------------------------------------
     Call any initializing routines
     -------------------------------------------------------------------------------------------------*/
-    this._NewSession('','');
+    var params = new Proxy(new URLSearchParams(window.location.search), { get: (searchParams, prop) => searchParams.get(prop), });
+    this._NewSession('','',params.perform);
   }
   
   /*-------------------------------------------------------------------------------------------------
@@ -219,13 +189,14 @@ class WebMDI extends QMainWindow {
   _ToggleStatus() { }
   _ToggleToolbar() { this.Toolbar.setVisible((this.Toolbar.isVisible() == true ? false : true)); }
   _ToggleTreebar() { this.TreeDock.setVisible((this.TreeDock.isVisible() == true ? false : true)); }
-  _NewSession(Nick,Server) {
+  _NewSession(Nick,Server,Perform) {
     var x = 1;
     Object.keys(this.Windows).forEach((target) => { if ("" + x + "" == target) { x++; } });
     this.Windows[x] = { Windows: { "status window": new CustomWindow(this,x,"status window",{ target: "Status Window", mdi: true, state: "normal", type: "status", cid: x, lb: 0, eb: 0 }) } };
     var Client = this.Windows[x].Windows["status window"]._Client;
     if (Nick != '') { Client.Me = Nick; }
     if (/^wss?:\/\//i.test(Server)) { Client.WSConnect(Client.Me,Server,['text.ircv3.net']); }
+    if (Perform != "") { this.Windows[x].Windows["status window"].EditBox.value = Perform; }
     setTimeout(() => { this.Windows[x].Windows["status window"]._activate(); });
   }
   _NewWindow(cid,name,Data) {
@@ -236,120 +207,126 @@ class WebMDI extends QMainWindow {
   }
   _Echo(cid,target,highlight,color,line) {
     if (this.Windows.hasOwnProperty(cid) && this.Windows[cid].Windows.hasOwnProperty(target.toLowerCase())) {
-      this.Windows[cid].Windows[target.toLowerCase()]._echo(highlight,color,line);
+      var Stamp = (this._Config['options']['irc'].timestamp ? AscTime(new Date(),this._Config['options']['irc'].timestampformat) + " " : "");
+      this.Windows[cid].Windows[target.toLowerCase()]._echo(highlight,color,Stamp + line);
       if (this.Windows[cid].Windows[target.toLowerCase()]._Type == "status") {
         var Client = this.Windows[cid].Windows[target.toLowerCase()]._Client;
-        this._MonitorEcho(this.MonitorServerViewPort,color,(Client.Network != "" ? Client.Network : Client.Server) + " - " + line)
+        this._MonitorEcho(this.MonitorServerViewPort,color,(Client.Network != "" ? Client.Network : Client.Server) + ": " + line)
       }
     }
     else { console.log('Error: ' + cid + " has no window: " + target); }
   }
   _MonitorEcho(target,color,string) {
+    var Stamp = (this._Config['options']['irc'].timestamp ? AscTime(new Date(),this._Config['options']['irc'].timestampformat) + " " : "");
     var tmp = document.createElement('span');
-    tmp.innerHTML = CC2Html(color,string,0,0,0);
+    tmp.innerHTML = this.CC2Html(color,Stamp + string,0,0,0) + "\n";
     target.appendChild(tmp);      
     setTimeout(() => { target.scrollTop = target.scrollHeight; });   
   }
-  _handleInput(Sender,e) { 
-    var key = e.keyCode || e.charCode;
-    if (key == 13 || key == 10) { 
-      var Client = this.Windows[Sender._CID].Windows['status window']._Client;
-		  if (Sender.EditBox.value.match(/^(\x2f+[^ ]+) ?((?: ?[+-][^-+ ]+(?: [^ ]+)?)*) ?(.*)$/)) {
-        var Cmd = RegExp.$1 , Flags = RegExp.$2, Extra = RegExp.$3 || '';
-        //console.log('CMD: ' + Cmd + ' F: ' + Flags + ' Extra: ' + Extra);
+  _processInputLine(Sender,line) {
+    var Client = this.Windows[Sender._CID].Windows['status window']._Client;
+	  if (line.match(/^(\x2f+[^ ]+) ?((?: ?[+-][^-+ ]+(?: [^ ]+)?)*) ?(.*)$/)) {
+      var Cmd = RegExp.$1 , Flags = RegExp.$2, Extra = RegExp.$3 || '';
+      //console.log('CMD: ' + Cmd + ' F: ' + Flags + ' Extra: ' + Extra);
         
-        //Single Tier Cmds (No Flags)
-        if (/^\x2f+ame$/i.test(Cmd)) {
-          Object.keys(this.Windows[Sender._CID].Windows).forEach((win) => { 
-            if (Client.isChan(win)) {
-              Sender._MainApp._SendData(Client,'PRIVMSG ' + win + ' :ACTION ' + Extra + ''); 
-              Client.ParseLine(':' + Client.address(Client.Me,5) + ' PRIVMSG ' + win + ' :ACTION ' + Extra + '');
-            }
-          }); 
-        }
-        else if (/^\x2f+amsg$/i.test(Cmd)) {
-          Object.keys(this.Windows[Sender._CID].Windows).forEach((win) => { 
-            if (Client.isChan(win)) {
-              Sender._MainApp._SendData(Client,'PRIVMSG ' + win + ' :' + Extra);
-              Client.ParseLine(':' + Client.address(Client.Me,5) + ' PRIVMSG ' + win + ' :' + Extra);
-            }
-          }); 
-        }
-        else if (/^\x2f+away$/i.test(Cmd)) { Sender._MainApp._SendData(Client,'AWAY' + (Extra != "" ? " :" + Extra : "")); }
-        //else if (/^\x2f+channel$/i.test(Cmd)) { } /* GUI Chan Central */
-        else if (/^\x2f+disconnect$/i.test(Cmd)) { Client.WSClose(); }
-        //else if (/^\x2f+invite$/i.test(Cmd)) { } /* Should be built in on an irc server? */
-        else if (/^\x2f+kick$/i.test(Cmd)) { if (Extra.match(/^([^ ]+) ([^ ]+) ?(.*)$/)) { Sender._MainApp._SendData(Client,'KICK ' + RegExp.$1 + '' + RegExp.$2 + ' :' + RegExp.$3); } }
-        //else if (/^\x2f+links$/i.test(Cmd)) { }
-        //else if (/^\x2f+list$/i.test(Cmd)) { }
-        else if (/^\x2f+(?:priv)?msg$/i.test(Cmd)) { if (Extra.match(/^([^ ]+) ?(.*)$/)) { Sender._MainApp._SendData(Client,'PRIVMSG ' + RegExp.$1 + ' :' + RegExp.$2); } }
-        else if (/^\x2f+notice$/i.test(Cmd)) { if (Extra.match(/^([^ ]+) ?(.*)$/)) { Sender._MainApp._SendData(Client,'NOTICE ' + RegExp.$1 + ' :' + RegExp.$2); } }
-        else if (/^\x2f+part$/i.test(Cmd)) { Sender._MainApp._SendData(Client,'PART ' + Extra); }
-        else if (/^\x2f+partall$/i.test(Cmd)) { Object.keys(this.Windows[Sender._CID].Windows).forEach((win) => { if (Client.isChan(win)) { Sender._MainApp._SendData(Client,'PART ' + win); } }); }
-        else if (/^\x2f+topic$/i.test(Cmd)) { Sender._MainApp._SendData(Client,'TOPIC ' + Args[0] + ' :' + Args.slice(1).join(' ')); }
-        else if (/^\x2f+query$/i.test(Cmd)) { 
-          if (!this.Windows[Sender._CID].Windows.hasOwnProperty(Extra.toLowerCase())) { this._NewWindow(Sender._CID,Extra.toLowerCase(),{ "target": Extra, mdi: true, state: "normal", type: "query", cid: Sender._CID }); }
-          else { this.MDI.setActiveSubWindow(this.Windows[Sender._CID].Windows[Extra.toLowerCase()]); }
-        }
-        else if (/^\x2f+raw|quote$/i.test(Cmd)) { Sender._MainApp._SendData(Client,Extra); }
-        //Window specific cmds
-        else if (/^\x2f+me$/i.test(Cmd)) {
-          if (/^(channel|query)$/i.test(Sender._Type)) { 
-            Sender._MainApp._SendData(Client,'PRIVMSG ' + Sender._Name + ' :ACTION ' + Extra + ''); 
-            Client.ParseLine(':' + Client.address(Client.Me,5) + ' PRIVMSG ' + Sender._Name + ' :ACTION ' + Extra + '');
+      //Single Tier Cmds (No Flags)
+      if (/^\x2f+ame$/i.test(Cmd)) {
+        Object.keys(this.Windows[Sender._CID].Windows).forEach((win) => { 
+          if (Client.isChan(win)) {
+            Sender._MainApp._SendData(Client,'PRIVMSG ' + win + ' :ACTION ' + Extra + ''); 
+            Client.ParseLine(':' + Client.address(Client.Me,5) + ' PRIVMSG ' + win + ' :ACTION ' + Extra + '');
           }
-        }
-        else if (/^\x2f+say$/i.test(Cmd)) { 
-          if (/^(channel|query)$/i.test(Sender._Type)) { 
-            Sender._MainApp._SendData(Client,'PRIVMSG ' + Sender._Name + ' :' + Extra); 
-            Client.ParseLine(':' + Client.address(Client.Me,5) + ' PRIVMSG ' + Sender._Name + ' :' + Extra);
+        }); 
+      }
+      else if (/^\x2f+amsg$/i.test(Cmd)) {
+        Object.keys(this.Windows[Sender._CID].Windows).forEach((win) => { 
+          if (Client.isChan(win)) {
+            Sender._MainApp._SendData(Client,'PRIVMSG ' + win + ' :' + Extra);
+            Client.ParseLine(':' + Client.address(Client.Me,5) + ' PRIVMSG ' + win + ' :' + Extra);
           }
+        }); 
+      }
+      else if (/^\x2f+away$/i.test(Cmd)) { Sender._MainApp._SendData(Client,'AWAY' + (Extra != "" ? " :" + Extra : "")); }
+      //else if (/^\x2f+channel$/i.test(Cmd)) { } /* GUI Chan Central */
+      else if (/^\x2f+disconnect$/i.test(Cmd)) { Client.WSClose(); }
+      //else if (/^\x2f+invite$/i.test(Cmd)) { } /* Should be built in on an irc server? */
+      else if (/^\x2f+kick$/i.test(Cmd)) { if (Extra.match(/^([^ ]+) ([^ ]+) ?(.*)$/)) { Sender._MainApp._SendData(Client,'KICK ' + RegExp.$1 + '' + RegExp.$2 + ' :' + RegExp.$3); } }
+      //else if (/^\x2f+links$/i.test(Cmd)) { }
+      //else if (/^\x2f+list$/i.test(Cmd)) { }
+      else if (/^\x2f+(?:priv)?msg$/i.test(Cmd)) { if (Extra.match(/^([^ ]+) ?(.*)$/)) { Sender._MainApp._SendData(Client,'PRIVMSG ' + RegExp.$1 + ' :' + RegExp.$2); } }
+      else if (/^\x2f+notice$/i.test(Cmd)) { if (Extra.match(/^([^ ]+) ?(.*)$/)) { Sender._MainApp._SendData(Client,'NOTICE ' + RegExp.$1 + ' :' + RegExp.$2); } }
+      else if (/^\x2f+part$/i.test(Cmd)) { Sender._MainApp._SendData(Client,'PART ' + Extra); }
+      else if (/^\x2f+partall$/i.test(Cmd)) { Object.keys(this.Windows[Sender._CID].Windows).forEach((win) => { if (Client.isChan(win)) { Sender._MainApp._SendData(Client,'PART ' + win); } }); }
+      else if (/^\x2f+topic$/i.test(Cmd)) { if (Extra.match(/^([^ ]+) ?(.*)$/)) { Sender._MainApp._SendData(Client,'TOPIC ' + RegExp.$1 + ' :' + RegExp.$2); } }
+      else if (/^\x2f+query$/i.test(Cmd)) { 
+        if (!this.Windows[Sender._CID].Windows.hasOwnProperty(Extra.toLowerCase())) { this._NewWindow(Sender._CID,Extra.toLowerCase(),{ "target": Extra, mdi: true, state: "normal", type: "query", cid: Sender._CID }); }
+        else { this.MDI.setActiveSubWindow(this.Windows[Sender._CID].Windows[Extra.toLowerCase()]); }
+      }
+      else if (/^\x2f+raw|quote$/i.test(Cmd)) { Sender._MainApp._SendData(Client,Extra); }
+      //Window specific cmds
+      else if (/^\x2f+me$/i.test(Cmd)) {
+        if (/^(channel|query)$/i.test(Sender._Type)) { 
+          Sender._MainApp._SendData(Client,'PRIVMSG ' + Sender._Name + ' :ACTION ' + Extra + ''); 
+          Client.ParseLine(':' + Client.address(Client.Me,5) + ' PRIVMSG ' + Sender._Name + ' :ACTION ' + Extra + '');
         }
+      }
+      else if (/^\x2f+say$/i.test(Cmd)) { 
+        if (/^(channel|query)$/i.test(Sender._Type)) { 
+          Sender._MainApp._SendData(Client,'PRIVMSG ' + Sender._Name + ' :' + Extra); 
+          Client.ParseLine(':' + Client.address(Client.Me,5) + ' PRIVMSG ' + Sender._Name + ' :' + Extra);
+        }
+      }
 
-        //Multi Tier Cmds (With Flags)
-        //else if (/^ban$/i.test(Cmd)) { }
-        else if (/^\x2f+clear$/i.test(Cmd)) { Sender.ViewPort.innerHTML = ""; }
-        else if (/^\x2f+clearall$/i.test(Cmd)) { 
-          if (Flags.indexOf('s') > -1) { Object.keys(this.Windows).forEach((cid) => { this.Windows[cid].Windows['status window'].ViewPort.innerHTML = ""; }); }
-          if (Flags.indexOf('n') > -1) { Object.keys(this.Windows).forEach((cid) => { Object.keys(this.Windows[cid]).forEach((win) => { if (win._Type == "channel") { win.ViewPort.innerHTML = ""; } }); }); }
-          if (Flags.indexOf('q') > -1) { Object.keys(this.Windows).forEach((cid) => { Object.keys(this.Windows[cid]).forEach((win) => { if (win._Type == "query") { win.ViewPort.innerHTML = ""; } }); }); }
-          if (Flags.indexOf('a') > -1) { Object.keys(this.Windows).forEach((cid) => { Object.keys(this.Windows[cid]).forEach((win) => { win.ViewPort.innerHTML = ""; }); }); }
-        }
-        //else if (/^\x2f+close$/i.test(Cmd)) { }
-        else if (/^\x2f+join$/i.test(Cmd)) { 
-          if (!this.Windows[Sender._CID].Windows.hasOwnProperty(Extra.toLowerCase())) { Sender._MainApp._SendData(Client,'JOIN ' + Extra); }
-          else { 
-            if (this.Windows[Sender._CID].Windows[Extra.toLowerCase()].List.children().length == 0) { Sender._MainApp._SendData(Client,'JOIN ' + Extra); }
-            this.MDI.setActiveSubWindow(this.Windows[Sender._CID].Windows[Extra.toLowerCase()]); 
-          }
-        }
-        else if (/^\x2f+server$/i.test(Cmd)) {
-          var Nick = (Client.Me != '' ? Client.Me : 'Guest-' + (Math.random() + 1).toString(36).substring(7)) , Server = Extra , NS = false;
-          if (Flags.indexOf(' ') > -1) {
-            if (/-m ([^ ]+)/.test(Flags)) { Server = RegExp.$1; NS = true; }
-            if (/-i ([^ ]+)/.test(Flags)) { Nick = RegExp.$1; }
-          }
-          else if (Flags.indexOf('n') > -1) { this._NewSession(Nick,''); }
-          if (NS == true) { this._NewSession(Nick,Server); }
-          else if (/^wss?:\/\//i.test(Server)) { Client.WSConnect(Nick,Server,['text.ircv3.net']); }
-        }
-        else { Sender._MainApp._SendData(Client,Cmd.substr(1) + ' ' + Extra); }
+      //Multi Tier Cmds (With Flags)
+      //else if (/^ban$/i.test(Cmd)) { }
+      else if (/^\x2f+clear$/i.test(Cmd)) { Sender.ViewPort.innerHTML = ""; }
+      else if (/^\x2f+clearall$/i.test(Cmd)) { 
+        if (Flags == "" || Flags.indexOf('s') > -1) { Object.keys(this.Windows).forEach((cid) => { this.Windows[cid].Windows['status window'].ViewPort.innerHTML = ""; }); }
+        if (Flags == "" || Flags.indexOf('n') > -1) { Object.keys(this.Windows).forEach((cid) => { Object.keys(this.Windows[cid].Windows).forEach((win) => { if (this.Windows[cid].Windows[win]._Type == "channel") { this.Windows[cid].Windows[win].ViewPort.innerHTML = ""; } }); }); }
+        if (Flags == "" || Flags.indexOf('q') > -1) { Object.keys(this.Windows).forEach((cid) => { Object.keys(this.Windows[cid].Windows).forEach((win) => { if (this.Windows[cid].Windows[win]._Type == "query") { this.Windows[cid].Windows[win].ViewPort.innerHTML = ""; } }); }); }
+        if (Flags == "" || Flags.indexOf('a') > -1) { Object.keys(this.Windows).forEach((cid) => { Object.keys(this.Windows[cid].Windows).forEach((win) => { this.Windows[cid].Windows[win].ViewPort.innerHTML = ""; }); }); }
       }
-      else { 
-        if (/^(channel|query)$/i.test(Sender._Type)) {  
-          Sender._MainApp._SendData(Client,'PRIVMSG ' + Sender._Name + " :" + Sender.EditBox.value); 
-          Client.ParseLine(':' + Client.address(Client.Me,5) + ' PRIVMSG ' + Sender._Name + " :" + Sender.EditBox.value);
-        }
-        else {
-          console.log('erm?')
+      //else if (/^\x2f+close$/i.test(Cmd)) { }
+      else if (/^\x2f+join$/i.test(Cmd)) { 
+        if (!this.Windows[Sender._CID].Windows.hasOwnProperty(Extra.toLowerCase())) { Sender._MainApp._SendData(Client,'JOIN ' + Extra); }
+        else { 
+          if (this.Windows[Sender._CID].Windows[Extra.toLowerCase()].List.children().length == 0) { Sender._MainApp._SendData(Client,'JOIN ' + Extra); }
+          this.MDI.setActiveSubWindow(this.Windows[Sender._CID].Windows[Extra.toLowerCase()]); 
         }
       }
-      Sender._EditBoxHistory.push(Sender.EditBox.value);
+      else if (/^\x2f+server$/i.test(Cmd)) {
+        var Nick = (Client.Me != '' ? Client.Me : 'Guest-' + (Math.random() + 1).toString(36).substring(7)) , Server = Extra , NS = false;
+        if (Flags.indexOf(' ') > -1) {
+          if (/-m ([^ ]+)/.test(Flags)) { Server = RegExp.$1; NS = true; }
+          if (/-i ([^ ]+)/.test(Flags)) { Nick = RegExp.$1; }
+        }
+        else if (Flags.indexOf('n') > -1) { this._NewSession(Nick,''); }
+        if (NS == true) { this._NewSession(Nick,Server); }
+        else if (/^wss?:\/\//i.test(Server)) { Client.WSConnect(Nick,Server,['text.ircv3.net']); }
+      }
+      else { Sender._MainApp._SendData(Client,Cmd.substr(1) + ' ' + Extra); }
+    }
+    else if (line != "") { 
+      if (/^(channel|query)$/i.test(Sender._Type)) {
+        Sender._MainApp._SendData(Client,'PRIVMSG ' + Sender._Name + " :" + line); 
+        Client.ParseLine(':' + Client.address(Client.Me,5) + ' PRIVMSG ' + Sender._Name + " :" + line);
+      }
+      else {
+        console.log('erm? '+ line);
+      }
+    }
+    if (line != "") {
+      Sender._EditBoxHistory.push(line);
       Sender.EditBox.value = '';
       Sender.EditBox.dataset.hindex = Sender._EditBoxHistory.length;
     }
+  }
+  _handleInput(Sender,e) { 
+    var key = e.keyCode || e.charCode;
+    //handle enter in editbox (send)
+    if (key == 13 || key == 10) { Sender._MainApp._processInputLine(Sender,Sender.EditBox.value); }
 
-    //handle editbox history
+    //handle editbox history (up/dn arrows)
     else if (key == 38 || key == 40) {
       var dir = key - 39 , LastHistory = parseInt(Sender.EditBox.dataset.hindex) , hindex = LastHistory + dir;
       if (Sender._EditBoxHistory.length > 0 && hindex < Sender._EditBoxHistory.length) {
@@ -360,17 +337,19 @@ class WebMDI extends QMainWindow {
 
     //handle ctrl+key shortcuts (control codes stuffs...)
     else if (e.ctrlKey) {
-      var codes = [66,85,82,75,73,79];
+      var codes = [66,85,82,75,73,79] , chars = {'66':"",'85':"",'82':"",'75':"",'73':"",'79':""};
       if (codes.indexOf(key) > -1) {
         e.preventDefault(); 
         e.stopPropagation();
+     
+        if (Sender.EditBox.selectionStart || Sender.EditBox.selectionStart == '0') {
+          var startPos = Sender.EditBox.selectionStart , endPos = Sender.EditBox.selectionEnd;
+          Sender.EditBox.value = Sender.EditBox.value.substring(0, startPos) + chars[key] + Sender.EditBox.value.substring(endPos, Sender.EditBox.value.length); 
+          Sender.EditBox.selectionStart = startPos + 1; 
+          Sender.EditBox.selectionEnd = startPos + 1;
+        }
+        else { Sender.EditBox.value += chars[key]; }        
       }
-      if (key == 66) { Sender.EditBox.value += ""; }
-      else if (key == 85) { Sender.EditBox.value += ""; }
-      else if (key == 82) { Sender.EditBox.value += ""; }
-      else if (key == 75) { Sender.EditBox.value += ""; }
-      else if (key == 73) { Sender.EditBox.value += ""; }
-      else if (key == 79) { Sender.EditBox.value += ""; }
     }
 
     //tab completion 
@@ -391,6 +370,8 @@ class WebMDI extends QMainWindow {
           if (isNaN(LastIndex) || LastIndex == (Matches.length - 1)) { LastIndex = -1; }
           LastIndex++;
           Sender.EditBox.value = preText.substr(0,preText.length - word.length) + Matches[LastIndex] + postText;
+          Sender.EditBox.selectionStart = preText.length - word.length + Matches[LastIndex].length; 
+          Sender.EditBox.selectionEnd = preText.length - word.length + Matches[LastIndex].length;
           Sender.EditBox.dataset.tabcomp = ReTab;
           Sender.EditBox.dataset.lastindex = LastIndex;
         }
@@ -414,16 +395,47 @@ class WebMDI extends QMainWindow {
   /*-------------------------------------------------------------------------------------------------
   Public Functions
   -------------------------------------------------------------------------------------------------*/
+  CC2Html(linecolor,text,ii,ia,iy) {
+    // === CC var is a direct rip of $rgb($color(N)) converted to base 16. N is 0-99 for all 100 new colors added to mIRC.
+    var cc = this._Config['palette'];
+    var b = 0, u = 0, r = 0 , i = 0, s = 0, bg = cc.length, fg = cc.length;
+
+    text = text.replace(/([&<>])/g,(m,e) => { return "&#" + e.charCodeAt(0) + ";"; }).replace(/((?:https?|ftp):\/\/(?:[\w_-]+(?:(?:\.[\w_-]+)+))(?:[\w.,@?^=%&:/~+#-;]*[\w@?^=%&/~+#-])?)/ig,function(match,url) {   
+      if (ii && /\.(?:bmp|cgm|g3|gif|ief|jpe?g?|png|btif|svgz?|tiff?|psd|djvu?|dwg|dxf|fbs|fpx|fst|mmr|rlc|mdi|npx|wbmp|xif|ras|cmx|ico|pcx|pic|pct|pnm|pbm|pgm|ppm|rgb|xbm|xpm|xwd)/i.test(url)) { return '<a href="' + url + '" target="_blank"><img alt="image" src="' + url + '" style="max-width: 300px; max-height: 300px; aspect-ratio: 300 / 300;"></a>'; }
+      else if (ia && /\.(?:au|snd|midi?|kar|rmi|mp4a?|mpga?|mp?2a?|mp?3a?|eol|lvp|ecelp4800|ecelp7470|ecelp9600|wav|aif(?:f|c)?|m3u|wax|wma|ram?|rmp)/i.test(url)) { return '<audio controls src="' + url + '" style="text-indent: 0;"><a href="' + url + '">Download audio</a></audio>'; }
+      else if (iy && /^https?:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=)?(.+)/g.test(url)) { return '<iframe width="320" height="280" src="//www.youtube.com/embed/' + RegExp.$1 + '" frameborder="0" allowfullscreen></iframe>'; }
+      return '<a href="' + url + '" target="_blank">' + url + '</a>'; 
+    });
+  
+    var ret = text.replace(/(\x03(?:(?:\d\d?),)?(?:\d\d?)|[\x02\x03\x16\x1d\x1e\x0f\x1f])([^\x02\x03\x16\x1d\x1e\x0f\x1f]*)/g,function(match,control,string) {
+      if (control == '\x03') { fg = bg = cc.length; } //Blank ctrl+k
+      else if (control == '\x02') { b = !b } //ctrl+b (bold)
+      else if (control == '\x1f') { u = !u }  //ctrl+u (underline)
+      else if (control == '\x16') { var tmp = bg; bg = fg; fg = tmp; }  //ctrl+r (reverse)
+      else if (control == '\x1d') { i = !i } //ctrl+i (italic)
+      else if (control == '\x1e') { s = !s } //ctrl+s (strikethru)
+      else if (control == '\x0f') { b = u = r = i = s = 0; fg = bg = cc.length; } //ctrl+o (stop all control codes)
+      else { //ctrl+k (color)
+        var fgt = /^\x03(\d\d?)$/.exec(control), bt = /^\x03(\d\d?),(\d\d?)$/.exec(control);
+        if (Array.isArray(fgt) && fgt.length > 0) { fg = parseInt(fgt[1]) + 0; }
+        else if (Array.isArray(bt) && bt.length > 0) { fg = parseInt(bt[1]) + 0; bg = parseInt(bt[2]) + 0; }
+      }
+      var style = (b ? 'font-weight:bold;' : '') + (u ? 'text-decoration:underline;' : (s ? 'text-decoration:line-through;' : '')) + (i ? 'font-style:italic;' : '') + (bg < cc.length ? 'background-color:' + cc[bg] + ';' : '') + (fg < cc.length ? 'color:' + cc[fg] + ';' : '');
+      if (!style) { return string; }
+      else { return "<span style=\"" + style + "\">" + string + "</span>"; }
+    });
+    return "<span style=\"color:" + (isNaN(linecolor) ? linecolor : cc[linecolor]) + "\">" + ret + "</span>";
+  }
+
   onAction(cid,nick,address,target,msg) { 
     var Client = this.Windows[cid].Windows['status window']._Client , LineColor = this._Color('action');
     if (Client.isChan(target)) {
-      var IAL = Client.GetIAL(nick);
-      var Line = AscTime(new Date(),Client.Timestamp) + " * " + (IAL ? IAL.channels[target.toLowerCase()].substr(0,1) : "") + nick + " " + msg;
+      var IAL = Client.GetIAL(nick) , Line = "* " + (IAL ? IAL.channels[target.toLowerCase()].substr(0,1) : "") + nick + " " + msg;
       this._Echo(cid,target,2,LineColor,Line);
-      this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + " - " + Line);
+      this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
     }
     else {
-      var Line = AscTime(new Date(),Client.Timestamp) + " * " + nick + "  " + msg; 
+      var Line = "* " + nick + "  " + msg; 
       if (nick == Client.Me) {
         if (!this.Windows[cid].Windows.hasOwnProperty(target.toLowerCase())) { this._NewWindow(cid,target.toLowerCase(),{ "target": target, mdi: true, state: "normal", type: "query", cid: cid }); }
         this._Echo(cid,target,2,LineColor,Line);
@@ -431,7 +443,7 @@ class WebMDI extends QMainWindow {
       else {
         if (!this.Windows[cid].Windows.hasOwnProperty(nick.toLowerCase())) { this._NewWindow(cid,nick.toLowerCase(),{ "target": nick, mdi: true, state: "normal", type: "query", cid: cid }); }
         this._Echo(cid,nick,2,LineColor,Line);
-        this._MonitorEcho(this.MonitorQueryViewPort,'inherit',(Client.Network != "" ? Client.Network : Client.Server) + " - " + Line);
+        this._MonitorEcho(this.MonitorQueryViewPort,'inherit',(Client.Network != "" ? Client.Network : Client.Server) + ": " + Line);
       }
     }
   }
@@ -448,25 +460,26 @@ class WebMDI extends QMainWindow {
     var Client = this.Windows[cid].Windows['status window']._Client , LineColor = this._Color('ctcp');
     var win = "status window";
     if (Client.isChan(target)) { win = target; }
-    this._Echo(cid,win,2,LineColor,AscTime(new Date(),Client.Timestamp) + " [" + nick + " " + msg + "]");
+    this._Echo(cid,win,2,LineColor,"[" + nick + " " + msg + "]");
   }
+  //TODO: Fix ctcp reply (remove Args)
   onCtcpReply(cid,nick,address,target,msg) { 
     var Client = this.Windows[cid].Windows['status window']._Client , LineColor = this._Color('ctcp');
     var win = "status window";
     if (Client.isChan(target)) { win = target; }
-    this._Echo(cid,win,2,LineColor,AscTime(new Date(),Client.Timestamp) + " [" + nick + (Client.isChan(target) ? ":" + target : "") + " " + Args[0] + " reply]: " + Args.slice(1).join(" "));
+    this._Echo(cid,win,2,LineColor,"[" + nick + (Client.isChan(target) ? ":" + target : "") + " " + Args[0] + " reply]: " + Args.slice(1).join(" "));
   }
   onLogon(cid) { 
     var Client = this.Windows[cid].Windows['status window']._Client , LineColor = this._Color('info');
-    this._Echo(cid,"status window",1,LineColor,AscTime(new Date(),Client.Timestamp) + " * Connecting to " + Client.WSServerURI);
+    this._Echo(cid,"status window",1,LineColor,"* Connecting to " + Client.WSServerURI);
   }
   onDisconnect(cid) {
     if (this.Windows.hasOwnProperty(cid)) {
       var Client = this.Windows[cid].Windows['status window']._Client , LineColor = this._Color('info');
-      this._Echo(cid,"status window",1,LineColor,AscTime(new Date(),Client.Timestamp) + " * Disconnected");
+      this._Echo(cid,"status window",1,LineColor,"* Disconnected");
       Object.keys(this.Windows[cid].Windows).forEach((win) => {
         if (this.Windows[cid].Windows[win]._Type == "channel") {
-          this._Echo(cid,this.Windows[cid].Windows[win]._Name,1,LineColor,AscTime(new Date(),Client.Timestamp) + " * Disconnected");
+          this._Echo(cid,this.Windows[cid].Windows[win]._Name,1,LineColor,"* Disconnected");
           this.Windows[cid].Windows[win].List.children().forEach((nick) => { setTimeout(() => { this.Windows[cid].Windows[win].List.removeAction(nick); }); });
         }
       });
@@ -474,50 +487,59 @@ class WebMDI extends QMainWindow {
   }
   onInvite(cid,nick,address,target) { 
     var Client = this.Windows[cid].Windows['status window']._Client , LineColor = this._Color('invite');
-    this._Echo(cid,"status window",1,LineColor,AscTime(new Date(),Client.Timestamp) + " * " + nick + " invites you to: " + target);
+    this._Echo(cid,"status window",1,LineColor,"* " + nick + " invites you to: " + target);
   }
   onJoin(cid,nick,address,target) { 
     var Client = this.Windows[cid].Windows['status window']._Client , LineColor = this._Color('join');
     if (nick == Client.Me && !this.Windows[cid].Windows.hasOwnProperty(target.toLowerCase())) { this._NewWindow(cid,target,{ "target": target, mdi: true, state: "normal", type: "channel", cid: cid , lb: 2 }); }
     else if (this.Windows[cid].Windows.hasOwnProperty(target.toLowerCase())) { this.Windows[cid].Windows[target.toLowerCase()]._handleNickListEvent('join',nick); }
-    this._Echo(cid,target,1,LineColor,AscTime(new Date(),Client.Timestamp) + " * Joins: " + nick + " (" + address + ")");
-    this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + " - " + AscTime(new Date(),Client.Timestamp) + " * Joins: " + nick + " (" + address + ")");
+    var Line = "* Joins: " + nick + " (" + address + ")";
+    this._Echo(cid,target,1,LineColor,Line);
+    this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
   }
   onKick(cid,nick,address,target,knick,msg) { 
     var Client = this.Windows[cid].Windows['status window']._Client , LineColor = this._Color('kick');
     if (this.Windows[cid].Windows.hasOwnProperty(target.toLowerCase())) { this.Windows[cid].Windows[target.toLowerCase()]._handleNickListEvent('kick',knick); }
-    this._Echo(cid,target,1,LineColor,AscTime(new Date(),Client.Timestamp) + " * " + knick + " was kicked by: " + nick + " (" + msg + ")");
-    this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + " - " + AscTime(new Date(),Client.Timestamp) + " * " + knick + " was kicked by: " + nick + " (" + msg + ")");
+    var Line = "* " + knick + " was kicked by: " + nick + " (" + msg + ")";
+    this._Echo(cid,target,1,LineColor,Line);
+    this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
   }
   onMode(cid,nick,address,target,modes) { 
     var Client = this.Windows[cid].Windows['status window']._Client , LineColor = this._Color('mode');
     if (this.Windows[cid].Windows.hasOwnProperty(target.toLowerCase())) { this.Windows[cid].Windows[target.toLowerCase()]._handleNickListEvent('mode',modes); }
-    this._Echo(cid,target,1,LineColor,AscTime(new Date(),Client.Timestamp) + " * " + nick + " sets mode: " + modes);
-    this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + " - " + AscTime(new Date(),Client.Timestamp) + " * " + nick + " sets mode: " + modes);
+    var Line = "* " + nick + " sets mode: " + modes;
+    this._Echo(cid,target,1,LineColor,Line);
+    this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
   }
   onNick(cid,nick,address,newnick) { 
     var Client = this.Windows[cid].Windows['status window']._Client , IAL = Client.GetIAL(newnick) , LineColor = this._Color('nick');
     if (IAL) { 
+      var Line = "* " + nick + " is now known as " + newnick;
       Object.keys(IAL.channels).forEach((target) => { 
         if (this.Windows[cid].Windows.hasOwnProperty(target.toLowerCase())) { this.Windows[cid].Windows[target.toLowerCase()]._handleNickListEvent('nick',nick,newnick); }
-        this._Echo(cid,target,1,LineColor,AscTime(new Date(),Client.Timestamp) + " * " + nick + " is now known as " + newnick);
+        this._Echo(cid,target,1,LineColor,Line);
       });
-      this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + Object.keys(IAL.channels).join(",") + " - " + AscTime(new Date(),Client.Timestamp) + " * " + nick + " is now known as " + newnick);
+      this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + Object.keys(IAL.channels).join(",") + ": " + Line);
     }
-    if (newnick == Client.Me) { this._Echo(cid,"status window",1,LineColor,AscTime(new Date(),Client.Timestamp) + " * You are now known as " + newnick); }
+    if (newnick == Client.Me) { 
+      this._Echo(cid,"status window",1,LineColor,"* You are now known as " + newnick); 
+      this.Windows[cid].Windows['status window']._updateTitle();
+    }
   }
   onNotice(cid,nick,address,target,msg) { 
     var Client = this.Windows[cid].Windows['status window']._Client , LineColor = this._Color('notice');
     var win = "status window";
     if (Client.isChan(target)) { win = target; }
-    this._Echo(cid,win,2,LineColor,AscTime(new Date(),Client.Timestamp) + " -" + nick + (Client.isChan(target) ? ":" + target : "") + "- " + msg);
-    this._MonitorEcho(this.MonitorNoticeViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + (Client.isChan(target) ? " - " + target : "") + " - " + AscTime(new Date(),Client.Timestamp) + " -" + nick + "- " + msg);
+    var Line = "-" + nick + (Client.isChan(target) ? ":" + target : "") + "- " + msg;
+    this._Echo(cid,win,2,LineColor,Line);
+    this._MonitorEcho(this.MonitorNoticeViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + (Client.isChan(target) ? " - " + target : "") + ": " + Line);
   }
   onPart(cid,nick,address,target,msg) { 
     var Client = this.Windows[cid].Windows['status window']._Client , LineColor = this._Color('part');
     if (this.Windows[cid].Windows.hasOwnProperty(target.toLowerCase())) { this.Windows[cid].Windows[target.toLowerCase()]._handleNickListEvent('part',nick); }
-    this._Echo(cid,target,1,LineColor,AscTime(new Date(),Client.Timestamp) + " * Parts: " + nick + " (" + address + ")" + (msg ? " (" + msg + ")" : ""));
-    this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + " - " + AscTime(new Date(),Client.Timestamp) + " * Parts: " + nick + " (" + address + ")" + (msg ? " (" + msg + ")" : ""));
+    var Line = "* Parts: " + nick + " (" + address + ")" + (msg ? " (" + msg + ")" : "");
+    this._Echo(cid,target,1,LineColor,Line);
+    this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
   }
   onPing(cid,msg) { 
     var Client = this.Windows[cid].Windows['status window']._Client;
@@ -527,42 +549,43 @@ class WebMDI extends QMainWindow {
   }
   onQuit(cid,nick,address,msg) { 
     var Client = this.Windows[cid].Windows['status window']._Client, IAL = Client.GetIAL(nick) , LineColor = this._Color('quit');
-    if (IAL) { 
+    if (IAL) {
+      var Line = "* Quits: " + nick + " (" + address + ") (" + msg + ")";
       Object.keys(IAL.channels).forEach((target) => {
         if (this.Windows[cid].Windows.hasOwnProperty(target.toLowerCase())) { this.Windows[cid].Windows[target.toLowerCase()]._handleNickListEvent('quit',nick); }
-        this._Echo(cid,target,1,LineColor,AscTime(new Date(),Client.Timestamp) + " * Quits: " + nick + " (" + address + ") (" + msg + ")");
+        this._Echo(cid,target,1,LineColor,Line);
       });
-      this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + Object.keys(IAL.channels).join(",") + " - " + AscTime(new Date(),Client.Timestamp) + " * Quits: " + nick + " (" + address + ") (" + msg + ")");
+      this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + Object.keys(IAL.channels).join(",") + ": " + Line);
     }
   }
   onPrivmsg(cid,nick,address,target,msg) { 
     var Client = this.Windows[cid].Windows['status window']._Client , LineColor = this._Color('normal');
     if (Client.isChan(target)) {
       var IAL = Client.GetIAL(nick);
-      if (nick != Client.Me) { var Line = AscTime(new Date(),Client.Timestamp) + " 12<14" + (IAL ? IAL.channels[target.toLowerCase()].substr(0,1) : "") + "" + nick + "12> " + msg; }
-      else { var Line = AscTime(new Date(),Client.Timestamp) + " 9<14" + IAL.channels[target.toLowerCase()].substr(0,1) + "" + nick + "9> " + msg; }
+      if (nick != Client.Me) { var Line = "12<14" + (IAL ? IAL.channels[target.toLowerCase()].substr(0,1) : "") + "" + nick + "12> " + msg; }
+      else { var Line = "9<14" + IAL.channels[target.toLowerCase()].substr(0,1) + "" + nick + "9> " + msg; }
       this._Echo(cid,target,2,LineColor,Line);
-      this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + " - " + Line);
+      this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
     }
     else {
       if (nick == Client.Me) {
         if (!this.Windows[cid].Windows.hasOwnProperty(target.toLowerCase())) { this._NewWindow(cid,target.toLowerCase(),{ "target": target, mdi: true, state: "normal", type: "query", cid: cid }); }
-        var Line = AscTime(new Date(),Client.Timestamp) + " 9<" + nick + "9> " + msg; 
+        var Line = "9<" + nick + "9> " + msg; 
         this._Echo(cid,target,2,LineColor,Line);
       }
       else {
         if (!this.Windows[cid].Windows.hasOwnProperty(nick.toLowerCase())) { this._NewWindow(cid,nick.toLowerCase(),{ "target": nick, mdi: true, state: "normal", type: "query", cid: cid }); }
-        var Line = AscTime(new Date(),Client.Timestamp) + " 12<" + nick + "12> " + msg; 
+        var Line = "12<" + nick + "12> " + msg; 
         this._Echo(cid,nick,2,LineColor,Line);
-        this._MonitorEcho(this.MonitorQueryViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + Line);
+        this._MonitorEcho(this.MonitorQueryViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + ": " + Line);
       }
     }
   }
   onRaw(cid,numeric,msg) {
     var Client = this.Windows[cid].Windows['status window']._Client;
     var Tokens = msg.split(" ");
-    if (numeric == "332") { this._Echo(cid,Tokens[1],1,this._Color('topic'),AscTime(new Date(),Client.Timestamp) + " * Topic is '" + Tokens.slice(2).join(" ") + "'"); }
-    else if (numeric == "333") { this._Echo(cid,Tokens[1],1,this._Color('topic'),AscTime(new Date(),Client.Timestamp) + " * Set by " + Tokens[2] + " on " + AscTime(new Date(parseInt(Tokens[3]) * 1000),'ddd mmm dd HH:nn:ss yyyy')); }
+    if (numeric == "332") { this._Echo(cid,Tokens[1],1,this._Color('topic'),"* Topic is '" + Tokens.slice(2).join(" ") + "'"); }
+    else if (numeric == "333") { this._Echo(cid,Tokens[1],1,this._Color('topic'),"* Set by " + Tokens[2] + " on " + AscTime(new Date(parseInt(Tokens[3]) * 1000),'ddd mmm dd HH:nn:ss yyyy')); }
     //Prevent these for now... caused by joining channels
     else if (numeric == "324") { } //Channel Modes
     else if (numeric == "329") { } //Channel Created
@@ -579,7 +602,7 @@ class WebMDI extends QMainWindow {
         UI._updateTitle();
       }
     } //channel end of names
-    else { this._Echo(cid,"status window",1,this._Color('normal'),AscTime(new Date(),Client.Timestamp) + " " + Tokens.slice(1).join(" ")); }
+    else { this._Echo(cid,"status window",1,this._Color('normal'),Tokens.slice(1).join(" ")); }
   }
   onSnotice(cid,nick,address,target,msg) {
     var Client = this.Windows[cid].Windows['status window']._Client;
@@ -588,18 +611,20 @@ class WebMDI extends QMainWindow {
   onSmode(cid,nick,address,target,modes) { 
     var Client = this.Windows[cid].Windows['status window']._Client , LineColor = this._Color('mode');
     if (this.Windows[cid].Windows.hasOwnProperty(target.toLowerCase())) { this.Windows[cid].Windows[target.toLowerCase()]._handleNickListEvent('mode',modes); }
-    this._Echo(cid,target,1,LineColor,AscTime(new Date(),Client.Timestamp) + " * " + nick + " sets mode: " + modes);
-    this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + " - " + AscTime(new Date(),Client.Timestamp) + " * " + nick + " sets mode: " + modes);
+    var Line = "* " + nick + " sets mode: " + modes;
+    this._Echo(cid,target,1,LineColor,Line);
+    this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
   }
   onTopic(cid,nick,address,target,topic) { 
     var Client = this.Windows[cid].Windows['status window']._Client , LineColor = this._Color('topic');
-    this._Echo(cid,target,1,LineColor,AscTime(new Date(),Client.Timestamp) + " * " + nick + " changes topic to '" + topic + "'");
-    this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + " - " + AscTime(new Date(),Client.Timestamp) + " * " + nick + " changes topic to '" + topic + "'");
+    var Line = "* " + nick + " changes topic to '" + topic + "'";
+    this._Echo(cid,target,1,LineColor,Line);
+    this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
   }
   onUmode(cid,modes) { 
     var Client = this.Windows[cid].Windows['status window']._Client , LineColor = this._Color('mode');
-    this._Echo(cid,"status window",1,LineColor,AscTime(new Date(),Client.Timestamp) + " * " + Client.Me + " set mode: " + modes);
-    this._MonitorEcho(this.MonitorServerViewPort,LineColor,AscTime(new Date(),Client.Timestamp) + " * " + Client.Me + " set mode: " + modes);
+    var Line = "* " + Client.Me + " set mode: " + modes;
+    this._Echo(cid,"status window",1,LineColor,Line);
   }
 }
 // Define the new element
@@ -614,7 +639,7 @@ class CustomWindow extends QMdiSubWindow {
     /*-------------------------------------------------------------------------------------------------
 	  Private Properties
     -------------------------------------------------------------------------------------------------*/
-	this._Base.push("CustomWindow");
+	  this._Base.push("CustomWindow");
     this.classList.add("CustomWindow");
     this._MainApp = mainapp;
     this._CID = cid;
@@ -633,7 +658,7 @@ class CustomWindow extends QMdiSubWindow {
     if (/^(status|channel|query)$/i.test(Data.type)) { IconURL = "images/" + Data.type + ".ico"; }
 
     this.setWindowIcon(IconURL);
-    this.setWindowTitle(CC2Html('',Data.title || ''));
+    this.setWindowTitle(this._MainApp.CC2Html('',Data.title || ''));
     if (Data.type != "status") { var treeparent = this._MainApp.Windows[cid].Windows['status window'].TreeItem; }
     else { 
       this._Client = new IRCClient(cid); 
@@ -661,6 +686,7 @@ class CustomWindow extends QMdiSubWindow {
       this._Client.addListener('umode',this._MainApp,this._MainApp.onUmode);
     }
     this.TreeItem = new QTreeWidgetItem(IconURL,Data.target,treeparent).connect('itemClicked',this,this._activate);
+    if (Data.type == "status") { this.TreeItem.addEventListener('childEvent',this.handleEvent.bind(this)); }
     this.Container = QuickElement('div',{style: 'display: flex; flex-direction: column; flex: auto; overflow: hidden;'});
 
     if (Data.lb == "2") {
@@ -677,6 +703,15 @@ class CustomWindow extends QMdiSubWindow {
     if (Data.eb == "1" || /^(status|channel|query)$/i.test(Data.type)) {
       this.EditBox = QuickElement('input',{type: "text", style: "background: inherit; color: inherit; border: 1px solid transparent"});
       this.EditBox.addEventListener('keydown',(e) => { this._MainApp._handleInput(this,e); });
+      this.EditBox.addEventListener('paste',(e) => { 
+        var lines = event.clipboardData.getData('Text').split("\n");
+        if (lines.length > 1) {
+          e.stopPropagation();
+          e.preventDefault();
+          lines.forEach((line) => { this._MainApp._processInputLine(this,line); });
+        }
+        //console.log(lines); 
+      });
       this.Container.appendChild(this.EditBox);
       this._EditBoxHistory = [];
     }
@@ -746,6 +781,10 @@ class CustomWindow extends QMdiSubWindow {
       if (e.detail.QEvent == QEvent.Close) {
         this.destructor();
       }
+      if (e.detail.QEvent == QEvent.ChildAdded) {
+        if (Array.isArray(e.detail.target._Base) && e.detail.target._Base.includes('QTreeWidgetItem')) { setTimeout(() => { this._SortTree(this.TreeItem.children()); }); }        
+        //console.log(e);
+      }
     }
   }
  
@@ -756,6 +795,7 @@ class CustomWindow extends QMdiSubWindow {
     if (this._Parent != document.body) { this._Parent.setActiveSubWindow(this); } 
     this._Highlight = 0;
     this.TreeItem._TreeLabel.style.color = ['inherit','#0000FC','#FF0000'][this._Highlight];
+    this._MainApp.Treebar.setCurrentItem(this.TreeItem);
     if (!window.mobileCheck()) { this.EditBox.focus(); }
   }
   _scrollBottom() { 
@@ -774,7 +814,7 @@ class CustomWindow extends QMdiSubWindow {
     }
     else if (this._Type == "channel") {
       var Chan = Client.GetICL(this._Name);
-      if (Chan) { this.setWindowTitle(this._Target + " (" + Client.Network + ") [" + Chan.Nicks.length + "] [+" + Chan.mode + "]: " + CC2Html('inherit',Chan.topic)); }
+      if (Chan) { this.setWindowTitle(this._Target + " (" + Client.Network + ") [" + Chan.Nicks.length + "] [+" + Chan.mode + "]: " + this._MainApp.CC2Html('inherit',Chan.topic)); }
     }
     else if (this._Type == "query") {
       var IAL = Client.GetIAL(this._Name);
@@ -783,7 +823,7 @@ class CustomWindow extends QMdiSubWindow {
   }
   _echo(highlight,color,string) {
     var tmp = document.createElement('span') , shouldscroll = ((this.ViewPort.scrollTop + this.ViewPort.clientHeight) == this.ViewPort.scrollHeight ? true : false);
-    tmp.innerHTML = CC2Html(color,string,1,1,1);
+    tmp.innerHTML = this._MainApp.CC2Html(color,string,1,1,1) + "\n";
     this.ViewPort.appendChild(tmp);
     if (shouldscroll) { this._scrollBottom(); }
     if (!this.TreeItem.isSelected() && highlight > this._Highlight) { this._Highlight = highlight; }
@@ -794,6 +834,17 @@ class CustomWindow extends QMdiSubWindow {
     source.addEventListener('load', (e) => { this.Canvas.getContext('2d').drawImage(source,0,0,source.width,source.height); });
     source.addEventListener('error', () => { console.log('fuck! ' + blob); } );
     source.src = 'data:'+[blob];
+  }
+  _SortTree(array) {
+    var Client = this._MainApp.Windows[this._CID].Windows['status window']._Client;
+    var sorted = array.sort((a,b) => {
+      var c = Client.ChanTypes.split("").indexOf(a._TreeLabel.innerText.substr(0,1)), d = Client.ChanTypes.split("").indexOf(b._TreeLabel.innerText.substr(0,1));
+      var e = String.fromCharCode((c < 0 ? Client.ChanTypes.length : c) + 33) + a._TreeLabel.innerText , f = String.fromCharCode((d < 0 ? Client.ChanTypes.length : d) + 33) + b._TreeLabel.innerText;
+      if (e.toLowerCase() < f.toLowerCase()) { return -1; }
+      if (e.toLowerCase() > f.toLowerCase()) { return 1; }
+      return 0;
+    });
+    sorted.forEach((item) => { item.parentNode.appendChild(item); });
   }
   _handleNickListEvent(event,nick,newnick) {
     var Client = this._MainApp.Windows[this._CID].Windows['status window']._Client , Chan = Client.GetICL(this._Name);
@@ -851,7 +902,11 @@ window.mobileCheck = function() {
   return check;
 };
 
-window.addEventListener('load',()=>{var Core = new WebMDI();window.addEventListener('keydown',Core._KeyBoard.bind(Core),false);window.addEventListener('keyup',Core._KeyBoard.bind(Core),false);});
+window.addEventListener('load',()=>{
+  var Core = new WebMDI();
+  window.addEventListener('keydown',Core._KeyBoard.bind(Core),false);
+  window.addEventListener('keyup',Core._KeyBoard.bind(Core),false);
+});
       </script>
     </head>
   <body>

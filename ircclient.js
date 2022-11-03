@@ -52,12 +52,11 @@ class IALItem {
     IRC Client class
   ================================================================================================*/
   class IRCClient {
-    constructor(cid,timestamp,nick,server,args) {
+    constructor(cid,nick,server,args) {
       this.Listeners = {action: [],connect: [],ctcp: [],ctcpreply: [],disconnect: [],invite: [],join: [],kick: [],logon: [],mode: [],nick: [],notice: [],part: [],ping: [],pong: [],quit: [],raw: [],snotice: [],smode: [],privmsg: [],topic: [],umode: []}; //Collection of callbacks for IRC related events
       this.IAL = {}; //Internal Address List Object
       this.ICL = {}; //Internal Channels List Object
       this.CID = cid;
-      this.Timestamp = timestamp || "[HH:nn]";
       this.Server = '';
       this.Port = '';
       this.Me = nick || '';
@@ -170,6 +169,7 @@ class IALItem {
               this.NickMode = RegExp.$1;
               this.Prefix = RegExp.$2;
             }
+            else if (arg.match(/^(?:NAMESX|UHNAMES)$/i)) { this.WSSend('PROTOCTL ' + arg); }
           },this);
         }
         else if (Event == "221") { this.UMode = Extra.replace("+",""); }

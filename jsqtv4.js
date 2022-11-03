@@ -101,7 +101,6 @@ class QObject extends HTMLElement {
   setObjectName(text) { this._ObjectName = text; this._customEvent('objectNameChanged',{ detail: { objectName: text } }); }
   setParent(parent,before) {
 	  if (parent && parent.nodeType === Node.ELEMENT_NODE) {
-	    this._updateParent(parent);
 	    if (parent.hasOwnProperty('_CentralWidget')) { 
         if (before) { parent._CentralWidget.insertBefore(this,before); }
         else { parent._CentralWidget.appendChild(this); }
@@ -110,6 +109,7 @@ class QObject extends HTMLElement {
         if (before) { parent.insertBefore(this,before); }
         else { parent.appendChild(this); }
       }
+	    this._updateParent(parent);
     }
     return this;
   }
@@ -338,7 +338,10 @@ class QMdiArea extends QObject {
   //Public Functions
   activeSubWindow() { return this.lastElementChild; }
   addSubWindow(Window) { Window.setParent(this); }
-  removeSubWindow(Window) { this._removeChildObject(Window); }
+  removeSubWindow(Window) { 
+    this._removeChildObject(Window);
+    if (this.lastElementChild) { this.setActiveSubWindow(this.lastElementChild); }
+  }
 
   //Public Slots 
   //TODO: follow activation order instead of insertion order
