@@ -156,7 +156,7 @@ class WebMDI extends QMainWindow {
     Call any initializing routines
     -------------------------------------------------------------------------------------------------*/
     var params = new Proxy(new URLSearchParams(window.location.search), { get: (searchParams, prop) => searchParams.get(prop), });
-    this._NewSession('','',params.perform);
+    this._NewSession('','',(params.perform ? params.perform : ''));
   }
   
   /*-------------------------------------------------------------------------------------------------
