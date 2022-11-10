@@ -66,9 +66,9 @@ class WebMDI extends QMainWindow {
         'irc': {
           'reconnect': true,
           'showprefix': true,
-          'kickrejoin': true,
+          'kickrejoin': true, //TODO
           'connectrejoin': true,
-          'keepchanopen': true,
+          'keepchanopen': true, //TODO
           'timestamp': true,
           'timestampformat': '[HH:nn]',
           'quitmsg': '',
@@ -78,7 +78,7 @@ class WebMDI extends QMainWindow {
         'event':12,
         'message':4,
         'highlight':9,
-        'buffer': 5000,
+        'buffer': 500,
       },
 
     };
@@ -186,7 +186,7 @@ class WebMDI extends QMainWindow {
   _ToggleNotice() { this.MonitorNotice.setVisible((this.MonitorNotice.isVisible() == true ? false : true)); }
   _ToggleQuery() { this.MonitorQuery.setVisible((this.MonitorQuery.isVisible() == true ? false : true)); }
   _ToggleServer() { this.MonitorServer.setVisible((this.MonitorServer.isVisible() == true ? false : true)); }
-  _ToggleStatus() { }
+  _ToggleStatus() { this._StatusBar.style.display = (this._StatusBar.style.display == 'none' ? '' : 'none'); }
   _ToggleToolbar() { this.Toolbar.setVisible((this.Toolbar.isVisible() == true ? false : true)); }
   _ToggleTreebar() { this.TreeDock.setVisible((this.TreeDock.isVisible() == true ? false : true)); }
   _NewSession(Nick,Server,Perform) {
@@ -217,6 +217,7 @@ class WebMDI extends QMainWindow {
     else { console.log('Error: ' + cid + " has no window: " + target); }
   }
   _MonitorEcho(target,color,string) {
+    if (target.childNodes.length == this._Config['windows'].buffer) { target.removeChild(target.firstElementChild); }
     var Stamp = (this._Config['options']['irc'].timestamp ? AscTime(new Date(),this._Config['options']['irc'].timestampformat) + " " : "");
     var tmp = document.createElement('span');
     tmp.innerHTML = this.CC2Html(color,Stamp + string,0,0,0) + "\n";
@@ -248,11 +249,13 @@ class WebMDI extends QMainWindow {
       }
       else if (/^\x2f+away$/i.test(Cmd)) { Sender._MainApp._SendData(Client,'AWAY' + (Extra != "" ? " :" + Extra : "")); }
       //else if (/^\x2f+channel$/i.test(Cmd)) { } /* GUI Chan Central */
+      else if (/^\x2f+ctcp$/i.test(Cmd)) { if (/^([^ ]+) ([^ ]+)(.*)/.test(Extra)) { Sender._MainApp._SendData(Client,'PRIVMSG ' + RegExp.$1 + " :" + RegExp.$2 + RegExp.$3 + ""); } }
+      else if (/^\x2f+ctcpreply$/i.test(Cmd)) { if (/^([^ ]+) ([^ ]+)(.*)/.test(Extra)) { Sender._MainApp._SendData(Client,'NOTICE ' + RegExp.$1 + " :" + RegExp.$2 + RegExp.$3 + ""); } }
       else if (/^\x2f+disconnect$/i.test(Cmd)) { Client.WSClose(); }
       //else if (/^\x2f+invite$/i.test(Cmd)) { } /* Should be built in on an irc server? */
       else if (/^\x2f+kick$/i.test(Cmd)) { if (Extra.match(/^([^ ]+) ([^ ]+) ?(.*)$/)) { Sender._MainApp._SendData(Client,'KICK ' + RegExp.$1 + '' + RegExp.$2 + ' :' + RegExp.$3); } }
-      //else if (/^\x2f+links$/i.test(Cmd)) { }
-      //else if (/^\x2f+list$/i.test(Cmd)) { }
+      //else if (/^\x2f+links$/i.test(Cmd)) { } /* GUI Server Links */
+      //else if (/^\x2f+list$/i.test(Cmd)) { } /* GUI Channels List */
       else if (/^\x2f+(?:priv)?msg$/i.test(Cmd)) { if (Extra.match(/^([^ ]+) ?(.*)$/)) { Sender._MainApp._SendData(Client,'PRIVMSG ' + RegExp.$1 + ' :' + RegExp.$2); } }
       else if (/^\x2f+notice$/i.test(Cmd)) { if (Extra.match(/^([^ ]+) ?(.*)$/)) { Sender._MainApp._SendData(Client,'NOTICE ' + RegExp.$1 + ' :' + RegExp.$2); } }
       else if (/^\x2f+part$/i.test(Cmd)) { Sender._MainApp._SendData(Client,'PART ' + Extra); }
@@ -279,12 +282,20 @@ class WebMDI extends QMainWindow {
 
       //Multi Tier Cmds (With Flags)
       //else if (/^ban$/i.test(Cmd)) { }
-      else if (/^\x2f+clear$/i.test(Cmd)) { Sender.ViewPort.innerHTML = ""; }
+      else if (/^\x2f+clear$/i.test(Cmd)) { 
+        if (Flags.indexOf('h') > -1) { this.MonitorHighlightViewPort.innerHTML = ""; }
+        if (Flags.indexOf('c') > -1) { this.MonitorChanViewPort.innerHTML = ""; }
+        if (Flags.indexOf('q') > -1) { this.MonitorQueryViewPort.innerHTML = ""; }
+        if (Flags.indexOf('n') > -1) { this.MonitorNoticeViewPort.innerHTML = ""; }
+        if (Flags.indexOf('s') > -1) { this.MonitorServerViewPort.innerHTML = ""; }
+        if (Flags == "") { Sender.ViewPort.innerHTML = ""; }
+      }
       else if (/^\x2f+clearall$/i.test(Cmd)) { 
         if (Flags == "" || Flags.indexOf('s') > -1) { Object.keys(this.Windows).forEach((cid) => { this.Windows[cid].Windows['status window'].ViewPort.innerHTML = ""; }); }
         if (Flags == "" || Flags.indexOf('n') > -1) { Object.keys(this.Windows).forEach((cid) => { Object.keys(this.Windows[cid].Windows).forEach((win) => { if (this.Windows[cid].Windows[win]._Type == "channel") { this.Windows[cid].Windows[win].ViewPort.innerHTML = ""; } }); }); }
         if (Flags == "" || Flags.indexOf('q') > -1) { Object.keys(this.Windows).forEach((cid) => { Object.keys(this.Windows[cid].Windows).forEach((win) => { if (this.Windows[cid].Windows[win]._Type == "query") { this.Windows[cid].Windows[win].ViewPort.innerHTML = ""; } }); }); }
         if (Flags == "" || Flags.indexOf('a') > -1) { Object.keys(this.Windows).forEach((cid) => { Object.keys(this.Windows[cid].Windows).forEach((win) => { this.Windows[cid].Windows[win].ViewPort.innerHTML = ""; }); }); }
+        if (Flags == "" || Flags.indexOf('m') > -1) { this.MonitorChanViewPort.innerHTML = this.MonitorHighlightViewPort.innerHTML = this.MonitorNoticeViewPort.innerHTML = this.MonitorQueryViewPort.innerHTML = this.MonitorServerViewPort.innerHTML = ""; }
       }
       //else if (/^\x2f+close$/i.test(Cmd)) { }
       else if (/^\x2f+join$/i.test(Cmd)) { 
@@ -300,8 +311,8 @@ class WebMDI extends QMainWindow {
           if (/-m ([^ ]+)/.test(Flags)) { Server = RegExp.$1; NS = true; }
           if (/-i ([^ ]+)/.test(Flags)) { Nick = RegExp.$1; }
         }
-        else if (Flags.indexOf('n') > -1) { this._NewSession(Nick,''); }
-        if (NS == true) { this._NewSession(Nick,Server); }
+        else if (Flags.indexOf('n') > -1) { this._NewSession(Nick,'',''); }
+        if (NS == true) { this._NewSession(Nick,Server,''); }
         else if (/^wss?:\/\//i.test(Server)) { Client.WSConnect(Nick,Server,['text.ircv3.net']); }
       }
       else { Sender._MainApp._SendData(Client,Cmd.substr(1) + ' ' + Extra); }
@@ -390,6 +401,13 @@ class WebMDI extends QMainWindow {
     if (Client.hasOwnProperty('Socket') && Client.Socket.readyState == 1) { Client.WSSend(Data); }
     else { this._Echo(Client.CID,"status window",1,'#FF0000',AscTime(new Date(),Client.Timestamp) + " * Error: not connected!"); }
   }
+  _updateStatus() {
+    var active = this.MDI.activeSubWindow();
+    if (active && active.hasOwnProperty('_CID')) { 
+      var Client = this.Windows[active._CID].Windows['status window']._Client;
+      this._StatusBar.innerText = Client.Me + " [+" + Client.UMode + "] on " + Client.Server; 
+    }
+  }
   _Color(type) { return (isNaN(this._Config['colors'][type]) ? this._Config['colors'][type] : this._Config['palette'][this._Config['colors'][type]]); }
 
   /*-------------------------------------------------------------------------------------------------
@@ -401,8 +419,8 @@ class WebMDI extends QMainWindow {
     var b = 0, u = 0, r = 0 , i = 0, s = 0, bg = cc.length, fg = cc.length;
 
     text = text.replace(/([&<>])/g,(m,e) => { return "&#" + e.charCodeAt(0) + ";"; }).replace(/((?:https?|ftp):\/\/(?:[\w_-]+(?:(?:\.[\w_-]+)+))(?:[\w.,@?^=%&:/~+#-;]*[\w@?^=%&/~+#-])?)/ig,function(match,url) {   
-      if (ii && /\.(?:bmp|cgm|g3|gif|ief|jpe?g?|png|btif|svgz?|tiff?|psd|djvu?|dwg|dxf|fbs|fpx|fst|mmr|rlc|mdi|npx|wbmp|xif|ras|cmx|ico|pcx|pic|pct|pnm|pbm|pgm|ppm|rgb|xbm|xpm|xwd)/i.test(url)) { return '<a href="' + url + '" target="_blank"><img alt="image" src="' + url + '" style="max-width: 300px; max-height: 300px; aspect-ratio: 300 / 300;"></a>'; }
-      else if (ia && /\.(?:au|snd|midi?|kar|rmi|mp4a?|mpga?|mp?2a?|mp?3a?|eol|lvp|ecelp4800|ecelp7470|ecelp9600|wav|aif(?:f|c)?|m3u|wax|wma|ram?|rmp)/i.test(url)) { return '<audio controls src="' + url + '" style="text-indent: 0;"><a href="' + url + '">Download audio</a></audio>'; }
+      if (ii && /\.(?:bmp|cgm|g3|gif|ief|jpe?g?|png|btif|svgz?|tiff?|psd|djvu?|dwg|dxf|fbs|fpx|fst|mmr|rlc|mdi|npx|wbmp|xif|ras|cmx|ico|pcx|pic|pct|pnm|pbm|pgm|ppm|rgb|xbm|xpm|xwd)$/i.test(url)) { return '<a href="' + url + '" target="_blank"><img alt="image" src="' + url + '" style="max-width: 300px; max-height: 300px; aspect-ratio: 300 / 300;"></a>'; }
+      else if (ia && /\.(?:au|snd|midi?|kar|rmi|mp4a?|mpga?|mp?2a?|mp?3a?|eol|lvp|ecelp4800|ecelp7470|ecelp9600|wav|aif(?:f|c)?|m3u|wax|wma|ram?|rmp)$/i.test(url)) { return '<audio controls src="' + url + '" style="text-indent: 0;"><a href="' + url + '">Download audio</a></audio>'; }
       else if (iy && /^https?:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=)?(.+)/g.test(url)) { return '<iframe width="320" height="280" src="//www.youtube.com/embed/' + RegExp.$1 + '" frameborder="0" allowfullscreen></iframe>'; }
       return '<a href="' + url + '" target="_blank">' + url + '</a>'; 
     });
@@ -430,7 +448,7 @@ class WebMDI extends QMainWindow {
   onAction(cid,nick,address,target,msg) { 
     var Client = this.Windows[cid].Windows['status window']._Client , LineColor = this._Color('action');
     if (Client.isChan(target)) {
-      var IAL = Client.GetIAL(nick) , Line = "* " + (IAL ? IAL.channels[target.toLowerCase()].substr(0,1) : "") + nick + " " + msg;
+      var IAL = Client.GetIAL(nick) , Line = "* " + (IAL && this._Config['options']['irc'].showprefix ? IAL.channels[target.toLowerCase()].substr(0,1) : "") + nick + " " + msg;
       this._Echo(cid,target,2,LineColor,Line);
       this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
     }
@@ -449,12 +467,14 @@ class WebMDI extends QMainWindow {
   }
   onConnect(cid) { 
     var Client = this.Windows[cid].Windows['status window']._Client , rejoin = [];
-    Object.keys(this.Windows[cid].Windows).forEach((win) => {
-      if (this.Windows[cid].Windows[win]._Type == "channel") {
-        if (this.Windows[cid].Windows[win].List.children().length == 0) { rejoin.push(this.Windows[cid].Windows[win]._Name); }
-      }
-    });
-    if (rejoin.length > 0) { this._SendData(Client,"JOIN " + rejoin.join(",")); }
+    if (this._Config['options']['irc'].connectrejoin) {
+      Object.keys(this.Windows[cid].Windows).forEach((win) => {
+        if (this.Windows[cid].Windows[win]._Type == "channel") {
+          if (this.Windows[cid].Windows[win].List.children().length == 0) { rejoin.push(this.Windows[cid].Windows[win]._Name); }
+        }
+      });
+      if (rejoin.length > 0) { this._SendData(Client,"JOIN " + rejoin.join(",")); }
+    }
   }
   onCtcp(cid,nick,address,target,msg) { 
     var Client = this.Windows[cid].Windows['status window']._Client , LineColor = this._Color('ctcp');
@@ -471,7 +491,7 @@ class WebMDI extends QMainWindow {
   }
   onLogon(cid) { 
     var Client = this.Windows[cid].Windows['status window']._Client , LineColor = this._Color('info');
-    this._Echo(cid,"status window",1,LineColor,"* Connecting to " + Client.WSServerURI);
+    this._Echo(cid,"status window",1,LineColor,"* Connecting to " + Client.Server);
   }
   onDisconnect(cid) {
     if (this.Windows.hasOwnProperty(cid)) {
@@ -479,10 +499,16 @@ class WebMDI extends QMainWindow {
       this._Echo(cid,"status window",1,LineColor,"* Disconnected");
       Object.keys(this.Windows[cid].Windows).forEach((win) => {
         if (this.Windows[cid].Windows[win]._Type == "channel") {
-          this._Echo(cid,this.Windows[cid].Windows[win]._Name,1,LineColor,"* Disconnected");
-          this.Windows[cid].Windows[win].List.children().forEach((nick) => { setTimeout(() => { this.Windows[cid].Windows[win].List.removeAction(nick); }); });
+          if (this.Windows[cid].Windows[win].List.children().length) { 
+            this._Echo(cid,this.Windows[cid].Windows[win]._Name,1,LineColor,"* Disconnected");
+            this.Windows[cid].Windows[win].List.children().forEach((nick) => { setTimeout(() => { this.Windows[cid].Windows[win].List.removeAction(nick); }); });
+          }
         }
       });
+      if (this._Config['options']['irc'].reconnect && Client.WSServerURI) {
+        this._Echo(cid,"status window",1,LineColor,"* Connect retry: " + Client.WSServerURI);
+        Client.WSConnect(Client.Me,Client.WSServerURI,['text.ircv3.net'],true);
+      }
     }
   }
   onInvite(cid,nick,address,target) { 
@@ -524,6 +550,7 @@ class WebMDI extends QMainWindow {
     if (newnick == Client.Me) { 
       this._Echo(cid,"status window",1,LineColor,"* You are now known as " + newnick); 
       this.Windows[cid].Windows['status window']._updateTitle();
+      this._updateStatus();
     }
   }
   onNotice(cid,nick,address,target,msg) { 
@@ -562,7 +589,7 @@ class WebMDI extends QMainWindow {
     var Client = this.Windows[cid].Windows['status window']._Client , LineColor = this._Color('normal');
     if (Client.isChan(target)) {
       var IAL = Client.GetIAL(nick);
-      if (nick != Client.Me) { var Line = "12<14" + (IAL ? IAL.channels[target.toLowerCase()].substr(0,1) : "") + "" + nick + "12> " + msg; }
+      if (nick != Client.Me) { var Line = "12<14" + (IAL && this._Config['options']['irc'].showprefix ? IAL.channels[target.toLowerCase()].substr(0,1) : "") + "" + nick + "12> " + msg; }
       else { var Line = "9<14" + IAL.channels[target.toLowerCase()].substr(0,1) + "" + nick + "9> " + msg; }
       this._Echo(cid,target,2,LineColor,Line);
       this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
@@ -625,6 +652,7 @@ class WebMDI extends QMainWindow {
     var Client = this.Windows[cid].Windows['status window']._Client , LineColor = this._Color('mode');
     var Line = "* " + Client.Me + " set mode: " + modes;
     this._Echo(cid,"status window",1,LineColor,Line);
+    this._updateStatus();
   }
 }
 // Define the new element
@@ -690,8 +718,14 @@ class CustomWindow extends QMdiSubWindow {
     this.Container = QuickElement('div',{style: 'display: flex; flex-direction: column; flex: auto; overflow: hidden;'});
 
     if (Data.lb == "2") {
-      this.ListDock = new QDockWidget((Data.type == 'channel' ? "Nicklist" : 'List')).setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea);
+      this.ListDock = new QDockWidget((Data.type == 'channel' ? "Nicklist" : 'List')).setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea).setWindowFlag(Qt.WindowCloseButtonHint,false);
       this.List = new QListView(this.ListDock).setBaseSize(100,null);
+      this.List.addEventListener('dblclick',(e) => {
+        if (/^span$/i.test(e.target.tagName)) { 
+          this._MainApp._NewWindow(this._CID,e.target.parentNode.dataset.nick.toLowerCase(),{ "target": e.target.parentNode.dataset.nick, mdi: true, state: "normal", type: "query", cid: cid });
+          //console.log("Query: " + e.target.parentNode.dataset.nick); 
+        }
+      });
       this.addDockWidget(Qt.RightDockWidgetArea,this.ListDock);
     }
     else if (Data.lb == "1") { this.List = new QListView(this.Container).setBaseSize(100,null); }
@@ -699,6 +733,35 @@ class CustomWindow extends QMdiSubWindow {
     if (/^(status|channel|query|custom)$/i.test(Data.type)) {
       this.ViewPort = QuickElement('div',{'class': 'viewport', style: "display: flex; flex-direction: column; background: inherit; flex: auto; text-indent: -1em; padding: 0 0 0 1.2em; word-wrap: break-word; white-space: pre-wrap; overflow-y: scroll;"});
       this.Container.appendChild(this.ViewPort);
+      if (Data.type == "channel") {
+        this.Toolbar = new QToolBar();
+        this.Info = new QAction('images/info.ico').setToolTip('Chan Info');
+        this.PlaySound = new QAction('images/sound.ico').setToolTip('Play Sound');
+        this.Idle = new QAction('images/hourglass.ico').setToolTip('Channel Idle').setCheckable(true).connect('toggled',this,this._ToggleIdle);
+        this.UserStats = new QAction('images/piechart.ico').setToolTip('User Statistics');
+        this.Toolbar.addAction(this.Info);
+        this.Toolbar.addAction(new QAction().setSeparator());
+        this.Toolbar.addAction(this.PlaySound);
+        this.Toolbar.addAction(this.Idle);
+        this.Toolbar.addAction(new QAction().setSeparator());
+        this.Toolbar.addAction(this.UserStats);
+        this.addToolBar(Qt.TopToolBarArea,this.Toolbar);
+    
+        this.IdleContainer = QuickElement('div',{style: 'display: none;'},'Idle: 0');
+        this.statusBar().appendChild(this.IdleContainer);
+      }
+    }
+    else if (Data.type == "picture") {
+      this.Canvas = QuickElement('canvas',{'class': 'canvas', style: "display: flex; flex-direction: column; flex: auto;"});
+      this.Canvas.dataset.name = this._Name;
+      this.Canvas.dataset.cid = this._CID;
+      this.Container.appendChild(this.Canvas);
+      this.Ctx = this.Canvas.getContext("2d");
+      //this.Canvas.addEventListener('pointerdown',this._MainApp._picwinRelay.bind(this));
+      //this.Canvas.addEventListener('pointermove',this._MainApp._picwinRelay.bind(this));
+      //this.Canvas.addEventListener('pointerup',this._MainApp._picwinRelay.bind(this));
+      //this.Canvas.addEventListener('pointercancel',this._MainApp._picwinRelay.bind(this));
+      //this.Canvas.addEventListener('keyboard',this._MainApp._picwinRelay.bind(this));
     }
     if (Data.eb == "1" || /^(status|channel|query)$/i.test(Data.type)) {
       this.EditBox = QuickElement('input',{type: "text", style: "background: inherit; color: inherit; border: 1px solid transparent"});
@@ -744,7 +807,10 @@ class CustomWindow extends QMdiSubWindow {
     if (this._Name.toLowerCase() != "status window") { var treeparent = this._MainApp.Windows[this._CID].Windows['status window'].TreeItem; }
     else { var treeparent = this._MainApp.Treebar; }
 
-    if (/^(channel)$/i.test(this._Type)) { this._MainApp._SendData(Client,"PART " + this._Name); }
+    if (/^(channel)$/i.test(this._Type)) { 
+      this.Timer = clearInterval(this.Timer);
+      this._MainApp._SendData(Client,"PART " + this._Name); 
+    }
     if (this._Type != "status") {
       treeparent.removeChild(this.TreeItem);
       if (this._Parent == this._MainApp.MDI) { this._MainApp.MDI.removeSubWindow(this); }
@@ -797,6 +863,7 @@ class CustomWindow extends QMdiSubWindow {
     this.TreeItem._TreeLabel.style.color = ['inherit','#0000FC','#FF0000'][this._Highlight];
     this._MainApp.Treebar.setCurrentItem(this.TreeItem);
     if (!window.mobileCheck()) { this.EditBox.focus(); }
+    this._MainApp._updateStatus();
   }
   _scrollBottom() { 
     var Client = this._MainApp.Windows[this._CID].Windows['status window']._Client;
@@ -821,7 +888,17 @@ class CustomWindow extends QMdiSubWindow {
       this.setWindowTitle(this._Target + " (" + Client.Network + ")" + (IAL ? " (" + IAL.address + ")" : ""));
     }
   }
+  _ToggleIdle(e) {
+    if (e.detail.checked) { this.IdleContainer.style.display = null; this.Timer = setInterval(() => { this._updateIdle() },500); this._updateIdle(); }
+    else { this.IdleContainer.style.display = 'none'; this.Timer = clearInterval(this.Timer); }
+  }
+  _updateIdle() { 
+    var Client = this._MainApp.Windows[this._CID].Windows['status window']._Client , Chan = Client.GetICL(this._Target);
+    var dur = parseInt((Date.now() / 1000) - Chan.idle) , H = parseInt(dur / 3600) , M = parseInt((dur - H * 3600) / 60) , N = dur % 60
+    this.IdleContainer.innerHTML = "Idle: " + H.toString().padStart(2,'0') + ":" + M.toString().padStart(2,'0') + ":" + N.toString().padStart(2,'0'); 
+  }
   _echo(highlight,color,string) {
+    if (this.ViewPort.childNodes.length == this._MainApp._Config['windows'].buffer) { this.ViewPort.removeChild(this.ViewPort.firstElementChild); }
     var tmp = document.createElement('span') , shouldscroll = ((this.ViewPort.scrollTop + this.ViewPort.clientHeight) == this.ViewPort.scrollHeight ? true : false);
     tmp.innerHTML = this._MainApp.CC2Html(color,string,1,1,1) + "\n";
     this.ViewPort.appendChild(tmp);
@@ -885,6 +962,7 @@ class CustomWindow extends QMdiSubWindow {
             if (Index < Chan.Nicks.length) { this.List.insertAction(this.List.childNodes[Index],NickAction); }
             else { this.List.addAction(NickAction); }
           }
+          else { console.log("Nicklist Error! " + Nick + " was not found!"); }
         }
       });
     }

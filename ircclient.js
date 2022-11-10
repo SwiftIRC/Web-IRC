@@ -44,8 +44,8 @@ class IALItem {
       delQuiet(mask) { if (this.IQL.hasOwnProperty(mask)) { delete this.IQL[mask]; } }
       addMode(mode) { if (this.mode.indexOf(mode) < 0) { this.mode += mode; } }
       delMode(mode) { if (this.mode.indexOf(mode) > -1) { this.mode = this.mode.replace(mode,""); } }
-      addNick(nick) { this.Nicks.push(nick); }
-      delNick(nick) { this.Nicks.splice(this.Nicks.indexOf(nick),1); }
+      addNick(nick) { if (!this.Nicks.includes(nick)) { this.Nicks.push(nick); } }
+      delNick(nick) { if (this.Nicks.includes(nick)) { this.Nicks.splice(this.Nicks.indexOf(nick),1); } }
   }    
   
   /*================================================================================================
@@ -53,7 +53,7 @@ class IALItem {
   ================================================================================================*/
   class IRCClient {
     constructor(cid,nick,server,args) {
-      this.Listeners = {action: [],connect: [],ctcp: [],ctcpreply: [],disconnect: [],invite: [],join: [],kick: [],logon: [],mode: [],nick: [],notice: [],part: [],ping: [],pong: [],quit: [],raw: [],snotice: [],smode: [],privmsg: [],topic: [],umode: []}; //Collection of callbacks for IRC related events
+      this.Listeners = {action: [],connect: [],chghost: [],ctcp: [],ctcpreply: [],disconnect: [],invite: [],join: [],kick: [],logon: [],mode: [],nick: [],notice: [],part: [],ping: [],pong: [],quit: [],raw: [],snotice: [],smode: [],privmsg: [],topic: [],umode: []}; //Collection of callbacks for IRC related events
       this.IAL = {}; //Internal Address List Object
       this.ICL = {}; //Internal Channels List Object
       this.CID = cid;
@@ -67,38 +67,42 @@ class IALItem {
       this.Network = '';
       this.NickMode = 'ohv';
       this.Prefix = '@%+';
-      this.ForceClosed = false;
     }
-    WSConnect(nick,server,type) {
+    WSConnect(nick,server,type,blockLogon) {
       this.WSClose();
-      this.Me = nick;
+      if (nick) { this.Me = nick; }
+      this.Server = server;
       this.WSServerURI = server;
-      this.ForceClosed = false;
       this.Socket = new WebSocket(server,type);
-      this.Emit('logon',[this.CID]);
       this.Socket.addEventListener('open', () => { 
-        this.WSSend('NICK ' + nick);
-        this.WSSend('USER ' + nick + ' 0 * :' + nick); 
+        if (!blockLogon) { this.Emit('logon',[this.CID]); }
+        this.WSSend('NICK ' + this.Me);
+        this.WSSend('USER ' + this.Me + ' 0 * :' + this.Me); 
       });
       this.Socket.addEventListener('message', async e => { this.ParseLine((e.data instanceof Blob ? await e.data.text() : e.data)); });
-      //this.Socket.addEventListener('error', (e) => { this.WSClosed(); });
+      //this.Socket.addEventListener('error', (e) => { console.log(e); });
       this.Socket.addEventListener('close', (e) => { this.WSClosed(); });
     }
     WSSend(data) {
       if (this.hasOwnProperty('Socket')) {
         this.Socket.send(data);
-        if (this.PingSocket) { clearTimeout(this.PingSocket); }
-        this.PingSocket = setTimeout(() => { this.WSSend("PING " + this.Me); },"60000");
+        if (this.PingSocket) { clearInterval(this.PingSocket); }
+        this.PingSocket = setInterval(() => { this.WSSend("PING " + this.Me); },"60000");
       }
     }
-    WSClose() { if (this.hasOwnProperty('Socket') && this.Socket.readyState <= 1) { this.ForceClosed = true; this.Socket.close(); } }
+    WSClose() { if (this.hasOwnProperty('Socket') && this.Socket.readyState <= 1) { this.Socket.close(); } }
     WSClosed() {
       this.Emit('disconnect',[this.CID]);
       this.IAL = {}; //Internal Address List Object
       this.ICL = {}; //Internal Channels List Object
-      if (!this.ForceClosed) { this.WSReconnect(); }
+      this.UMode = '';
+      this.ChanModes = 'bIe,k,l';
+      this.ChanTypes = '#&';
+      this.ModeSpl = 3;
+      this.Network = '';
+      this.NickMode = 'ohv';
+      this.Prefix = '@%+';
     }
-    WSReconnect() { if (this.Socket.readyState == 3 && this.hasOwnProperty('WSServerURI')) { this.WSConnect(this.Me,this.WSServerURI,this.WSServerArgs); } }
     SortNicks(chan,array) {
       array.sort((a,b) => {
         var c = this.Prefix.split("").indexOf(this.GetIAL(a).getPrefix(chan).substr(0,1)), d = this.Prefix.split("").indexOf(this.GetIAL(b).getPrefix(chan).substr(0,1));
@@ -228,7 +232,7 @@ class IALItem {
         }
         else if (/^MODE$/i.test(Event)) {
           if (this.isChan(Args[0])) {
-            var Parms = (Args.slice(2).join(" ") || Extra) || '';
+            var Middle = Args.slice(2).join(" ") , Parms = ((Middle != '' ? Middle : '') + (Extra != '' ? " " + Extra : "")) || '';
             this.ParseModes(Nick,Address,Args[0],Args[1],Parms);
             this.Emit(Event.toLowerCase(),[this.CID,Nick,Address,Args[0],Args[1] + (Parms != '' ? " " + Parms : '')]);
           }
