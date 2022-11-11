@@ -136,6 +136,7 @@ class QAction extends QObject {
     this.setAttribute("style","position: relative;");
     
     //Build UI Components
+    this._CheckText = QuickElement('span',{class: "CheckText"},"");
 	  this._Icon = QuickElement('img',{src: icon || 'transparent.png',draggable: "false",class: "Icon"});
 	  this._IconText = QuickElement('span',{class: "Text"},text);
 	  this._CentralWidget = QuickElement('div',{class: "CentralWidget"});
@@ -143,6 +144,7 @@ class QAction extends QObject {
 	  //firefox fails to use draggable=false .... force it in the drag event...
 	  this._Icon.addEventListener('dragstart',(e) => { e.preventDefault(); });
 
+	  this.appendChild(this._CheckText);
 	  this.appendChild(this._Icon);
 	  this.appendChild(this._IconText);
 	  this.appendChild(this._CentralWidget);
@@ -208,8 +210,14 @@ class QAction extends QObject {
   
   //Public Slots
   setChecked(bool) {
-    if (bool) { this.classList.add('checked'); }
-    else { this.classList.remove('checked'); }
+    if (bool) { 
+      if (this.parent().classList.contains('QMenu') || this.parent().classList.contains('QMenuBar')) { this._CheckText.innerHTML = "&#128504;"; }
+      this.classList.add('checked'); 
+    }
+    else { 
+      if (this.parent().classList.contains('QMenu') || this.parent().classList.contains('QMenuBar')) { this._CheckText.innerHTML = ""; }
+      this.classList.remove('checked'); 
+    }
     return this;
   }
   setDisabled(bool) { }
@@ -613,6 +621,7 @@ var Qt = {
   Tool: 11,
   SubWindow: 18,
   WindowTitleHint: 4096,
+  WindowUndockButtonHint: 8192,
   WindowMinimizeButtonHint: 16384,
   WindowMaximizeButtonHint: 32768,
   WindowMinMaxButtonsHint: 49152,
@@ -702,6 +711,7 @@ class QWidget extends QObject {
     this._Title = QuickElement('span',{class: "WindowTitle",style: "margin: 0 4px 0 4px; flex: auto; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;"},"");
     this._ClipControls = QuickElement('span',{class: "WindowClipControls", style: "max-width: 48px;"})
 
+    this._Undock = QuickElement('span',{class: "Undock"},"&#9660;");
     this._Minimize = QuickElement('span',{class: "Minimize"},"&#128469;&#xFE0E;");
     this._Maximize = QuickElement('span',{class: "Maximize"},"&#128470;&#xFE0E;");
     this._Close = QuickElement('span',{class: "Close"},"&#128473;&#xFE0E;");
@@ -710,6 +720,7 @@ class QWidget extends QObject {
     this._Handle.appendChild(this._Title);	
     this._Handle.appendChild(this._ClipControls);	
 
+    this._ClipControls.appendChild(this._Undock);
     this._ClipControls.appendChild(this._Minimize);
     this._ClipControls.appendChild(this._Maximize);
     this._ClipControls.appendChild(this._Close);	
@@ -734,6 +745,23 @@ class QWidget extends QObject {
 	  var Events = ['dragenter','dragleave','dragstart','drop','pointerleave','dblclick','pointerdown','pointerup','pointermove','wheel']
 	  Events.forEach((e) => { this.addEventListener(e,this); },this);
     this._Observer = new ResizeObserver((e) => { this._customEvent('childEvent',{ bubbles: true, detail: { target: this, jsEvent: e, 'QEvent': QEvent.Resize } }); }).observe(this);
+    this._Undock.addEventListener('pointerup',(e) => {
+      if (this.parentNode != document.body) { 
+        this._DockParent = this.parentNode;
+        this._DockParentData = {w: this.style.width, h: this.style.height };
+        this.style.position = "absolute";
+        this._Undock.innerHTML = "&#9650;";
+        document.body.appendChild(this);
+      }
+      else { 
+        this.style.position = "";
+        this.style.width = this._DockParentData.w;
+        this.style.height = this._DockParentData.h;
+        this._Undock.innerHTML = "&#9660;";
+        this._DockParent.appendChild(this);
+      }
+      //this._customEvent('childEvent',{ bubbles: true, detail: { target: this, jsEvent: e, 'QEvent': QEvent.Close } }); 
+    })
     this._Close.addEventListener('pointerup',(e) => { this._customEvent('childEvent',{ bubbles: true, detail: { target: this, jsEvent: e, 'QEvent': QEvent.Close } }); })
 
     //insert into DOM (delay so all extensions get to execute modifiers)
@@ -790,6 +818,8 @@ class QWidget extends QObject {
       else { this._Handle.style.display = 'none'; }
       if ((this._WindowFlags & Qt.Tool) != Qt.Tool) { this._Icon.style.display = null; }
       else { this._Icon.style.display = 'none'; }
+      if ((this._WindowFlags & Qt.WindowUndockButtonHint) == Qt.WindowUndockButtonHint) { this._Undock.style.display = null; }
+      else { this._Undock.style.display = 'none'; }
       if ((this._WindowFlags & Qt.WindowMinimizeButtonHint) == Qt.WindowMinimizeButtonHint) { this._Minimize.style.display = null; }
       else { this._Minimize.style.display = 'none'; }
       if ((this._WindowFlags & Qt.WindowMaximizeButtonHint) == Qt.WindowMaximizeButtonHint) { this._Maximize.style.display = null; }
@@ -800,7 +830,7 @@ class QWidget extends QObject {
     //we're a widget...
     else {
       //hide all the controls...
-      this._Handle.style.display = this._Icon.style.display = this._Minimize.style.display = this._Maximize.style.display = this._Close.style.display = 'none';
+      this._Handle.style.display = this._Icon.style.display = this._Undock.style.display = this._Minimize.style.display = this._Maximize.style.display = this._Close.style.display = 'none';
       //TODO: store x,y,w,h,minw,minh,maxw,maxh incase we become a window again...
     }
     this._customEvent('childEvent',{ bubbles: true, detail: { target: this, jsEvent: undefined, 'QEvent': QEvent.WindowStateChange } });
@@ -936,7 +966,7 @@ Qt Style Dock Widget Constructor
 
 class QDockWidget extends QWidget {
   constructor(qstring) {
-    var flags = Qt.Window | Qt.Tool | Qt.WindowTitleHint | Qt.WindowCloseButtonHint;
+    var flags = Qt.Window | Qt.Tool | Qt.WindowTitleHint | Qt.WindowUndockButtonHint | Qt.WindowCloseButtonHint;
     super(null,flags);
 
 	  //Private Properties
@@ -964,8 +994,15 @@ class QDockWidget extends QWidget {
 
     //Setup Event Listeners
     this.addEventListener('dragstart',(e) => { this.classList.toggle('Qt-CurrentDragWidget'); e.dataTransfer.setData('text/plain',null); });
-    this._Handle.addEventListener('pointerover',(e) => { this.setAttribute('draggable',true); });
+    this._Handle.addEventListener('pointerover',(e) => { if (this.parentNode != document.body) { this.setAttribute('draggable',true); } });
     this._Handle.addEventListener('pointerout',(e) => { this.setAttribute('draggable',false); });
+
+    this.addEventListener('pointermove',(e) => { this._MoveSubWindowPosition(e); });
+    this.addEventListener('pointerleave',(e) => { this._StopMove(e); });
+    this._Handle.addEventListener('pointerdown',(e) => { if (this.parentNode == document.body) { this._StartMove(e); } });
+    this._Handle.addEventListener('pointerup',(e) => { this._StopMove(e); });
+    this.addEventListener('pointerleave',(e) => { this._StopMove(e); });
+
     this._Close.addEventListener('click',(e) => { this.setVisible(false); this._customEvent('visibilityChanged', { detail: { visible: false } }); });
     //document.body.appendChild(this);
   }
@@ -987,6 +1024,23 @@ class QDockWidget extends QWidget {
       }
     }
   }
+
+  // Private Functions
+  _MoveSubWindowPosition(e) {
+    if (this._MoveData) {
+      var posX = e.clientX || (e.touches ? e.touches[0].clientX : 0),posY = e.clientY  || (e.touches ? e.touches[0].clientY : 0),aX = posX - this._MoveData.diffX,aY = posY - this._MoveData.diffY;
+      if (aX < 0) aX = 0;
+      if (aY < 0) aY = 0;
+      this.move(aX,aY); 
+    }
+  }
+  _StartMove(e) {
+    if (this.parentNode == document.body) {
+      var posX = e.clientX || e.touches[0].clientX, posY = e.clientY || e.touches[0].clientY, divTop = this.style.top.replace('px',''), divLeft = this.style.left.replace('px','');
+      this._MoveData = { eWi: parseInt(this.style.width) || this.offsetWidth, eHe: parseInt(this.style.height) || this.offsetHeight, cWi: parseInt(document.body.offsetWidth), cHe: parseInt(document.body.offsetHeight), diffX: posX - divLeft, diffY: posY - divTop }; 
+    }
+  }
+  _StopMove(e) { this._MoveData = null; }
 
   // Public Functions
   setAllowedAreas(Areas) { this._AllowedAreas = Areas; this._customEvent('allowedAreasChanged',{ detail: { allowedAreas: Areas } }); return this; }
@@ -1014,9 +1068,20 @@ class QListView extends QWidget {
 	  //this.addEventListener('indexesMoved',this);
 
     //Setup Event Listeners
+    this.addEventListener('click',(e) => {
+        var owner = event.target; 
+        while(owner.parentNode && owner.parentNode instanceof HTMLElement) {
+          if (owner.parentNode.classList.contains("QAction")) { 
+            this._customEvent('selectionChanged',{ bubbles: false, detail: { target: owner.parentNode } }); 
+            //this._customEvent('itemClicked',{ bubbles: false, detail: { target: owner } }); 
+            break; 
+          }
+          else { owner = owner.parentNode; }
+        } 
+    });
+
     this.addEventListener('selectionChanged',(e) => {
-      this.setSelected(e.detail.selected);
-      if (e.detail.deselected && e.detail.selected != e.detail.deselected) { this.deSelect(e.detail.deselected); }
+      this.setCurrentItem(e.detail.target);
     });
   }
   connectedCallback() { super.connectedCallback(); }
@@ -1034,12 +1099,101 @@ class QListView extends QWidget {
     this.className.add((/^iconview$/i.test(mode) ? "IconView" : "Static"));
     return this;
   }
-  setSelected(Action) { Action.className = "selected"; }
+  setCurrentItem(Action) {
+    this.querySelectorAll('.selected').forEach((child) => { child.classList.remove('selected'); });
+    Action.classList.add('selected');
+  }
+  setSelected(Action) { Action.classList.add("selected"); }
   deSelect(Action) { Action.classList.remove("selected"); }
 
   //Public Slots
 }
 customElements.define('q-listview', QListView);
+
+/*===============================================================================
+Qt Style Tab Widget Constructor
+===============================================================================*/
+
+class QTabWidget extends QWidget {
+  constructor() {
+    super(parent);
+
+	  //Private Properties
+	  this._Base.push("QTabWidget");
+    this.classList.add("QTabWidget");
+    this.style.userSelect = 'none';
+
+    //Build UI Components
+    this._Handle = QuickElement('div',{class: "ToolBarHandle"});
+    this.appendChild(this._Handle);
+
+    this._TabBar = QuickElement('div',{class: ""});
+    this.appendChild(this._TabBar);
+
+    /*==== Emitted Signals ====================================
+    TODO: currentChanged()
+    TODO: tabBarClicked()
+    TODO: tabBarDoubleClicked()
+    TODO: tabCloseRequested()
+    TODO: tabInserted()
+    TODO: tabRemoved()
+    ====== Catched Signals ====================================
+    =========================================================*/  
+
+    //Listen to Signals
+    this.addEventListener('currentChanged',this);
+    this.addEventListener('tabBarClicked',this);
+    this.addEventListener('tabBarDoubleClicked',this);
+    this.addEventListener('tabCloseRequested',this);
+    this.addEventListener('tabInserted',this);
+    this.addEventListener('tabRemoved',this);
+
+    //Setup Event Listeners
+  }
+  connectedCallback() { super.connectedCallback(); }
+  disconnectedCallback() { super.disconnectedCallback(); }
+  
+  //Default Event Handler
+  handleEvent(e) { 
+    super.handleEvent(e); 
+    if (e.type == 'currentChanged') { }
+    else if (e.type == 'tabBarClicked') { }
+    else if (e.type == 'tabBarDoubleClicked') { }
+    else if (e.type == 'tabCloseRequested') { }
+    else if (e.type == 'tabInserted') { }
+    else if (e.type == 'tabRemoved') { }
+  }
+
+  //Private Functions
+
+  //Public Functions
+  addTab() { }
+  clear() { }
+  count() { }
+  currentIndex() { }
+  currentWidget() { }
+  documentMode() { } //bool
+  insertTab() { }
+  isMovable() { }
+  movable() { } //bool
+  removeTab() { }
+  setCurrentIndex() { }
+  setDocumentMode() { }
+  setMovable() { }
+  setTabIcon() { }
+  setTabPosition() { }
+  setTabText() { }
+  setTabToolTip() { }
+  setTabsClosable() { }
+  tabText() { }
+  tabToolTip() { }
+  tabsClosable() { } //bool
+  widget() { }
+
+  //Public Slots
+}
+customElements.define('q-tabwidget', QTabWidget);
+
 
 /*===============================================================================
 Qt Style Toolbar Constructor

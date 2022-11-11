@@ -99,22 +99,33 @@ class WebMDI extends QMainWindow {
     this.mView = new QMenu('View');
       this.vFull = new QAction('','Fullscreen',this.mView).connect('triggered',this,this._ToggleFullscreen);
       new QAction('','',this.mView).setSeparator();
-      this.vMenu = new QAction('','Menubar',this.mView).connect('triggered',this,this._ToggleMenubar);
-      this.vTool = new QAction('','Toolbar',this.mView).connect('triggered',this,this._ToggleToolbar);
-      this.vTool = new QAction('','Treebar',this.mView).connect('triggered',this,this._ToggleTreebar);
-      this.vStatus = new QAction('','Statusbar',this.mView).connect('triggered',this,this._ToggleStatus);
+      this.vMenu = new QAction('','Menubar',this.mView).setCheckable(true).setChecked(true).connect('toggled',this,this._ToggleMenubar);
+      this.vTool = new QAction('','Toolbar',this.mView).setCheckable(true).setChecked(true).connect('toggled',this,this._ToggleToolbar);
+      this.vTree = new QAction('','Treebar',this.mView).setCheckable(true).setChecked(true).connect('toggled',this,this._ToggleTreebar);
+      this.vStatus = new QAction('','Statusbar',this.mView).setCheckable(true).setChecked(true).connect('toggled',this,this._ToggleStatus);
       new QAction('','',this.mView).setSeparator();
       this.vMPToggle = new QAction('','Toggle All Monitor Panels',this.mView).connect('triggered',this,this._ToggleAll);
       new QAction('','',this.mView).setSeparator();
-      this.vChan = new QAction('','Channel Messages',this.mView).connect('triggered',this,this._ToggleChan);
-      this.vHighlight = new QAction('','Highlights',this.mView).connect('triggered',this,this._ToggleHighlight);
-      this.vNotice = new QAction('','Notices',this.mView).connect('triggered',this,this._ToggleNotice);
-      this.vQuery = new QAction('','Private Messages',this.mView).connect('triggered',this,this._ToggleQuery);
-      this.vServer = new QAction('','Server Messages',this.mView).connect('triggered',this,this._ToggleServer);
+      this.vChan = new QAction('','Channel Messages',this.mView).setCheckable(true).setChecked(false).connect('toggled',this,this._ToggleChan);
+      this.vHighlight = new QAction('','Highlights',this.mView).setCheckable(true).setChecked(false).connect('toggled',this,this._ToggleHighlight);
+      this.vNotice = new QAction('','Notices',this.mView).setCheckable(true).setChecked(false).connect('toggled',this,this._ToggleNotice);
+      this.vQuery = new QAction('','Private Messages',this.mView).setCheckable(true).setChecked(false).connect('toggled',this,this._ToggleQuery);
+      this.vServer = new QAction('','Server Messages',this.mView).setCheckable(true).setChecked(false).connect('toggled',this,this._ToggleServer);
     this._MenuBar.addMenu(this.mView);
+    this.mHelp = new QMenu('Help');
+      this.hHelp = new QAction('','Help Doc',this.mHelp).setCheckable(true).setChecked(false).connect('toggled',this,this._ToggleHelp);
+      this.hAbout = new QAction('','About',this.mHelp).connect('triggered',this,this._ToggleAbout);
+    this._MenuBar.addMenu(this.mHelp);
     
     this.MDI = new QMdiArea(this);
     this.TreeDock = new QDockWidget('Treebar').setAllowedAreas(Qt.RightDockWidgetArea | Qt.LeftDockWidgetArea).setBaseSize(150,null).setResizable(true);
+    this.HelpDock = new QDockWidget('Help').setAllowedAreas(Qt.RightDockWidgetArea | Qt.LeftDockWidgetArea).setBaseSize(300,200).setResizable(true).setVisible(false);
+    setTimeout(() => {
+      this.HelpDock.setCentralWidget(document.getElementById('helpdoc'));
+      document.getElementById('helpdoc').style.display = "";
+    });
+    this.addDockWidget(Qt.RightDockWidgetArea,this.HelpDock);
+
     this.Treebar = new QTreeWidget();
     this.TreeDock.setCentralWidget(this.Treebar);
     this.addDockWidget(Qt.LeftDockWidgetArea,this.TreeDock);
@@ -137,9 +148,9 @@ class WebMDI extends QMainWindow {
 
     this.addDockWidget(Qt.BottomDockWidgetArea,this.MonitorChan);
     this.addDockWidget(Qt.BottomDockWidgetArea,this.MonitorHighlight);
-    this.addDockWidget(Qt.BottomDockWidgetArea,this.MonitorNotice);
     this.addDockWidget(Qt.BottomDockWidgetArea,this.MonitorQuery);
-    this.addDockWidget(Qt.BottomDockWidgetArea,this.MonitorServer);
+    this.addDockWidget(Qt.TopDockWidgetArea,this.MonitorServer);
+    this.addDockWidget(Qt.TopDockWidgetArea,this.MonitorNotice);
 
     this.Toolbar = new QToolBar();
     this.Toolbar.addAction(new QAction('images/options.ico').setToolTip('Options'));
@@ -151,6 +162,13 @@ class WebMDI extends QMainWindow {
     /*-------------------------------------------------------------------------------------------------
     Setup Event Listeners
     -------------------------------------------------------------------------------------------------*/
+    this.TreeDock.addEventListener('childEvent',(e) => { if (e.detail.QEvent == QEvent.Close) { this.vTree.toggle(); } });
+    this.HelpDock.addEventListener('childEvent',(e) => { if (e.detail.QEvent == QEvent.Close) { this.hHelp.toggle(); } });
+    this.MonitorChan.addEventListener('childEvent',(e) => { if (e.detail.QEvent == QEvent.Close) { this.vChan.toggle(); } });
+    this.MonitorHighlight.addEventListener('childEvent',(e) => { if (e.detail.QEvent == QEvent.Close) { this.vHighlight.toggle(); } });
+    this.MonitorNotice.addEventListener('childEvent',(e) => { if (e.detail.QEvent == QEvent.Close) { this.vNotice.toggle(); } });
+    this.MonitorQuery.addEventListener('childEvent',(e) => { if (e.detail.QEvent == QEvent.Close) { this.vQuery.toggle(); } });
+    this.MonitorServer.addEventListener('childEvent',(e) => { if (e.detail.QEvent == QEvent.Close) { this.vServer.toggle(); } });
 
     /*-------------------------------------------------------------------------------------------------
     Call any initializing routines
@@ -169,26 +187,29 @@ class WebMDI extends QMainWindow {
   /*-------------------------------------------------------------------------------------------------
   Private Functions
   -------------------------------------------------------------------------------------------------*/
+  _ToggleHelp(e) { this.HelpDock.setVisible(e.detail.checked); }
+  _ToggleAbout() { }
   _ToggleAll() {
-    this.MonitorChan.setVisible((this.MonitorChan.isVisible() == true ? false : true));
-    this.MonitorHighlight.setVisible((this.MonitorHighlight.isVisible() == true ? false : true));
-    this.MonitorNotice.setVisible((this.MonitorNotice.isVisible() == true ? false : true));
-    this.MonitorQuery.setVisible((this.MonitorQuery.isVisible() == true ? false : true));
-    this.MonitorServer.setVisible((this.MonitorServer.isVisible() == true ? false : true));
+    if (this.vChan.isChecked() && this.vHighlight.isChecked() && this.vNotice.isChecked() && this.vQuery.isChecked() && this.vServer.isChecked()) { var Invert = true; }
+    if (!this.vChan.isChecked() || Invert) { this.vChan.toggle(); }
+    if (!this.vHighlight.isChecked() || Invert) { this.vHighlight.toggle(); }
+    if (!this.vNotice.isChecked() || Invert) { this.vNotice.toggle(); }
+    if (!this.vQuery.isChecked() || Invert) { this.vQuery.toggle(); }
+    if (!this.vServer.isChecked() || Invert) { this.vServer.toggle(); }
   }
   _ToggleFullscreen() { 
     if (document.fullscreenElement == null) { document.documentElement.requestFullscreen(); }
     else { document.exitFullscreen(); }
   }
-  _ToggleChan() { this.MonitorChan.setVisible((this.MonitorChan.isVisible() == true ? false : true)); }
-  _ToggleHighlight() { this.MonitorHighlight.setVisible((this.MonitorHighlight.isVisible() == true ? false : true)); }
-  _ToggleMenubar() { }
-  _ToggleNotice() { this.MonitorNotice.setVisible((this.MonitorNotice.isVisible() == true ? false : true)); }
-  _ToggleQuery() { this.MonitorQuery.setVisible((this.MonitorQuery.isVisible() == true ? false : true)); }
-  _ToggleServer() { this.MonitorServer.setVisible((this.MonitorServer.isVisible() == true ? false : true)); }
-  _ToggleStatus() { this._StatusBar.style.display = (this._StatusBar.style.display == 'none' ? '' : 'none'); }
-  _ToggleToolbar() { this.Toolbar.setVisible((this.Toolbar.isVisible() == true ? false : true)); }
-  _ToggleTreebar() { this.TreeDock.setVisible((this.TreeDock.isVisible() == true ? false : true)); }
+  _ToggleChan(e) { this.MonitorChan.setVisible(e.detail.checked); }
+  _ToggleHighlight(e) { this.MonitorHighlight.setVisible(e.detail.checked); }
+  _ToggleMenubar(e) { this.menuBar().style.display = (e.detail.checked == true ? '' : 'none'); }
+  _ToggleNotice(e) { this.MonitorNotice.setVisible(e.detail.checked); }
+  _ToggleQuery(e) { this.MonitorQuery.setVisible(e.detail.checked); }
+  _ToggleServer(e) { this.MonitorServer.setVisible(e.detail.checked); }
+  _ToggleStatus(e) { this._StatusBar.style.display = (e.detail.checked == true ? '' : 'none'); }
+  _ToggleToolbar(e) { this.Toolbar.setVisible(e.detail.checked); }
+  _ToggleTreebar(e) { this.TreeDock.setVisible(e.detail.checked); }
   _NewSession(Nick,Server,Perform) {
     var x = 1;
     Object.keys(this.Windows).forEach((target) => { if ("" + x + "" == target) { x++; } });
@@ -252,15 +273,20 @@ class WebMDI extends QMainWindow {
       else if (/^\x2f+ctcp$/i.test(Cmd)) { if (/^([^ ]+) ([^ ]+)(.*)/.test(Extra)) { Sender._MainApp._SendData(Client,'PRIVMSG ' + RegExp.$1 + " :" + RegExp.$2 + RegExp.$3 + ""); } }
       else if (/^\x2f+ctcpreply$/i.test(Cmd)) { if (/^([^ ]+) ([^ ]+)(.*)/.test(Extra)) { Sender._MainApp._SendData(Client,'NOTICE ' + RegExp.$1 + " :" + RegExp.$2 + RegExp.$3 + ""); } }
       else if (/^\x2f+disconnect$/i.test(Cmd)) { Client.WSClose(); }
+      else if (/^\x2f+help$/i.test(Cmd)) { this._ToggleHelp({detail:{checked: true}}); }
       //else if (/^\x2f+invite$/i.test(Cmd)) { } /* Should be built in on an irc server? */
       else if (/^\x2f+kick$/i.test(Cmd)) { if (Extra.match(/^([^ ]+) ([^ ]+) ?(.*)$/)) { Sender._MainApp._SendData(Client,'KICK ' + RegExp.$1 + '' + RegExp.$2 + ' :' + RegExp.$3); } }
       //else if (/^\x2f+links$/i.test(Cmd)) { } /* GUI Server Links */
       //else if (/^\x2f+list$/i.test(Cmd)) { } /* GUI Channels List */
       else if (/^\x2f+(?:priv)?msg$/i.test(Cmd)) { if (Extra.match(/^([^ ]+) ?(.*)$/)) { Sender._MainApp._SendData(Client,'PRIVMSG ' + RegExp.$1 + ' :' + RegExp.$2); } }
+      else if (/^\x2f+menubar$/i.test(Cmd)) { this._ToggleMenubar({detail:{checked: (/^on$/i.test(Extra) ? true : false )}}); }
       else if (/^\x2f+notice$/i.test(Cmd)) { if (Extra.match(/^([^ ]+) ?(.*)$/)) { Sender._MainApp._SendData(Client,'NOTICE ' + RegExp.$1 + ' :' + RegExp.$2); } }
       else if (/^\x2f+part$/i.test(Cmd)) { Sender._MainApp._SendData(Client,'PART ' + Extra); }
       else if (/^\x2f+partall$/i.test(Cmd)) { Object.keys(this.Windows[Sender._CID].Windows).forEach((win) => { if (Client.isChan(win)) { Sender._MainApp._SendData(Client,'PART ' + win); } }); }
+      else if (/^\x2f+statusbar$/i.test(Cmd)) { this._ToggleStatus({detail:{checked: (/^on$/i.test(Extra) ? true : false )}}); }
+      else if (/^\x2f+toolbar$/i.test(Cmd)) { this._ToggleToolbar({detail:{checked: (/^on$/i.test(Extra) ? true : false )}}); }
       else if (/^\x2f+topic$/i.test(Cmd)) { if (Extra.match(/^([^ ]+) ?(.*)$/)) { Sender._MainApp._SendData(Client,'TOPIC ' + RegExp.$1 + ' :' + RegExp.$2); } }
+      else if (/^\x2f+treebar$/i.test(Cmd)) { this._ToggleTreebar({detail:{checked: (/^on$/i.test(Extra) ? true : false )}}); }
       else if (/^\x2f+query$/i.test(Cmd)) { 
         if (!this.Windows[Sender._CID].Windows.hasOwnProperty(Extra.toLowerCase())) { this._NewWindow(Sender._CID,Extra.toLowerCase(),{ "target": Extra, mdi: true, state: "normal", type: "query", cid: Sender._CID }); }
         else { this.MDI.setActiveSubWindow(this.Windows[Sender._CID].Windows[Extra.toLowerCase()]); }
@@ -505,7 +531,7 @@ class WebMDI extends QMainWindow {
           }
         }
       });
-      if (this._Config['options']['irc'].reconnect && Client.WSServerURI) {
+      if (this._Config['options']['irc'].reconnect && Client.WSServerURI && !Client.WSForceClose) {
         this._Echo(cid,"status window",1,LineColor,"* Connect retry: " + Client.WSServerURI);
         Client.WSConnect(Client.Me,Client.WSServerURI,['text.ircv3.net'],true);
       }
@@ -718,7 +744,7 @@ class CustomWindow extends QMdiSubWindow {
     this.Container = QuickElement('div',{style: 'display: flex; flex-direction: column; flex: auto; overflow: hidden;'});
 
     if (Data.lb == "2") {
-      this.ListDock = new QDockWidget((Data.type == 'channel' ? "Nicklist" : 'List')).setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea).setWindowFlag(Qt.WindowCloseButtonHint,false);
+      this.ListDock = new QDockWidget((Data.type == 'channel' ? "Nicklist" : 'List')).setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea).setWindowFlag(Qt.WindowUndockButtonHint,false).setWindowFlag(Qt.WindowCloseButtonHint,false);
       this.List = new QListView(this.ListDock).setBaseSize(100,null);
       this.List.addEventListener('dblclick',(e) => {
         if (/^span$/i.test(e.target.tagName)) { 
@@ -746,6 +772,14 @@ class CustomWindow extends QMdiSubWindow {
         this.Toolbar.addAction(new QAction().setSeparator());
         this.Toolbar.addAction(this.UserStats);
         this.addToolBar(Qt.TopToolBarArea,this.Toolbar);
+
+        var Client = this._MainApp.Windows[cid].Windows['status window']._Client;
+        this.NickModeBar = new QToolBar();
+
+        Client.NickMode.split("").forEach((mode) => { 
+          this.NickModeBar.addAction(new QAction('',"~" + mode).setToolTip('Toggle mode ' + mode).connect('triggered',this,() => { this._QuickMode(mode) }));
+        });
+        this.addToolBar(Qt.RightToolBarArea,this.NickModeBar);
     
         this.IdleContainer = QuickElement('div',{style: 'display: none;'},'Idle: 0');
         this.statusBar().appendChild(this.IdleContainer);
@@ -923,6 +957,13 @@ class CustomWindow extends QMdiSubWindow {
     });
     sorted.forEach((item) => { item.parentNode.appendChild(item); });
   }
+  _QuickMode(mode) {
+    var Client = this._MainApp.Windows[this._CID].Windows['status window']._Client , Chan = Client.GetICL(this._Name);
+    //TODO: build Multi-modelines based off of ModeSpl for multiple selections
+    this.List.querySelectorAll(".selected").forEach((action) => {
+      this._MainApp._SendData(Client,"MODE " + this._Name + (Client.isNickMode(action.dataset.nick,mode,this._Name) ? " -" : " +") + mode + " " + action.dataset.nick);
+    });
+  }
   _handleNickListEvent(event,nick,newnick) {
     var Client = this._MainApp.Windows[this._CID].Windows['status window']._Client , Chan = Client.GetICL(this._Name);
     if (/^(?:part|quit|kick)$/.test(event)) {
@@ -988,5 +1029,140 @@ window.addEventListener('load',()=>{
       </script>
     </head>
   <body>
+    <div id="helpdoc" style="display: none">
+      <h1>Basic IRC Commands:</h1>
+      <hr>
+      <h2>/away [message]</h2>
+      Leaves a message indicating that you are currently not paying attention to IRC. When someone sends you a message, they will automatically see your away message. Using /AWAY with no message marks you as no longer being away and removes your previous message.
+      <p></p>
+
+      <h2>/invite nickname #channel</h2>
+      Invites a nickname to a channel that you are on.
+      <p></p>
+
+      <h2>/join #channel,#channel,etc...</h2>
+      Joins the specified channel(s).
+      <p></p>
+
+      <h2>/kick #channel nickname [reason]</h2>
+      Kicks a nickname off a channel that you are on and optionally attaches a reason.
+      <p></p>
+      
+      <h2>/mode [#channel] [[+|-]modechars [parameters]]</h2>
+      Sets/unsets user modes or channel modes.
+      <p></p>
+
+      <h2>/nick nickname</h2>
+      Changes your nickname to a new nickname.
+      <p></p>
+
+      <h2>/part #channel,#channel,etc... [message]</h2>
+      Leaves the specified channel(s) that you are on and optionally attaches a part message.
+      <p></p>
+      
+      <h2>/quit [message]</h2>
+      Disconnects you from IRC and will give the optional message as the reason for your departure. (this message only appears to people who are on the same channels as you).
+      <p></p>
+      
+      <h2>/topic #channel newtopic</h2>
+      Changes the topic for a channel that you are on.
+      <p></p>
+                                    
+      <h2>/whois nickname</h2>
+      Shows you information about a nickname.
+      <p></p>
+                                    
+      <hr>
+      <h1>Web-IRC Commands:</h1>
+      <hr>
+      <h2>/ame &lt;message&gt;</h2>
+      This command sends the specified action to all open channel windows.
+      <p></p>
+
+      <h2>/amsg &lt;message&gt;</h2>
+      This command sends the specified message to all open channel windows.
+      <p></p>
+
+      <h2>/channel [#channel]</h2>
+      Pops up the channel central window for the channel window you are currently in. You can also specify a #channel name to open the channel central for a channel you have already joined but which is not the active window.
+      <p></p>
+
+      <h2>/clear [-hcqns] [windowname]</h2>
+      Clears the buffer of the current window. If you specify a window name, that window's buffer will be cleared.<br>
+      The -s switch clears the status window.<br>
+      The -h switch clears the editbox command history for a window.      
+      <p></p>
+      
+      <h2>/clearall [-snqma]</h2>
+      Clears the buffers of the specified windows, where s = status, n = channel, q = query, m = monitor panels, a = all windows on all connections.<br>
+      If no switches are specified all windows are cleared.      
+      <p></p>
+
+      <h2>/disconnect</h2>
+      Forces a disconnect from a server. This is different from the /quit command which sends a quit message to the server and waits for the server to disconnect you.
+      <p></p>
+            
+      <h2>/help</h2>
+      Opens up the Help Documentation.
+      <p></p>
+
+      <h2>/links [-nx]</h2>
+      Retrieves the servers to which your current server is linked.<br>
+      The -n and -x switches minimize/maximize the window when it opens.
+      <p></p>
+      
+      <h2>/me message</h2>
+      Sends an action message to the current channel or query window. To send an action message to a specific channel or nickname, see the /describe command.
+      <p></p>
+
+      <h2>/menubar &lt;on|[off]&gt;</h2>
+      Changes the menubar display state. Default with no parameter is off.
+      <p></p>
+
+      <h2>/msg or /privmsg target message</h2>
+      Sends a private message to the target.<br>
+      Note: If the target is a nickname, this will send without opening a query window.
+      <p></p>
+      
+      <h2>/notice target message</h2>
+      Sends a notice to the target with specified message. 
+      <p></p>
+      
+      <h2>/partall [message]</h2>
+      Leaves all channels that you are on and optionally attaches a part message.
+      <p></p>
+      
+      <h2>/query nickname</h2>
+      Opens a query window to this specific nickname. If it's already opened, it will set the query window the active window.
+      <p></p>
+
+      <h2>/raw or /quote &lt;command&gt;</h2>
+      Sends the specified command directly to the server. You must know the correct raw format of the command you are sending.
+      <p></p>
+
+      <h2>/say message</h2>
+      This sends a message to the current channel or query window. So "/say Hello there" would be the same as just typing "Hello there".
+      <p></p>
+
+      <h2>/server [-mn] &lt;server&gt; [-i nick]</h2>
+      Connects you to a server, first disconnecting you from the current server.<br>
+      Note: Servers are in form of: ws(s)://server:port/optionalPaths/<br>
+      The -m switch creates a new server window for that connection and connects to the server. The -n switch does the same thing but does not connect to the server.<br>
+      The -i switch sets the nickname to be used when connecting to server.
+      <p></p>
+      
+      <h2>/statusbar &lt;on|[off]&gt;</h2>
+      Changes the statusbar display state. Default with no parameter is off.
+      <p></p>
+
+      <h2>/toolbar &lt;on|[off]&gt;</h2>
+      Changes the toolbar display state. Default with no parameter is off.
+      <p></p>
+
+      <h2>/treebar &lt;on|[off]&gt;</h2>
+      Changes the treebar display state. Default with no parameter is off.
+      <p></p>
+
+    </div>
   </body>
 </html>

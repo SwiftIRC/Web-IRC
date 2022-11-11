@@ -67,12 +67,15 @@ class IALItem {
       this.Network = '';
       this.NickMode = 'ohv';
       this.Prefix = '@%+';
+      this.WSForceClose = false;
     }
     WSConnect(nick,server,type,blockLogon) {
       this.WSClose();
       if (nick) { this.Me = nick; }
       this.Server = server;
       this.WSServerURI = server;
+      this.WSForceClose = false;
+      if (this.hasOwnProperty('Socket')) { this.Socket.removeEventListener('close',this.WSClosed.bind(this)); }
       this.Socket = new WebSocket(server,type);
       this.Socket.addEventListener('open', () => { 
         if (!blockLogon) { this.Emit('logon',[this.CID]); }
@@ -81,7 +84,7 @@ class IALItem {
       });
       this.Socket.addEventListener('message', async e => { this.ParseLine((e.data instanceof Blob ? await e.data.text() : e.data)); });
       //this.Socket.addEventListener('error', (e) => { console.log(e); });
-      this.Socket.addEventListener('close', (e) => { this.WSClosed(); });
+      this.Socket.addEventListener('close',this.WSClosed.bind(this));
     }
     WSSend(data) {
       if (this.hasOwnProperty('Socket')) {
@@ -90,18 +93,20 @@ class IALItem {
         this.PingSocket = setInterval(() => { this.WSSend("PING " + this.Me); },"60000");
       }
     }
-    WSClose() { if (this.hasOwnProperty('Socket') && this.Socket.readyState <= 1) { this.Socket.close(); } }
+    WSClose() { this.WSForceClose = true; if (this.hasOwnProperty('Socket') && this.Socket.readyState <= 1) { this.Socket.close(); } }
     WSClosed() {
-      this.Emit('disconnect',[this.CID]);
-      this.IAL = {}; //Internal Address List Object
-      this.ICL = {}; //Internal Channels List Object
-      this.UMode = '';
-      this.ChanModes = 'bIe,k,l';
-      this.ChanTypes = '#&';
-      this.ModeSpl = 3;
-      this.Network = '';
-      this.NickMode = 'ohv';
-      this.Prefix = '@%+';
+      if (this.Socket.readyState == 3) {
+        this.Emit('disconnect',[this.CID]);
+        this.IAL = {}; //Internal Address List Object
+        this.ICL = {}; //Internal Channels List Object
+        this.UMode = '';
+        this.ChanModes = 'bIe,k,l';
+        this.ChanTypes = '#&';
+        this.ModeSpl = 3;
+        this.Network = '';
+        this.NickMode = 'ohv';
+        this.Prefix = '@%+';
+      }
     }
     SortNicks(chan,array) {
       array.sort((a,b) => {
@@ -232,7 +237,7 @@ class IALItem {
         }
         else if (/^MODE$/i.test(Event)) {
           if (this.isChan(Args[0])) {
-            var Middle = Args.slice(2).join(" ") , Parms = ((Middle != '' ? Middle : '') + (Extra != '' ? " " + Extra : "")) || '';
+            var Middle = Args.slice(2).join(" ") , Parms = ((Middle != '' ? Middle : '') + (Extra != '' ? (Middle != '' ? " " : "") + Extra : "")) || '';
             this.ParseModes(Nick,Address,Args[0],Args[1],Parms);
             this.Emit(Event.toLowerCase(),[this.CID,Nick,Address,Args[0],Args[1] + (Parms != '' ? " " + Parms : '')]);
           }
@@ -358,6 +363,7 @@ class IALItem {
   isHop(nick,chan) { if (this.IAL.hasOwnProperty(nick) && this.IAL[nick].channels.hasOwnProperty(chan.toLowerCase())) { return (this.IAL[nick].channels[chan.toLowerCase()].indexOf("%") == -1 ? false : true); } return false; }
   isVoice(nick,chan) { if (this.IAL.hasOwnProperty(nick) && this.IAL[nick].channels.hasOwnProperty(chan.toLowerCase())) { return (this.IAL[nick].channels[chan.toLowerCase()].indexOf("+") == -1 ? false : true); } return false; }
   isReg(nick,chan) { if (this.IAL.hasOwnProperty(nick) && this.IAL[nick].channels.hasOwnProperty(chan.toLowerCase())) { return (this.IAL[nick].channels[chan.toLowerCase()] == "" ? true : false); } return false; }
+  isNickMode(nick,mode,chan) { if (this.IAL.hasOwnProperty(nick) && this.IAL[nick].channels.hasOwnProperty(chan.toLowerCase())) { return (this.IAL[nick].channels[chan.toLowerCase()].indexOf(this.Prefix.substr(this.NickMode.indexOf(mode),1)) == -1 ? false : true); } return false; }
       
   isWm(wc,mc) { var expr = new RegExp("^" + wc.replace(/(\W)/g,function(str,backref) { return (backref == "*" ? ".*" : (backref == "?" ? "." : "\\" + backref)); }) + "$","i");  return expr.test(mc); }
   isWmCS(wc,mc) { var expr = new RegExp("^" + wc.replace(/(\W)/g,function(str,backref) { return (backref == "*" ? ".*" : (backref == "?" ? "." : "\\" + backref)); }) + "$");  return expr.test(mc); }
