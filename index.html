@@ -9,6 +9,15 @@
       <script src="jsqtv4.js"></script>
       <script src="ircclient.js"></script>
       <script>
+
+// --- Found Test IRC Networks ---
+// Unreal wss://fiery.swiftirc.net:4443
+// solanum wss://web.libera.chat/webirc/websocket/ (gamja piggyback, only works on local httpd so websocket identifies as "Origin: http(s)://localhost" to bypass CORS)
+// ? wss://irc.arnorichter.de:47363
+// Unreal wss://irc.wrestlingnewssource.com:8000 (#krysti another cool webclient author's channel)
+// Inspircd wss://irc.hybridirc.com:7002
+// Unreal ws://irc.mircscripts.info:8000
+
 function AscTime(date,format) {
   let DayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] , MonthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   let Second = date.getSeconds(), Minute = date.getMinutes(), Hour = date.getHours(), Day = date.getDay(), Month = date.getMonth(), Year = date.getFullYear(), OffsetHrs = date.getTimezoneOffset() / -60, OffsetMns = (Math.abs(OffsetHrs) % 1 * 60).toString().padStart(2,0);
@@ -28,15 +37,24 @@ function AscTime(date,format) {
   }).replace(/(1?\d)oo/g,function(m,i) { return i + ([0,'st','nd','rd'][i]||'th'); });  
 }
 
-function isVideo(url) {
+function AsyncEmbed(url) {
   return new Promise((res, rej) => {
-    var video = document.createElement('video');
-    video.preload='metadata';
-    video.onloadedmetadata = (evt) => {
-      res(!!(video.videoHeight && video.videoWidth));
-      video.src = null;      
-    };
-    video.src = url;
+    if (/\.(?:bmp|cgm|g3|gif|ief|jpe?g?|png|btif|svgz?|tiff?|psd|djvu?|dwg|dxf|fbs|fpx|fst|mmr|rlc|mdi|npx|wbmp|xif|ras|cmx|ico|pcx|pic|pct|pnm|pbm|pgm|ppm|rgb|xbm|xpm|xwd)$/i.test(url)) {
+      var img = document.createElement('img');
+      img.addEventListener('load',() => { res({type: 'image', data: img, src: url}); });
+      img.addEventListener('error',() => { rej({type: 'text', src: url}); });
+      img.src = url;
+    }
+    else if (/\.(?:asf|au|snd|midi?|kar|rmi|mpga|mp?[2-4](?:a|v)?|eol|lvp|ecelp(?:4800|7470|9600)|wav|aiff?c?|m3u|wax|wma|ram?|rmp|3g(?:p|2)|h26(?:1|3|4)|jpg(?:m|v)|jpm|mjp?2|mpe?g?|m[1-2]v|qt|mov|fvt|mxu|m4u|viv|fli|asx|wm(?:v|x)?|wvx|avi|movie)$/i.test(url)) { 
+      var video = QuickElement('video',{controls: true, style: "text-indent: 0; max-width: 400px; max-height: 227px;"})
+      video.preload='metadata';
+      video.onloadedmetadata = (evt) => {
+        if (video.videoHeight && video.videoWidth) { res({type: 'video', data: video, src: url}); }
+        else { video.src = null; rej({type: 'audio', data: QuickElement('audio',{src: url, controls: true, style: "text-indent: 0; max-width: 400px; max-height: 227px;"}) , src: url}); }
+      };
+      video.src = url;
+    }
+    else { res({type: 'text', src: url}); }
   });
 }
 
@@ -509,21 +527,28 @@ class WebMDI extends QMainWindow {
     var b = 0, u = 0, r = 0 , i = 0, s = 0, bg = cc.length, fg = cc.length, rav;
 
     text = text.replace(/([&<>])/g,(m,e) => { return "&#" + e.charCodeAt(0) + ";"; }).replace(/((?:https?|ftp):\/\/(?:[\w_-]+(?:(?:\.[\w_-]+)+))(?:[\w.,@?^=%&:/~+#-;]*[\w@?^=%&/~+#-])?)/ig,function(match,url) {   
-      if (ii && /\.(?:bmp|cgm|g3|gif|ief|jpe?g?|png|btif|svgz?|tiff?|psd|djvu?|dwg|dxf|fbs|fpx|fst|mmr|rlc|mdi|npx|wbmp|xif|ras|cmx|ico|pcx|pic|pct|pnm|pbm|pgm|ppm|rgb|xbm|xpm|xwd)$/i.test(url)) { return '<a href="' + url + '" target="_blank"><img alt="image" src="' + url + '" style="max-width: 300px; max-height: 300px; aspect-ratio: 300 / 300;"></a>'; }
-      //au|snd|midi?|kar|rmi|mp4a?|mpga?|mp?2a?|mp?3a?|eol|lvp|ecelp4800|ecelp7470|ecelp9600|wav|aif(?:f|c)?|m3u|wax|wma|ram?|rmp
-      //return '<audio controls src="' + url + '" style="text-indent: 0;"><a href="' + url + '">Download audio</a></audio>'; 
-      else if (ia && /\.(?:asf|au|snd|midi?|kar|rmi|mpga|mp?[2-4](?:a|v)?|eol|lvp|ecelp(?:4800|7470|9600)|wav|aiff?c?|m3u|wax|wma|ram?|rmp|3g(?:p|2)|h26(?:1|3|4)|jpg(?:m|v)|jpm|mjp?2|mpe?g?|m[1-2]v|qt|mov|fvt|mxu|m4u|viv|fli|asx|wm(?:v|x)?|wvx|avi|movie)$/i.test(url)) {
+      if (iy && /^https?:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=)?(.+)/g.test(url)) { return '<iframe width="320" height="280" src="//www.youtube.com/embed/' + RegExp.$1 + '" frameborder="0" allowfullscreen></iframe>'; }
+      else {
         rav = (Math.random() + 1).toString(36).substring(7);
-        isVideo(url).then((bool) => {
-          var elem = document.getElementById('VideoAudioPromise' + rav);
-          var control = QuickElement((bool ? 'video' : 'audio'),{src: url, controls: true, style: "text-indent: 0; max-width: 400px; max-height: 227px;"});
-          elem.parentNode.insertBefore(control,elem);
-          elem.parentNode.removeChild(elem);
+        AsyncEmbed(url).then((info) => {
+          var elem = document.getElementById('AsyncEmbed' + rav);
+          if (ii & info.type == "image") {
+            info.data.style.maxWidth = info.data.style.maxHeight = "300px";
+            info.data.style.aspectRatio = info.data.naturalWidth + " / " + info.data.naturalHeight;
+            elem.parentNode.insertBefore(info.data,elem);
+            elem.parentNode.removeChild(elem);
+          }
+          else if (ia && (info.type == "audio" || info.type == "video")) {
+            elem.parentNode.insertBefore(info.data,elem);
+            elem.parentNode.removeChild(elem);
+          }
+          else {
+            elem.innerText = info.src;
+            elem.removeAttribute('id');
+          }
         });
-        return '<span id="VideoAudioPromise' + rav + '"></span>';
+        return '<a href="' + url + '" target="_blank"><span id="AsyncEmbed' + rav + '">Loading...</span></a>';
       }
-      else if (iy && /^https?:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=)?(.+)/g.test(url)) { return '<iframe width="320" height="280" src="//www.youtube.com/embed/' + RegExp.$1 + '" frameborder="0" allowfullscreen></iframe>'; }
-      return '<a href="' + url + '" target="_blank">' + url + '</a>'; 
     });
   
     var ret = text.replace(/(\x03(?:(?:\d\d?),)?(?:\d\d?)|[\x02\x03\x16\x1d\x1e\x0f\x1f])([^\x02\x03\x16\x1d\x1e\x0f\x1f]*)/g,function(match,control,string) {
