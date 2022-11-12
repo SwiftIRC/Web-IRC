@@ -28,6 +28,18 @@ function AscTime(date,format) {
   }).replace(/(1?\d)oo/g,function(m,i) { return i + ([0,'st','nd','rd'][i]||'th'); });  
 }
 
+function isVideo(url) {
+  return new Promise((res, rej) => {
+    var video = document.createElement('video');
+    video.preload='metadata';
+    video.onloadedmetadata = (evt) => {
+      res(!!(video.videoHeight && video.videoWidth));
+      video.src = null;      
+    };
+    video.src = url;
+  });
+}
+
 /*================================================================================================
 Simple Web-UI MDI interface
 ================================================================================================*/
@@ -64,6 +76,7 @@ class WebMDI extends QMainWindow {
       },
       'options': { 
         'irc': {
+          'ebeeps': true,
           'reconnect': true,
           'showprefix': true,
           'kickrejoin': true, //TODO
@@ -120,7 +133,11 @@ class WebMDI extends QMainWindow {
     this.MDI = new QMdiArea(this);
     this.TreeDock = new QDockWidget('Treebar').setAllowedAreas(Qt.RightDockWidgetArea | Qt.LeftDockWidgetArea).setBaseSize(150,null).setResizable(true);
     this.HelpDock = new QDockWidget('Help').setAllowedAreas(Qt.RightDockWidgetArea | Qt.LeftDockWidgetArea).setBaseSize(300,200).setResizable(true).setVisible(false);
+    this.HelpDialog = new QDialog().setBaseSize(270,240).setWindowTitle('About Web-IRC').hide();
     setTimeout(() => {
+      this.HelpDialog.setCentralWidget(document.getElementById('helpabout'));
+      document.getElementById('helpabout').style.display = "";
+
       this.HelpDock.setCentralWidget(document.getElementById('helpdoc'));
       document.getElementById('helpdoc').style.display = "";
     });
@@ -163,6 +180,7 @@ class WebMDI extends QMainWindow {
     Setup Event Listeners
     -------------------------------------------------------------------------------------------------*/
     this.TreeDock.addEventListener('childEvent',(e) => { if (e.detail.QEvent == QEvent.Close) { this.vTree.toggle(); } });
+    this.HelpDialog.addEventListener('childEvent',(e) => { if (e.detail.QEvent == QEvent.Close) { this.HelpDialog.hide(); } });
     this.HelpDock.addEventListener('childEvent',(e) => { if (e.detail.QEvent == QEvent.Close) { this.hHelp.toggle(); } });
     this.MonitorChan.addEventListener('childEvent',(e) => { if (e.detail.QEvent == QEvent.Close) { this.vChan.toggle(); } });
     this.MonitorHighlight.addEventListener('childEvent',(e) => { if (e.detail.QEvent == QEvent.Close) { this.vHighlight.toggle(); } });
@@ -187,8 +205,46 @@ class WebMDI extends QMainWindow {
   /*-------------------------------------------------------------------------------------------------
   Private Functions
   -------------------------------------------------------------------------------------------------*/
+  _InternalBeep() {
+    if (this._Config['options']['irc'].ebeeps) {
+      var context = new(window.AudioContext || window.webkitAudioContext)();
+      var square_wave = context.createOscillator();
+      var envelope = context.createGain();
+      var volume = context.createGain();
+      var destination = context.destination;
+      var t0 = context.currentTime;
+
+      square_wave.type = "square";
+      square_wave.frequency.value = 440 * 4;
+      square_wave.detune.value = 0;
+      envelope.gain.value = 0.0;
+      volume.gain.value = 0.05;
+
+      square_wave.connect(envelope).connect(volume).connect(destination);
+
+      // Envelope
+      var t1, v = 0.5;
+      envelope.gain.setValueAtTime(0.0, t1 = t0);
+      envelope.gain.linearRampToValueAtTime(1.0, t1 = t0 + v * 0.01);
+      envelope.gain.linearRampToValueAtTime(0.1, t1 = t0 + v * 0.09);
+      envelope.gain.linearRampToValueAtTime(0.0, t1 = t0 + v * 0.50);
+
+      square_wave.addEventListener('ended',() => { 
+        square_wave.disconnect(envelope);
+        envelope.disconnect(volume);
+        volume.disconnect(context.destination);
+      });
+      //square_wave.onended = on_ended;
+      square_wave.start();
+      square_wave.stop(t1);
+    }
+  }
   _ToggleHelp(e) { this.HelpDock.setVisible(e.detail.checked); }
-  _ToggleAbout() { }
+  _ToggleAbout() { 
+    this.HelpDialog.style.left = (parseInt(document.body.firstElementChild.offsetWidth) / 2 - parseInt(this.HelpDialog.style.width) / 2) + "px";
+    this.HelpDialog.style.top = (parseInt(document.body.firstElementChild.offsetHeight) / 2 - parseInt(this.HelpDialog.style.height) / 2) + "px";
+    this.HelpDialog.show();
+  }
   _ToggleAll() {
     if (this.vChan.isChecked() && this.vHighlight.isChecked() && this.vNotice.isChecked() && this.vQuery.isChecked() && this.vServer.isChecked()) { var Invert = true; }
     if (!this.vChan.isChecked() || Invert) { this.vChan.toggle(); }
@@ -269,10 +325,17 @@ class WebMDI extends QMainWindow {
         }); 
       }
       else if (/^\x2f+away$/i.test(Cmd)) { Sender._MainApp._SendData(Client,'AWAY' + (Extra != "" ? " :" + Extra : "")); }
+      else if (/^\x2f+beep$/i.test(Cmd)) { this._InternalBeep(); }
       //else if (/^\x2f+channel$/i.test(Cmd)) { } /* GUI Chan Central */
       else if (/^\x2f+ctcp$/i.test(Cmd)) { if (/^([^ ]+) ([^ ]+)(.*)/.test(Extra)) { Sender._MainApp._SendData(Client,'PRIVMSG ' + RegExp.$1 + " :" + RegExp.$2 + RegExp.$3 + ""); } }
       else if (/^\x2f+ctcpreply$/i.test(Cmd)) { if (/^([^ ]+) ([^ ]+)(.*)/.test(Extra)) { Sender._MainApp._SendData(Client,'NOTICE ' + RegExp.$1 + " :" + RegExp.$2 + RegExp.$3 + ""); } }
       else if (/^\x2f+disconnect$/i.test(Cmd)) { Client.WSClose(); }
+      else if (/^\x2f+ebeeps$/i.test(Cmd)) {
+        var onoff = (/^on$/i.test(Extra) ? true : false );
+        this._Config['options']['irc'].ebeeps = onoff;
+        this._Echo(Client.CID,"status window",1,this._Color('info'),"* Event Beeps are " + (onoff ? "on" : "off"));
+      }
+
       else if (/^\x2f+help$/i.test(Cmd)) { this._ToggleHelp({detail:{checked: true}}); }
       //else if (/^\x2f+invite$/i.test(Cmd)) { } /* Should be built in on an irc server? */
       else if (/^\x2f+kick$/i.test(Cmd)) { if (Extra.match(/^([^ ]+) ([^ ]+) ?(.*)$/)) { Sender._MainApp._SendData(Client,'KICK ' + RegExp.$1 + '' + RegExp.$2 + ' :' + RegExp.$3); } }
@@ -431,8 +494,9 @@ class WebMDI extends QMainWindow {
     var active = this.MDI.activeSubWindow();
     if (active && active.hasOwnProperty('_CID')) { 
       var Client = this.Windows[active._CID].Windows['status window']._Client;
-      this._StatusBar.innerText = Client.Me + " [+" + Client.UMode + "] on " + Client.Server; 
+      this._StatusBar.innerText = Client.Me + " [+" + Client.UMode + "] on " + Client.Server + (Client.Latency != "" && !isNaN(Client.Latency) ? " Latency: " + Client.Latency + " ms" : ""); 
     }
+    else { console.log("status error:"); console.log(active); }
   }
   _Color(type) { return (isNaN(this._Config['colors'][type]) ? this._Config['colors'][type] : this._Config['palette'][this._Config['colors'][type]]); }
 
@@ -442,11 +506,22 @@ class WebMDI extends QMainWindow {
   CC2Html(linecolor,text,ii,ia,iy) {
     // === CC var is a direct rip of $rgb($color(N)) converted to base 16. N is 0-99 for all 100 new colors added to mIRC.
     var cc = this._Config['palette'];
-    var b = 0, u = 0, r = 0 , i = 0, s = 0, bg = cc.length, fg = cc.length;
+    var b = 0, u = 0, r = 0 , i = 0, s = 0, bg = cc.length, fg = cc.length, rav;
 
     text = text.replace(/([&<>])/g,(m,e) => { return "&#" + e.charCodeAt(0) + ";"; }).replace(/((?:https?|ftp):\/\/(?:[\w_-]+(?:(?:\.[\w_-]+)+))(?:[\w.,@?^=%&:/~+#-;]*[\w@?^=%&/~+#-])?)/ig,function(match,url) {   
       if (ii && /\.(?:bmp|cgm|g3|gif|ief|jpe?g?|png|btif|svgz?|tiff?|psd|djvu?|dwg|dxf|fbs|fpx|fst|mmr|rlc|mdi|npx|wbmp|xif|ras|cmx|ico|pcx|pic|pct|pnm|pbm|pgm|ppm|rgb|xbm|xpm|xwd)$/i.test(url)) { return '<a href="' + url + '" target="_blank"><img alt="image" src="' + url + '" style="max-width: 300px; max-height: 300px; aspect-ratio: 300 / 300;"></a>'; }
-      else if (ia && /\.(?:au|snd|midi?|kar|rmi|mp4a?|mpga?|mp?2a?|mp?3a?|eol|lvp|ecelp4800|ecelp7470|ecelp9600|wav|aif(?:f|c)?|m3u|wax|wma|ram?|rmp)$/i.test(url)) { return '<audio controls src="' + url + '" style="text-indent: 0;"><a href="' + url + '">Download audio</a></audio>'; }
+      //au|snd|midi?|kar|rmi|mp4a?|mpga?|mp?2a?|mp?3a?|eol|lvp|ecelp4800|ecelp7470|ecelp9600|wav|aif(?:f|c)?|m3u|wax|wma|ram?|rmp
+      //return '<audio controls src="' + url + '" style="text-indent: 0;"><a href="' + url + '">Download audio</a></audio>'; 
+      else if (ia && /\.(?:asf|au|snd|midi?|kar|rmi|mpga|mp?[2-4](?:a|v)?|eol|lvp|ecelp(?:4800|7470|9600)|wav|aiff?c?|m3u|wax|wma|ram?|rmp|3g(?:p|2)|h26(?:1|3|4)|jpg(?:m|v)|jpm|mjp?2|mpe?g?|m[1-2]v|qt|mov|fvt|mxu|m4u|viv|fli|asx|wm(?:v|x)?|wvx|avi|movie)$/i.test(url)) {
+        rav = (Math.random() + 1).toString(36).substring(7);
+        isVideo(url).then((bool) => {
+          var elem = document.getElementById('VideoAudioPromise' + rav);
+          var control = QuickElement((bool ? 'video' : 'audio'),{src: url, controls: true, style: "text-indent: 0; max-width: 400px; max-height: 227px;"});
+          elem.parentNode.insertBefore(control,elem);
+          elem.parentNode.removeChild(elem);
+        });
+        return '<span id="VideoAudioPromise' + rav + '"></span>';
+      }
       else if (iy && /^https?:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=)?(.+)/g.test(url)) { return '<iframe width="320" height="280" src="//www.youtube.com/embed/' + RegExp.$1 + '" frameborder="0" allowfullscreen></iframe>'; }
       return '<a href="' + url + '" target="_blank">' + url + '</a>'; 
     });
@@ -599,6 +674,7 @@ class WebMDI extends QMainWindow {
   }
   onPong(cid,msg) { 
     var Client = this.Windows[cid].Windows['status window']._Client;
+    setTimeout(() => { this._updateStatus(); });
   }
   onQuit(cid,nick,address,msg) { 
     var Client = this.Windows[cid].Windows['status window']._Client, IAL = Client.GetIAL(nick) , LineColor = this._Color('quit');
@@ -937,6 +1013,7 @@ class CustomWindow extends QMdiSubWindow {
     tmp.innerHTML = this._MainApp.CC2Html(color,string,1,1,1) + "\n";
     this.ViewPort.appendChild(tmp);
     if (shouldscroll) { this._scrollBottom(); }
+    else { this._MainApp._InternalBeep(); }
     if (!this.TreeItem.isSelected() && highlight > this._Highlight) { this._Highlight = highlight; }
     this.TreeItem._TreeLabel.style.color = ['inherit','#0000FC','#FF0000'][this._Highlight];
   }
@@ -1029,6 +1106,22 @@ window.addEventListener('load',()=>{
       </script>
     </head>
   <body>
+    <div id="helpabout" style="display: none; overflow: auto;">
+      <table>
+        <tr>
+          <td valign="top"><img src='./favicon.ico'></div></td>
+          <td>
+            Web-IRC&reg;<br>Internet Relay Chat Client<p>
+              By Sean Everett (Talon)<p>
+              Copyright &copy; 2022<br>
+              Talon Co. Ltd.<br>
+              All Rights Reserved.<p>
+              <a href='https://chat.swiftirc.net/' target='_blank'>https://chat.swiftirc.net/</a><p>
+              Special Thanks to: Ryan William O'Hara (Dragon) and all other contributers and users! 
+          </td>
+        </tr>
+      </table>
+    </div>
     <div id="helpdoc" style="display: none">
       <h1>Basic IRC Commands:</h1>
       <hr>
@@ -1048,8 +1141,8 @@ window.addEventListener('load',()=>{
       Kicks a nickname off a channel that you are on and optionally attaches a reason.
       <p></p>
       
-      <h2>/mode [#channel] [[+|-]modechars [parameters]]</h2>
-      Sets/unsets user modes or channel modes.
+      <h2>/mode [#channel|nickname] [[+|-]modechars [parameters]]</h2>
+      Sets/unsets nickname modes or channel modes.
       <p></p>
 
       <h2>/nick nickname</h2>
@@ -1102,6 +1195,10 @@ window.addEventListener('load',()=>{
       Forces a disconnect from a server. This is different from the /quit command which sends a quit message to the server and waits for the server to disconnect you.
       <p></p>
             
+      <h2>/ebeeps &lt;on|[off]&gt;</h2>
+      Enables or disables all event beeps. Events such as new lines in a window when the scrollbar is NOT at the bottom.
+      <p></p>
+
       <h2>/help</h2>
       Opens up the Help Documentation.
       <p></p>

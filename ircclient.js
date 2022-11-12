@@ -68,6 +68,7 @@ class IALItem {
       this.NickMode = 'ohv';
       this.Prefix = '@%+';
       this.WSForceClose = false;
+      this.Latency = '';
     }
     WSConnect(nick,server,type,blockLogon) {
       this.WSClose();
@@ -90,7 +91,7 @@ class IALItem {
       if (this.hasOwnProperty('Socket')) {
         this.Socket.send(data);
         if (this.PingSocket) { clearInterval(this.PingSocket); }
-        this.PingSocket = setInterval(() => { this.WSSend("PING " + this.Me); },"60000");
+        this.PingSocket = setInterval(() => { this.WSSend("PING " + new Date().getTime()); },"60000");
       }
     }
     WSClose() { this.WSForceClose = true; if (this.hasOwnProperty('Socket') && this.Socket.readyState <= 1) { this.Socket.close(); } }
@@ -106,6 +107,7 @@ class IALItem {
         this.Network = '';
         this.NickMode = 'ohv';
         this.Prefix = '@%+';
+        this.Latency = '';
       }
     }
     SortNicks(chan,array) {
@@ -164,9 +166,14 @@ class IALItem {
           this.Emit('ping',[this.CID,Extra]); 
           if (this.Socket) { this.WSSend('PONG ' + Extra); }
         }
+        else if (/^PONG$/i.test(Event)) { 
+          this.Emit('pong',[this.CID,Extra]); 
+          if (/^\d+/.test(Extra)) { this.Latency = (new Date().getTime() - parseInt(Extra)); }
+        }
         else if (Event == "001") {
           this.Me = Args[0];
           this.Server = Nick;
+          this.WSSend("PING " + new Date().getTime());
         }
         else if (Event == "005") {
           Args.forEach(function(arg,index,_array) {

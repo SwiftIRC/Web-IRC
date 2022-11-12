@@ -934,13 +934,14 @@ class QWidget extends QObject {
   
   //Public Slots
   close() { }
-  hide() { this.style.display = 'none'; }
+  hide() { this.style.display = 'none'; return this; }
   setDisabled(bool) { }
   setEnabled(bool) { }
   setFocus() { }
   setHidden(bool) { 
     if (bool) { this.hide(); } 
     else { this.show(); }
+    return this;
   }
   setVisible(bool) { 
     if (bool) { this.style.display = null; }
@@ -953,7 +954,7 @@ class QWidget extends QObject {
     this._customEvent('windowTitleChanged',{ detail: { 'title': title } });
     return this; 
   }
-  show() { this.style.display = null; }
+  show() { this.style.display = null; return this; }
   showMaximized() { }
   showMinimized() { }
   showNormal() { }  
@@ -1687,6 +1688,7 @@ class QDialog extends QMainWindow {
 
     // Private Properties
     this._Base.push("QDialog");
+    this.classList.add("QDialog");
 
     /*==== Emitted Signals ====================================
     TODO: accepted()
@@ -1702,7 +1704,7 @@ class QDialog extends QMainWindow {
     //Build UI Components
 
     //Setup Event Listeners
-    this.addEventListener('pointermove',(e) => { this._MoveDialogPosition(e); });
+    this.addEventListener('pointermove',(e) => { this._MoveDialogWindowPosition(e); });
     this.addEventListener('pointerleave',(e) => { this._StopMove(e); });
 
     this._Handle.addEventListener('pointerdown',(e) => { this._StartMove(e); });
@@ -1720,20 +1722,22 @@ class QDialog extends QMainWindow {
   handleEvent(e) { super.handleEvent(e); }
 
   // Private Functions
-  _MoveDialogPosition(e) {
+  _MoveDialogWindowPosition(e) {
     if (this._MoveData) {
       var posX = e.clientX || (e.touches ? e.touches[0].clientX : 0),posY = e.clientY  || (e.touches ? e.touches[0].clientY : 0),aX = posX - this._MoveData.diffX,aY = posY - this._MoveData.diffY;
-      var diffW = this._MoveData.cWi - this._MoveData.eWi, diffH = this._MoveData.cHe - this._MoveData.eHe;
       if (aX < 0) aX = 0;
       if (aY < 0) aY = 0;
-      if (aX > diffW) { aX = diffW; }
-      if (aY > diffH) { aY = diffH; }
       this.move(aX,aY); 
     }
   }
+  _MinimizeBtn() { 
+    this._customEvent('childEvent',{ bubbles: true, detail: { target: this, 'QEvent': QEvent.WindowStateChange, state: Qt.WindowMinimized } });
+    this.style.display = 'none';
+  }
+  _MaximizeBtn(e) { this._customEvent('childEvent',{ bubbles: true, detail: { target: this, 'QEvent': QEvent.WindowStateChange, state: (!this.style.width && !this.style.height ? Qt.WindowNoState : Qt.WindowMaximized) } }); }
   _CloseBtn() { this._customEvent('closeEvent',{ detail: { target: this } }); }
   _StartMove(e) {
-    if (!this._Maximized) {
+    if (this.style.width && this.style.height) {
       var posX = e.clientX || e.touches[0].clientX, posY = e.clientY || e.touches[0].clientY, divTop = this.style.top.replace('px',''), divLeft = this.style.left.replace('px','');
       this._MoveData = { eWi: parseInt(this.style.width) || this.offsetWidth, eHe: parseInt(this.style.height) || this.offsetHeight, cWi: parseInt(document.body.offsetWidth), cHe: parseInt(document.body.offsetHeight), diffX: posX - divLeft, diffY: posY - divTop }; 
     }
