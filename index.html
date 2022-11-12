@@ -94,7 +94,7 @@ class WebMDI extends QMainWindow {
       },
       'options': { 
         'irc': {
-          'ebeeps': true,
+          'ebeeps': false,
           'reconnect': true,
           'showprefix': true,
           'kickrejoin': true, //TODO
@@ -524,31 +524,15 @@ class WebMDI extends QMainWindow {
   CC2Html(linecolor,text,ii,ia,iy) {
     // === CC var is a direct rip of $rgb($color(N)) converted to base 16. N is 0-99 for all 100 new colors added to mIRC.
     var cc = this._Config['palette'];
-    var b = 0, u = 0, r = 0 , i = 0, s = 0, bg = cc.length, fg = cc.length, rav;
+    var b = 0, u = 0, r = 0 , i = 0, s = 0, bg = cc.length, fg = cc.length;
 
     text = text.replace(/([&<>])/g,(m,e) => { return "&#" + e.charCodeAt(0) + ";"; }).replace(/((?:https?|ftp):\/\/(?:[\w_-]+(?:(?:\.[\w_-]+)+))(?:[\w.,@?^=%&:/~+#-;]*[\w@?^=%&/~+#-])?)/ig,function(match,url) {   
       if (iy && /^https?:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=)?(.+)/g.test(url)) { return '<iframe width="320" height="280" src="//www.youtube.com/embed/' + RegExp.$1 + '" frameborder="0" allowfullscreen></iframe>'; }
-      else {
-        rav = (Math.random() + 1).toString(36).substring(7);
-        AsyncEmbed(url).then((info) => {
-          var elem = document.getElementById('AsyncEmbed' + rav);
-          if (ii & info.type == "image") {
-            info.data.style.maxWidth = info.data.style.maxHeight = "300px";
-            info.data.style.aspectRatio = info.data.naturalWidth + " / " + info.data.naturalHeight;
-            elem.parentNode.insertBefore(info.data,elem);
-            elem.parentNode.removeChild(elem);
-          }
-          else if (ia && (info.type == "audio" || info.type == "video")) {
-            elem.parentNode.insertBefore(info.data,elem);
-            elem.parentNode.removeChild(elem);
-          }
-          else {
-            elem.innerText = info.src;
-            elem.removeAttribute('id');
-          }
-        });
-        return '<a href="' + url + '" target="_blank"><span id="AsyncEmbed' + rav + '">Loading...</span></a>';
+      else if (ii || ia) {
+        var rng = "AsyncEmbed-" + (Math.random() + 1).toString(36).substring(2);
+        return '<a href="' + url + '" target="_blank"><span id="' + rng + '">' + url + '</span></a>';
       }
+      else { return '<a href="' + url + '" target="_blank">' + url + '</a>'; }
     });
   
     var ret = text.replace(/(\x03(?:(?:\d\d?),)?(?:\d\d?)|[\x02\x03\x16\x1d\x1e\x0f\x1f])([^\x02\x03\x16\x1d\x1e\x0f\x1f]*)/g,function(match,control,string) {
@@ -859,6 +843,9 @@ class CustomWindow extends QMdiSubWindow {
 
     if (/^(status|channel|query|custom)$/i.test(Data.type)) {
       this.ViewPort = QuickElement('div',{'class': 'viewport', style: "display: flex; flex-direction: column; background: inherit; flex: auto; text-indent: -1em; padding: 0 0 0 1.2em; word-wrap: break-word; white-space: pre-wrap; overflow-y: scroll;"});
+      this._ViewPortObserver = new MutationObserver(this._Observation.bind(this));
+      this._ViewPortObserver.observe(this.ViewPort,{childList: true});
+
       this.Container.appendChild(this.ViewPort);
       if (Data.type == "channel") {
         this.Toolbar = new QToolBar();
@@ -992,6 +979,30 @@ class CustomWindow extends QMdiSubWindow {
   /*-------------------------------------------------------------------------------------------------
   Private Functions
   -------------------------------------------------------------------------------------------------*/
+  _Observation(e) { 
+    var List = this.ViewPort.querySelectorAll("[id^='AsyncEmbed-']");
+    List.forEach((elem) => {
+      AsyncEmbed(elem.innerText).then((info) => {
+        var shouldscroll = ((this.ViewPort.scrollTop + this.ViewPort.clientHeight) == this.ViewPort.scrollHeight ? true : false);
+        if (info.type == "image") {
+          info.data.style.maxWidth = info.data.style.maxHeight = "300px";
+          info.data.style.aspectRatio = info.data.naturalWidth + " / " + info.data.naturalHeight;
+          elem.parentNode.insertBefore(info.data,elem);
+          elem.parentNode.removeChild(elem);
+        }
+        else if (info.type == "audio" || info.type == "video") {
+          elem.parentNode.insertBefore(info.data,elem);
+          elem.parentNode.removeChild(elem);
+        }
+        else {
+          elem.innerText = info.src;
+          elem.removeAttribute('id');
+        }
+        if (shouldscroll) { this._scrollBottom(); }
+      });
+    });    
+    //console.log(e); 
+  }
   _activate() {
     if (this._Parent != document.body) { this._Parent.setActiveSubWindow(this); } 
     this._Highlight = 0;
