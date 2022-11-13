@@ -1072,8 +1072,8 @@ class QListView extends QWidget {
     this.addEventListener('click',(e) => {
         var owner = event.target; 
         while(owner.parentNode && owner.parentNode instanceof HTMLElement) {
-          if (owner.parentNode.classList.contains("QAction")) { 
-            this._customEvent('selectionChanged',{ bubbles: false, detail: { target: owner.parentNode } }); 
+          if (owner.classList.contains("QAction")) { 
+            this._customEvent('selectionChanged',{ bubbles: false, detail: { target: owner } }); 
             //this._customEvent('itemClicked',{ bubbles: false, detail: { target: owner } }); 
             break; 
           }

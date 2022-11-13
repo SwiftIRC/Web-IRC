@@ -127,7 +127,6 @@ h1,h2,h3 { margin: 0; padding: 0; }
 .QTreeWidgetItem > .Container > .Icon { max-height: 16px; margin: 0 4px 0 0; }
 .QTreeWidgetItem > .CentralWidget { margin-left: 1em }
 
-
 .viewport span:first-child { margin-top: auto; }
 a:link,a:visited,a:hover,a:active { color: inherit; }
 input:focus,textarea:focus,select:focus { outline: none; }
