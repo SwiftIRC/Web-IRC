@@ -73,49 +73,62 @@ class WebMDI extends QMainWindow {
     -------------------------------------------------------------------------------------------------*/
     this._Base.push("WebMDI");
     this.classList.add("WebMDI");
-    this._Config = {
-      'palette': new Array("#FFFFFF","#000000","#00009D","#009300","#FF0000","#7F0000","#9C009C","#FC7F00","#FFFF00","#00FC00","#009393","#00FFFF","#0000FC","#FF00FF","#7F7F7F","#D2D2D2","#470000","#472100","#474700","#324700","#004700","#00472C","#004747","#002747","#000047","#2E0047","#470047","#47002A","#740000","#743A00","#747400","#517400","#007400","#007449","#007474","#004074","#000074","#4B0074","#740074","#740045","#B50000","#B56300","#B5B500","#7DB500","#00B500","#00B571","#00B5B5","#0063B5","#0000B5","#7500B5","#B500B5","#B5006B","#FF0000","#FF8C00","#FFFF00","#B2FF00","#00FF00","#00FFA0","#00FFFF","#008CFF","#0000FF","#A500FF","#FF00FF","#FF0098","#FF5959","#FFB459","#FFFF71","#CFFF60","#6FFF6F","#65FFC9","#6DFFFF","#59B4FF","#5959FF","#C459FF","#FF66FF","#FF59BC","#FF9C9C","#FFD39C","#FFFF9C","#E2FF9C","#9CFF9C","#9CFFDB","#9CFFFF","#9CD3FF","#9C9CFF","#DC9CFF","#FF9CFF","#FF94D3","#000000","#131313","#282828","#363636","#4D4D4D","#656565","#818181","#9F9F9F","#BCBCBC","#E2E2E2","#FFFFFF","#D2D2D2"),
-      'colors': {
-        'action':7,
-        'ctcp':4,
-        'highlight':4,
-        'info':3,
-        'invite':3,
-        'join':10,
-        'kick':4,
-        'mode':4,
-        'nick':10,
-        'normal':'inherit',
-        'notice':7,
-        'own':'inherit',
-        'part':10,
-        'topic':3,
-        'quit':12,
-      },
-      'options': { 
-        'irc': {
-          'ebeeps': false,
-          'reconnect': true,
-          'showprefix': true,
-          'kickrejoin': true, //TODO
-          'connectrejoin': true,
-          'keepchanopen': true, //TODO
-          'timestamp': true,
-          'timestampformat': '[HH:nn]',
-          'quitmsg': '',
-        }
-      },
-      'windows': { 
-        'event':12,
-        'message':4,
-        'highlight':9,
-        'buffer': 500,
-        'status':{w: 320, h: 240},
-        'channel':{w: 520, h: 340},
-        'query':{w: 320, h: 240},
-      },
+    var LocalConfig = window.localStorage.getItem('Web-IRC.Config');
+    if (LocalConfig) { this._Config = JSON.parse(LocalConfig); }
+    else {
+      this._Config = {
+        'palette': new Array("#FFFFFF","#000000","#00009D","#009300","#FF0000","#7F0000","#9C009C","#FC7F00","#FFFF00","#00FC00","#009393","#00FFFF","#0000FC","#FF00FF","#7F7F7F","#D2D2D2","#470000","#472100","#474700","#324700","#004700","#00472C","#004747","#002747","#000047","#2E0047","#470047","#47002A","#740000","#743A00","#747400","#517400","#007400","#007449","#007474","#004074","#000074","#4B0074","#740074","#740045","#B50000","#B56300","#B5B500","#7DB500","#00B500","#00B571","#00B5B5","#0063B5","#0000B5","#7500B5","#B500B5","#B5006B","#FF0000","#FF8C00","#FFFF00","#B2FF00","#00FF00","#00FFA0","#00FFFF","#008CFF","#0000FF","#A500FF","#FF00FF","#FF0098","#FF5959","#FFB459","#FFFF71","#CFFF60","#6FFF6F","#65FFC9","#6DFFFF","#59B4FF","#5959FF","#C459FF","#FF66FF","#FF59BC","#FF9C9C","#FFD39C","#FFFF9C","#E2FF9C","#9CFF9C","#9CFFDB","#9CFFFF","#9CD3FF","#9C9CFF","#DC9CFF","#FF9CFF","#FF94D3","#000000","#131313","#282828","#363636","#4D4D4D","#656565","#818181","#9F9F9F","#BCBCBC","#E2E2E2","#FFFFFF","inherit"),
+        'colors': {
+          'action':7,
+          'ctcp':4,
+          'highlight':4,
+          'info':3,
+          'invite':3,
+          'join':10,
+          'kick':4,
+          'mode':4,
+          'nick':10,
+          'normal':'inherit',
+          'notice':7,
+          'own':'inherit',
+          'part':10,
+          'topic':3,
+          'quit':12,
 
-    };
+          'treebar':'inherit',
+          'treebartext':'inherit',
+          'mdi':'inherit',
+          'viewport':'inherit',
+          'listbox':'inherit',
+          'listboxtext':'inherit',
+          'editbox':'inherit',
+          'editboxtext':'inherit',
+        },
+        'options': { 
+          'irc': {
+            'ebeeps': false,
+            'reconnect': true,
+            'showprefix': true,
+            'kickrejoin': true,
+            'connectrejoin': true,
+            'keepchanopen': true,
+            'timestamp': true,
+            'timestampformat': '[HH:nn]',
+            'quitmsg': '',
+          }
+        },
+        'windows': { 
+          'event':12,
+          'message':4,
+          'highlight':9,
+          'buffer': 500,
+          'status':{w: 320, h: 240},
+          'channel':{w: 520, h: 340},
+          'query':{w: 320, h: 240},
+        },
+      };
+      this._SaveConfig(true);
+    }
     this.Windows = { };
 
     /*-------------------------------------------------------------------------------------------------
@@ -127,7 +140,7 @@ class WebMDI extends QMainWindow {
     this.mFile = new QMenu('File');
       this.fNew = new QAction('images/status.ico','New Server Window',this.mFile).connect('triggered',this,() => { this._NewSession('','',''); });
       new QAction('','',this.mFile).setSeparator();
-      this.fOptions = new QAction('images/options.ico','Options',this.mFile);
+      this.fOptions = new QAction('images/options.ico','Options',this.mFile).connect('triggered',this,this._ToggleConfigGeneral);
     this._MenuBar.addMenu(this.mFile);
 
     this.mView = new QMenu('View');
@@ -152,9 +165,13 @@ class WebMDI extends QMainWindow {
     this._MenuBar.addMenu(this.mHelp);
     
     this.MDI = new QMdiArea(this);
+    this.MDI.style.background = this._Color('mdi');
     this.TreeDock = new QDockWidget('Treebar').setAllowedAreas(Qt.RightDockWidgetArea | Qt.LeftDockWidgetArea).setBaseSize(150,null).setResizable(true);
     this.HelpDock = new QDockWidget('Help').setAllowedAreas(Qt.RightDockWidgetArea | Qt.LeftDockWidgetArea).setBaseSize(300,200).setResizable(true).setVisible(false);
     this.HelpDialog = new QDialog().setBaseSize(270,240).setWindowTitle('About Web-IRC').hide();
+    this.GeneralDialog = new ConfigGeneral(this).setBaseSize(200,290).setWindowTitle('Web-IRC Preferences').hide();
+    this.ColorsDialog = new ConfigColors(this).setBaseSize(408,290).setWindowTitle('Web-IRC Colors').hide();
+
     setTimeout(() => {
       this.HelpDialog.setCentralWidget(document.getElementById('helpabout'));
       document.getElementById('helpabout').style.display = "";
@@ -165,6 +182,9 @@ class WebMDI extends QMainWindow {
     this.addDockWidget(Qt.RightDockWidgetArea,this.HelpDock);
 
     this.Treebar = new QTreeWidget();
+    this.Treebar.style.background = this._Color('treebar');
+    this.Treebar.style.color = this._Color('treebartext');
+
     this.TreeDock.setCentralWidget(this.Treebar);
     this.addDockWidget(Qt.LeftDockWidgetArea,this.TreeDock);
 
@@ -183,6 +203,8 @@ class WebMDI extends QMainWindow {
     this.MonitorServer = new QDockWidget('Server Messages').setAllowedAreas(Qt.TopDockWidgetArea | Qt.RightDockWidgetArea | Qt.BottomDockWidgetArea | Qt.LeftDockWidgetArea).setMinimumSize(75,75).setBaseSize(75,75).setVisible(false).setResizable(true);
     this.MonitorServerViewPort = QuickElement('div',{'class': 'viewport', style: "display: flex; flex-direction: column; background: inherit; flex: auto; text-indent: -1em; padding: 0 0 0 1.2em; word-wrap: break-word; white-space: pre-wrap; overflow-y: scroll; "});
     this.MonitorServer.setCentralWidget(this.MonitorServerViewPort);
+    this.MonitorChanViewPort.style.background = this.MonitorHighlightViewPort.style.background = this.MonitorNoticeViewPort.style.background = this.MonitorQueryViewPort.style.background = this.MonitorServerViewPort.style.background = this._Color('viewport');
+
 
     this.addDockWidget(Qt.BottomDockWidgetArea,this.MonitorChan);
     this.addDockWidget(Qt.BottomDockWidgetArea,this.MonitorHighlight);
@@ -191,8 +213,8 @@ class WebMDI extends QMainWindow {
     this.addDockWidget(Qt.TopDockWidgetArea,this.MonitorNotice);
 
     this.Toolbar = new QToolBar();
-    this.Toolbar.addAction(new QAction('images/options.ico').setToolTip('Options'));
-    this.Toolbar.addAction(new QAction('images/colors.ico').setToolTip('Colors'));
+    this.Toolbar.addAction(new QAction('images/options.ico').setToolTip('Options').connect('triggered',this,this._ToggleConfigGeneral));
+    this.Toolbar.addAction(new QAction('images/colors.ico').setToolTip('Colors').connect('triggered',this,this._ToggleConfigColors));
     this.Toolbar.addAction(new QAction('','').setSeparator());
     this.Toolbar.addAction(new QAction('images/monitor.ico').setToolTip('Toggle Monitor Panels').connect('triggered',this,this._ToggleAll));
     this.addToolBar(Qt.TopToolBarArea,this.Toolbar);
@@ -231,6 +253,19 @@ class WebMDI extends QMainWindow {
   /*-------------------------------------------------------------------------------------------------
   Private Functions
   -------------------------------------------------------------------------------------------------*/
+  _SaveConfig(bool,preview) { 
+    if (bool && !preview) { window.localStorage.setItem('Web-IRC.Config',JSON.stringify(this._Config)); }
+    else if (!preview) { this._Config = JSON.parse(window.localStorage.getItem('Web-IRC.Config')); }
+    this.Treebar.style.background = this._Color('treebar');
+    this.Treebar.style.color = this._Color('treebartext');
+    this.MDI.style.background = this._Color('mdi');
+    this.MonitorChanViewPort.style.background = this.MonitorHighlightViewPort.style.background = this.MonitorNoticeViewPort.style.background = this.MonitorQueryViewPort.style.background = this.MonitorServerViewPort.style.background = this._Color('viewport');
+    this.MDI.children().forEach((child) => {
+      if (child.hasOwnProperty('ViewPort')) { child.ViewPort.style.background = this._Color('viewport'); }
+      if (child.hasOwnProperty('EditBox')) { child.EditBox.style.background = this._Color('editbox'); child.EditBox.style.color = this._Color('editboxtext'); }
+      if (child.hasOwnProperty('List')) { child.List.style.background = this._Color('listbox'); child.List.style.color = this._Color('listboxtext'); }
+    });
+  }
   _InternalBeep() {
     if (this._Config['options']['irc'].ebeeps) {
       var context = new(window.AudioContext || window.webkitAudioContext)();
@@ -270,6 +305,18 @@ class WebMDI extends QMainWindow {
     this.HelpDialog.style.left = (parseInt(document.body.firstElementChild.offsetWidth) / 2 - parseInt(this.HelpDialog.style.width) / 2) + "px";
     this.HelpDialog.style.top = (parseInt(document.body.firstElementChild.offsetHeight) / 2 - parseInt(this.HelpDialog.style.height) / 2) + "px";
     this.HelpDialog.show();
+  }
+  _ToggleConfigGeneral() {
+    this.GeneralDialog.style.left = (parseInt(document.body.firstElementChild.offsetWidth) / 2 - parseInt(this.GeneralDialog.style.width) / 2) + "px";
+    this.GeneralDialog.style.top = (parseInt(document.body.firstElementChild.offsetHeight) / 2 - parseInt(this.GeneralDialog.style.height) / 2) + "px";
+    this.GeneralDialog._Init();
+    this.GeneralDialog.show();
+  }
+  _ToggleConfigColors() {
+    this.ColorsDialog.style.left = (parseInt(document.body.firstElementChild.offsetWidth) / 2 - parseInt(this.ColorsDialog.style.width) / 2) + "px";
+    this.ColorsDialog.style.top = (parseInt(document.body.firstElementChild.offsetHeight) / 2 - parseInt(this.ColorsDialog.style.height) / 2) + "px";
+    this.ColorsDialog._InitList();
+    this.ColorsDialog.show();
   }
   _ToggleAll() {
     if (this.vChan.isChecked() && this.vHighlight.isChecked() && this.vNotice.isChecked() && this.vQuery.isChecked() && this.vServer.isChecked()) { var Invert = true; }
@@ -423,7 +470,7 @@ class WebMDI extends QMainWindow {
       else if (/^\x2f+server$/i.test(Cmd)) {
         var Nick = (Client.Me != '' ? Client.Me : 'Guest-' + (Math.random() + 1).toString(36).substring(7)) , Server = Extra , NS = false;
         if (Flags.indexOf(' ') > -1) {
-          if (/-m ([^ ]+)/.test(Flags)) { Server = RegExp.$1; NS = true; }
+          if (/-[mn] ([^ ]+)/.test(Flags)) { Server = RegExp.$1; NS = true; }
           if (/-i ([^ ]+)/.test(Flags)) { Nick = RegExp.$1; }
         }
         else if (Flags.indexOf('n') > -1) { this._NewSession(Nick,'',''); }
@@ -543,7 +590,7 @@ class WebMDI extends QMainWindow {
     }
     else { console.log("status error:"); console.log(active); }
   }
-  _Color(type) { return (isNaN(this._Config['colors'][type]) ? this._Config['colors'][type] : this._Config['palette'][this._Config['colors'][type]]); }
+  _Color(type,bool) { return (isNaN(this._Config['colors'][type]) ? this._Config['colors'][type] : (bool ? this._Config['colors'][type] : this._Config['palette'][this._Config['colors'][type]])); }
 
   /*-------------------------------------------------------------------------------------------------
   Public Functions
@@ -586,6 +633,14 @@ class WebMDI extends QMainWindow {
     var Client = this.Windows[cid].Windows['status window']._Client , LineColor = this._Color('action');
     if (Client.isChan(target)) {
       var IAL = Client.GetIAL(nick) , Line = "* " + (IAL && this._Config['options']['irc'].showprefix ? IAL.channels[target.toLowerCase()].substr(0,1) : "") + nick + " " + msg;
+      if (nick != Client.Me) {
+        var toExp = Client.Me.replace(/(\W)/g,(a,b)=>'\\x' + b.charCodeAt(0).toString(16));
+        var exp = new RegExp("\\b" + toExp + "\\b","i");
+        if (exp.test(msg)) { 
+          LineColor = this._Color('highlight'); 
+          this._MonitorEcho(this.MonitorHighlightViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
+        }
+      }
       this._Echo(cid,target,2,LineColor,Line);
       this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
     }
@@ -597,6 +652,13 @@ class WebMDI extends QMainWindow {
       }
       else {
         if (!this.Windows[cid].Windows.hasOwnProperty(nick.toLowerCase())) { this._NewWindow(cid,nick.toLowerCase(),{ "target": nick, mdi: true, state: "normal", type: "query", cid: cid }); }
+        var toExp = Client.Me.replace(/(\W)/g,(a,b)=>'\\x' + b.charCodeAt(0).toString(16));
+        var exp = new RegExp("\\b" + toExp + "\\b","i");
+        if (exp.test(msg)) { 
+          LineColor = this._Color('highlight'); 
+          this._MonitorEcho(this.MonitorHighlightViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - Query: " + Line);
+        }
+
         this._Echo(cid,nick,2,LineColor,Line);
         this._MonitorEcho(this.MonitorQueryViewPort,'inherit',(Client.Network != "" ? Client.Network : Client.Server) + ": " + Line);
       }
@@ -662,7 +724,17 @@ class WebMDI extends QMainWindow {
   }
   onKick(cid,nick,address,target,knick,msg) { 
     var Client = this.Windows[cid].Windows['status window']._Client , LineColor = this._Color('kick');
-    if (this.Windows[cid].Windows.hasOwnProperty(target.toLowerCase())) { this.Windows[cid].Windows[target.toLowerCase()]._handleNickListEvent('kick',knick); }
+    if (this.Windows[cid].Windows.hasOwnProperty(target.toLowerCase())) { 
+      var win = this.Windows[cid].Windows[target.toLowerCase()];
+      win._handleNickListEvent('kick',knick); 
+      if (knick == Client.Me) {
+        if (this._Config['options']['irc'].keepchanopen) { 
+          if (win.List.children().length) { win.List.children().forEach((nick) => { setTimeout(() => { win.List.removeAction(nick); }); }); }
+        }
+        else { win._customEvent('childEvent',{ bubbles: true, detail: { target: this, jsEvent: null, 'QEvent': QEvent.Close } }); }
+        if (this._Config['options']['irc'].kickrejoin) { this._SendData(Client,"JOIN " + win._Name); }
+      }
+    }
     var Line = "* " + knick + " was kicked by: " + nick + " (" + msg + ")";
     this._Echo(cid,target,1,LineColor,Line);
     this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
@@ -700,7 +772,10 @@ class WebMDI extends QMainWindow {
   }
   onPart(cid,nick,address,target,msg) { 
     var Client = this.Windows[cid].Windows['status window']._Client , LineColor = this._Color('part');
-    if (this.Windows[cid].Windows.hasOwnProperty(target.toLowerCase())) { this.Windows[cid].Windows[target.toLowerCase()]._handleNickListEvent('part',nick); }
+    if (this.Windows[cid].Windows.hasOwnProperty(target.toLowerCase())) { 
+      this.Windows[cid].Windows[target.toLowerCase()]._handleNickListEvent('part',nick); 
+      if (nick == Client.Me) { this.Windows[cid].Windows[target.toLowerCase()]._customEvent('childEvent',{ bubbles: true, detail: { target: this, jsEvent: null, 'QEvent': QEvent.Close } }); }
+    }
     var Line = "* Parts: " + nick + " (" + address + ")" + (msg ? " (" + msg + ")" : "");
     this._Echo(cid,target,1,LineColor,Line);
     this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
@@ -724,24 +799,42 @@ class WebMDI extends QMainWindow {
     }
   }
   onPrivmsg(cid,nick,address,target,msg) { 
-    var Client = this.Windows[cid].Windows['status window']._Client , LineColor = this._Color('normal');
+    var Client = this.Windows[cid].Windows['status window']._Client , LineColor = this._Color('normal') , Event = 2;
     if (Client.isChan(target)) {
       var IAL = Client.GetIAL(nick);
-      if (nick != Client.Me) { var Line = "12<14" + (IAL && this._Config['options']['irc'].showprefix ? IAL.channels[target.toLowerCase()].substr(0,1) : "") + "" + nick + "12> " + msg; }
-      else { var Line = "9<14" + IAL.channels[target.toLowerCase()].substr(0,1) + "" + nick + "9> " + msg; }
-      this._Echo(cid,target,2,LineColor,Line);
+      if (nick != Client.Me) { 
+        var Line = "12<14" + (IAL && this._Config['options']['irc'].showprefix ? IAL.channels[target.toLowerCase()].substr(0,1) : "") + "" + nick + "12> " + msg; 
+        var toExp = Client.Me.replace(/(\W)/g,(a,b)=>'\\x' + b.charCodeAt(0).toString(16));
+        var exp = new RegExp("\\b" + toExp + "\\b","i");
+        if (exp.test(msg)) { 
+          var Line = "" + this._Color('highlight',true) + "<14" + (IAL && this._Config['options']['irc'].showprefix ? IAL.channels[target.toLowerCase()].substr(0,1) : "") + "" + nick + "" + this._Color('highlight',true) + "> " + msg; 
+          Event = 3;
+          this._MonitorEcho(this.MonitorHighlightViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
+        }
+      }
+      else { var Line = "9<14" + IAL.channels[target.toLowerCase()].substr(0,1) + "" + nick + "9> " + msg; LineColor = this._Color('own'); }
+      this._Echo(cid,target,Event,LineColor,Line);
       this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
     }
     else {
       if (nick == Client.Me) {
         if (!this.Windows[cid].Windows.hasOwnProperty(target.toLowerCase())) { this._NewWindow(cid,target.toLowerCase(),{ "target": target, mdi: true, state: "normal", type: "query", cid: cid }); }
         var Line = "9<" + nick + "9> " + msg; 
+        LineColor = this._Color('own');
         this._Echo(cid,target,2,LineColor,Line);
       }
       else {
         if (!this.Windows[cid].Windows.hasOwnProperty(nick.toLowerCase())) { this._NewWindow(cid,nick.toLowerCase(),{ "target": nick, mdi: true, state: "normal", type: "query", cid: cid }); }
         var Line = "12<" + nick + "12> " + msg; 
-        this._Echo(cid,nick,2,LineColor,Line);
+        var toExp = Client.Me.replace(/(\W)/g,(a,b)=>'\\x' + b.charCodeAt(0).toString(16));
+        var exp = new RegExp("\\b" + toExp + "\\b","i");        
+        if (exp.test(msg)) { 
+          var Line = "" + this._Color('highlight',true) + "<" + nick + "" + this._Color('highlight',true) + "> " + msg; 
+          Event = 3;
+          this._MonitorEcho(this.MonitorHighlightViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - Query: " + Line);
+        }
+
+        this._Echo(cid,nick,Event,LineColor,Line);
         this._MonitorEcho(this.MonitorQueryViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + ": " + Line);
       }
     }
@@ -851,13 +944,16 @@ class CustomWindow extends QMdiSubWindow {
       this._Client.addListener('topic',this._MainApp,this._MainApp.onTopic);
       this._Client.addListener('umode',this._MainApp,this._MainApp.onUmode);
     }
-    this.TreeItem = new QTreeWidgetItem(IconURL,Data.target,treeparent).connect('itemClicked',this,this._activate);
+    this.TreeItem = new QTreeWidgetItem(IconURL,Data.target,treeparent).connect('itemClicked',this,() => { if (Array.isArray(this._Parent._Base) && this._Parent._Base.includes('QMdiArea')) { this._Parent.setActiveSubWindow(this); } });
     if (Data.type == "status") { this.TreeItem.addEventListener('childEvent',this.handleEvent.bind(this)); }
     this.Container = QuickElement('div',{style: 'display: flex; flex-direction: column; flex: auto; overflow: hidden;'});
 
     if (Data.lb == "2") {
       this.ListDock = new QDockWidget((Data.type == 'channel' ? "Nicklist" : 'List')).setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea).setWindowFlag(Qt.WindowUndockButtonHint,false).setWindowFlag(Qt.WindowCloseButtonHint,false);
       this.List = new QListView(this.ListDock).setBaseSize(100,null);
+      this.List.style.background = this._MainApp._Color('listbox');
+      this.List.style.color = this._MainApp._Color('listboxtext');
+
       this.List.addEventListener('dblclick',(e) => {
         if (/^span$/i.test(e.target.tagName)) { 
           this._MainApp._NewWindow(this._CID,e.target.parentNode.dataset.nick.toLowerCase(),{ "target": e.target.parentNode.dataset.nick, mdi: true, state: "normal", type: "query", cid: cid });
@@ -866,11 +962,20 @@ class CustomWindow extends QMdiSubWindow {
       });
       this.addDockWidget(Qt.RightDockWidgetArea,this.ListDock);
     }
-    else if (Data.lb == "1") { this.List = new QListView(this.Container).setBaseSize(100,null); }
+    else if (Data.lb == "1") { 
+      this.List = new QListView(this.Container).setBaseSize(100,null); 
+      this.List.style.background = this._MainApp._Color('listbox');
+      this.List.style.color = this._MainApp._Color('listboxtext');
+    }
 
     if (/^(status|channel|query|custom)$/i.test(Data.type)) {
       this.setBaseSize(this._MainApp._Config['windows'][Data.type].w,this._MainApp._Config['windows'][Data.type].h);
       this.ViewPort = QuickElement('div',{'class': 'viewport', style: "display: flex; flex-direction: column; background: inherit; flex: auto; text-indent: -1em; padding: 0 0 0 1.2em; word-wrap: break-word; white-space: pre-wrap; overflow-y: scroll;"});
+      this.ViewPort.style.background = this._MainApp._Color('viewport');
+      this.ViewPort.addEventListener('pointerup',(e) => { 
+        var selectedText = window.getSelection().toString().replace(/\u200B/g, "");
+        if (selectedText != '') { navigator.clipboard.writeText(selectedText); }
+      });
       this._ViewPortObserver = new MutationObserver(this._Observation.bind(this));
       this._ViewPortObserver.observe(this.ViewPort,{childList: true});
 
@@ -915,6 +1020,8 @@ class CustomWindow extends QMdiSubWindow {
     }
     if (Data.eb == "1" || /^(status|channel|query)$/i.test(Data.type)) {
       this.EditBox = QuickElement('input',{type: "text", style: "background: inherit; color: inherit; border: 1px solid transparent"});
+      this.EditBox.style.background = this._MainApp._Color('editbox');
+      this.EditBox.style.color = this._MainApp._Color('editboxtext');
       this.EditBox.addEventListener('keydown',(e) => { this._MainApp._handleInput(this,e); });
       this.EditBox.addEventListener('paste',(e) => { 
         var lines = event.clipboardData.getData('Text').split("\n");
@@ -937,7 +1044,8 @@ class CustomWindow extends QMdiSubWindow {
     /*-------------------------------------------------------------------------------------------------
     Setup Event Listeners
     -------------------------------------------------------------------------------------------------*/
-    this.connect('aboutToActivate',this,() => { this._activate(); });
+    this.connect('pointerup',this,(e) => { this._activate(e); });
+    this.connect('aboutToActivate',this,(e) => { this._activate(e); });
     this.addEventListener('childEvent',this.handleEvent.bind(this));
     this.setResizable(true);
   }
@@ -954,7 +1062,8 @@ class CustomWindow extends QMdiSubWindow {
 
     if (/^(channel)$/i.test(this._Type)) { 
       this.Timer = clearInterval(this.Timer);
-      this._MainApp._SendData(Client,"PART " + this._Name); 
+      var IAL = Client.GetIAL(Client.Me);
+      if (IAL && IAL.channels.includes(this._Name.toLowerCase())) { this._MainApp._SendData(Client,"PART " + this._Name); }
     }
     if (this._Type != "status") {
       treeparent.removeChild(this.TreeItem);
@@ -1027,9 +1136,6 @@ class CustomWindow extends QMdiSubWindow {
     //console.log(e); 
   }
   _activate() {
-    if (this._Parent != document.body) { 
-      if (this._Parent.activeSubWindow() != this) { this._Parent.setActiveSubWindow(this); }
-    } 
     this._Highlight = 0;
     this.TreeItem._TreeLabel.style.color = ['inherit','#0000FC','#FF0000'][this._Highlight];
     this._MainApp.Treebar.setCurrentItem(this.TreeItem);
@@ -1077,7 +1183,7 @@ class CustomWindow extends QMdiSubWindow {
     if (shouldscroll) { this._scrollBottom(); }
     else { this._MainApp._InternalBeep(); }
     if (!this.TreeItem.isSelected() && highlight > this._Highlight) { this._Highlight = highlight; }
-    this.TreeItem._TreeLabel.style.color = ['inherit','#0000FC','#FF0000'][this._Highlight];
+    this.TreeItem._TreeLabel.style.color = this._MainApp._Config['palette'][(['inherit',this._MainApp._Config['windows'].event,this._MainApp._Config['windows'].message,this._MainApp._Config['windows'].highlight][this._Highlight])];
   }
   _loadBlob(blob) {
     var source = new Image();
@@ -1153,6 +1259,267 @@ class CustomWindow extends QMdiSubWindow {
   -------------------------------------------------------------------------------------------------*/
 }
 customElements.define('web-customwindow', CustomWindow);
+
+class ConfigGeneral extends QDialog {
+  constructor(mainapp) {
+    super();
+    /*-------------------------------------------------------------------------------------------------
+	  Private Properties
+    -------------------------------------------------------------------------------------------------*/
+	  this._Base.push("ConfigGeneral");
+    this.classList.add("ConfigGeneral");
+    this._MainApp = mainapp;
+
+    /*-------------------------------------------------------------------------------------------------
+    Build UI Components
+    -------------------------------------------------------------------------------------------------*/
+	  this._Container = QuickElement('div',{style: "overflow: auto;"},'IRC Options:');
+    QuickElement('br',{},'',this._Container);
+    this._EBeeps = QuickElement('input',{type: "checkbox"},'',this._Container);
+    QuickElement('span',{},'Event Beeps',this._Container);
+    QuickElement('br',{},'',this._Container);
+    this._Reconnect = QuickElement('input',{type: "checkbox"},'',this._Container);
+    QuickElement('span',{},'Reconnect on Disconnect',this._Container);
+    QuickElement('br',{},'',this._Container);
+    this._ConnectRejoin = QuickElement('input',{type: "checkbox"},'',this._Container);
+    QuickElement('span',{},'Rejoin chans on Connect',this._Container);
+    QuickElement('br',{},'',this._Container);
+    this._KickRejoin = QuickElement('input',{type: "checkbox"},'',this._Container);
+    QuickElement('span',{},'Rejoin chans on Kick',this._Container);
+    QuickElement('br',{},'',this._Container);
+    this._KeepOpen = QuickElement('input',{type: "checkbox"},'',this._Container);
+    QuickElement('span',{},'Keep chan open on Kick',this._Container);
+    QuickElement('br',{},'',this._Container);
+    this._Timestamp = QuickElement('input',{type: "checkbox"},'',this._Container);
+    QuickElement('span',{},'Timestamp Events',this._Container);
+    QuickElement('br',{},'',this._Container);
+    this._Prefix = QuickElement('input',{type: "checkbox"},'',this._Container);
+    QuickElement('span',{},'Show Nickname Prefix',this._Container);
+    QuickElement('p',{},'',this._Container);
+    QuickElement('span',{},'Window Options:',this._Container);
+    QuickElement('br',{},'',this._Container);
+    QuickElement('span',{},'Tree Event Color: ',this._Container);
+    this._WEvent = QuickElement('select',{name: "event"},'',this._Container);
+    QuickElement('br',{},'',this._Container);
+    QuickElement('span',{},'Tree Message Color: ',this._Container);
+    this._WMsg = QuickElement('select',{name: "message"},'',this._Container);
+    QuickElement('br',{},'',this._Container);
+    QuickElement('span',{},'Tree Highlight Color: ',this._Container);
+    this._WHlt = QuickElement('select',{name: "highlight"},'',this._Container);
+    QuickElement('br',{},'',this._Container);
+    for (var x = 0; x <= 99; x++) {
+      QuickElement('option',{value: x, style: "color: #ffffff; background: " + this._MainApp._Config['palette'][x]},(x).toString().padStart(2,'0'),this._WEvent);
+      QuickElement('option',{value: x, style: "color: #ffffff; background: " + this._MainApp._Config['palette'][x]},(x).toString().padStart(2,'0'),this._WMsg);
+      QuickElement('option',{value: x, style: "color: #ffffff; background: " + this._MainApp._Config['palette'][x]},(x).toString().padStart(2,'0'),this._WHlt);
+    }
+
+    /*'options': { 
+          'irc': {
+            'ebeeps': false,
+            'reconnect': true,
+            'showprefix': true,
+            'kickrejoin': true,
+            'connectrejoin': true,
+            'keepchanopen': true,
+            'timestamp': true,
+            'timestampformat': '[HH:nn]',
+            'quitmsg': '',
+          }
+        },
+        'windows': { 
+          'event':12,
+          'message':4,
+          'highlight':9,
+          'buffer': 500,
+          'status':{w: 320, h: 240},
+          'channel':{w: 520, h: 340},
+          'query':{w: 320, h: 240},
+        },*/
+
+    
+    this.setCentralWidget(this._Container);
+    this._Init();
+
+    /*-------------------------------------------------------------------------------------------------
+    Setup Event Listeners
+    -------------------------------------------------------------------------------------------------*/
+    this.addEventListener('childEvent',this.handleEvent.bind(this));
+
+    this._EBeeps.addEventListener('change',(e) => {  this._MainApp._Config['options']['irc'].ebeeps = e.target.checked; });
+    this._Reconnect.addEventListener('change',(e) => {  this._MainApp._Config['options']['irc'].reconnect = e.target.checked; });
+    this._ConnectRejoin.addEventListener('change',(e) => {  this._MainApp._Config['options']['irc'].connectrejoin = e.target.checked; });
+    this._KickRejoin.addEventListener('change',(e) => {  this._MainApp._Config['options']['irc'].kickrejoin = e.target.checked; });
+    this._KeepOpen.addEventListener('change',(e) => {  this._MainApp._Config['options']['irc'].keepchanopen = e.target.checked; });
+    this._Timestamp.addEventListener('change',(e) => {  this._MainApp._Config['options']['irc'].timestamp = e.target.checked; });
+    this._Prefix.addEventListener('change',(e) => {  this._MainApp._Config['options']['irc'].showprefix = e.target.checked; });
+    this._WEvent.addEventListener('change',(e) => {  this._MainApp._Config['windows'].event = e.target.value; });
+    this._WMsg.addEventListener('change',(e) => {  this._MainApp._Config['windows'].message = e.target.value; });
+    this._WHlt.addEventListener('change',(e) => {  this._MainApp._Config['windows'].highlight = e.target.value; });
+  }
+
+  /*-------------------------------------------------------------------------------------------------
+  Default Callbacks and Event Handler
+  -------------------------------------------------------------------------------------------------*/
+  connectedCallback() { super.connectedCallback(); }
+  disconnectedCallback() { super.disconnectedCallback(); }
+  handleEvent(e) { 
+    super.handleEvent(e);
+    if (e.type == 'childEvent') {
+      if (e.detail.QEvent == QEvent.Close) { 
+        this._MainApp._SaveConfig(true);
+        this.hide(); 
+      }
+    }
+  }
+
+  /*-------------------------------------------------------------------------------------------------
+  Private Functions
+  -------------------------------------------------------------------------------------------------*/
+  _Init() {
+    this._EBeeps.checked = this._MainApp._Config['options']['irc'].ebeeps;
+    this._Reconnect.checked = this._MainApp._Config['options']['irc'].reconnect;
+    this._ConnectRejoin.checked = this._MainApp._Config['options']['irc'].connectrejoin;
+    this._KickRejoin.checked = this._MainApp._Config['options']['irc'].kickrejoin;
+    this._KeepOpen.checked = this._MainApp._Config['options']['irc'].keepchanopen;
+    this._Timestamp.checked = this._MainApp._Config['options']['irc'].timestamp;
+    this._Prefix.checked = this._MainApp._Config['options']['irc'].showprefix;
+    this._WEvent.value = this._MainApp._Config['windows'].event;
+    this._WMsg.value = this._MainApp._Config['windows'].message;
+    this._WHlt.value = this._MainApp._Config['windows'].highlight;
+  }
+}
+customElements.define('web-configgeneral', ConfigGeneral);
+
+class ConfigColors extends QDialog {
+  constructor(mainapp) {
+    super();
+    /*-------------------------------------------------------------------------------------------------
+	  Private Properties
+    -------------------------------------------------------------------------------------------------*/
+	  this._Base.push("ConfigColors");
+    this.classList.add("ConfigColors");
+    this._MainApp = mainapp;
+
+    /*-------------------------------------------------------------------------------------------------
+    Build UI Components
+    -------------------------------------------------------------------------------------------------*/
+	  this._Container = QuickElement('div',{style: "overflow: auto;"},'Appearance:');
+    this._ViewPort = new QListView().setBaseSize(null,100);
+    //this._ViewPort.style.flexDirection = "row";
+    this._ViewPort.style.flexWrap = "wrap";
+    this._Container.appendChild(this._ViewPort);
+    this._ViewPort.addAction(new QAction('','Action Text'));
+    this._ViewPort.addAction(new QAction('','Ctcp Text'));
+    this._ViewPort.addAction(new QAction('','Highlight Text'));
+    this._ViewPort.addAction(new QAction('','Info Text'));
+    this._ViewPort.addAction(new QAction('','Invite Text'));
+    this._ViewPort.addAction(new QAction('','Join Text'));
+    this._ViewPort.addAction(new QAction('','Kick Text'));
+    this._ViewPort.addAction(new QAction('','Mode Text'));
+    this._ViewPort.addAction(new QAction('','Nick Text'));
+    this._ViewPort.addAction(new QAction('','Normal Text'));
+    this._ViewPort.addAction(new QAction('','Notice Text'));
+    this._ViewPort.addAction(new QAction('','Own Text'));
+    this._ViewPort.addAction(new QAction('','Part Text'));
+    this._ViewPort.addAction(new QAction('','Topic Text'));
+    this._ViewPort.addAction(new QAction('','Quit Text'));
+
+    this._ViewPort.addAction(new QAction('','Treebar Background'));
+    this._ViewPort.addAction(new QAction('','Treebar Text'));
+    this._ViewPort.addAction(new QAction('','MDI Background'));
+    this._ViewPort.addAction(new QAction('','Viewport Background'));
+    this._ViewPort.addAction(new QAction('','Listbox Background'));
+    this._ViewPort.addAction(new QAction('','Listbox Text'));
+    this._ViewPort.addAction(new QAction('','Editbox Background'));
+    this._ViewPort.addAction(new QAction('','Editbox Text'));
+
+
+    this.setCentralWidget(this._Container);
+    this._Table = QuickElement('table',{});
+    for (var x = 0; x <= 1; x++) {
+      var tr = QuickElement('tr',{});
+      for (var y = 0; y <= 7; y++) {
+        var td = QuickElement('td',{style: "background: " + this._MainApp._Config['palette'][x * 7 + y + x]},(x * 7 + y + x).toString().padStart(2,'0'))
+        td.dataset.index = x * 7 + y + x;
+        td.addEventListener('click',(e) => { this._SetColor(e); });
+        tr.appendChild(td);
+      }
+      this._Table.appendChild(tr);
+    }
+    this._TableEx = QuickElement('table',{});
+    for (var x = 0; x <= 6; x++) {
+      var tr = QuickElement('tr',{});
+      for (var y = 0; y <= 11; y++) {
+        var td = QuickElement('td',{style: "color: #ffffff; background: " + this._MainApp._Config['palette'][x * 11 + y + x + 16]},(x * 11 + y + x + 16).toString().padStart(2,'0'))
+        td.dataset.index = x * 11 + y + x + 16;
+        td.addEventListener('click',(e) => { this._SetColor(e); });
+        tr.appendChild(td);
+      }
+      this._TableEx.appendChild(tr);
+    }
+    this._ColorTable = QuickElement('table',{});
+    var tr = QuickElement('tr',{},'',this._ColorTable);
+    var td1 = QuickElement('td',{valign: 'top'},'',tr);
+    var td2 = QuickElement('td',{},'',tr);
+    var td3 = QuickElement('td',{valign: 'bottom'},'',tr);
+    td1.appendChild(this._Table);
+    td1.appendChild(document.createTextNode('Select an item from the list then select a color to change. Theme temporarily modifies, you must hit apply to save changes.'))
+    td2.appendChild(this._TableEx);
+    this._Apply = QuickElement('button',{},'Apply',td3);
+    this._Apply.addEventListener('click',(e) => { this._MainApp._SaveConfig(true); });
+
+    this._CloseBtn = QuickElement('button',{},'Close',td3);
+    this._CloseBtn.addEventListener('pointerup',(e) => { this._customEvent('childEvent',{ bubbles: true, detail: { target: this, jsEvent: e, 'QEvent': QEvent.Close } }); });
+    this._Container.appendChild(this._ColorTable);
+
+    this._InitList();
+
+    /*-------------------------------------------------------------------------------------------------
+    Setup Event Listeners
+    -------------------------------------------------------------------------------------------------*/
+    this.addEventListener('childEvent',this.handleEvent.bind(this));
+  }
+
+  /*-------------------------------------------------------------------------------------------------
+  Default Callbacks and Event Handler
+  -------------------------------------------------------------------------------------------------*/
+  connectedCallback() { super.connectedCallback(); }
+  disconnectedCallback() { super.disconnectedCallback(); }
+  handleEvent(e) { 
+    super.handleEvent(e);
+    if (e.type == 'childEvent') {
+      if (e.detail.QEvent == QEvent.Close) { 
+        this._MainApp._SaveConfig(false);
+        this.hide(); 
+      }
+    }
+  }
+
+  /*-------------------------------------------------------------------------------------------------
+  Private Functions
+  -------------------------------------------------------------------------------------------------*/
+  _InitList() {
+    var CIndex = Object.keys(this._MainApp._Config['colors']);
+    this._ViewPort.children().forEach((child,index) => {
+      if (/ Background$/i.test(child._IconText.innerText)) { 
+        child.style.background = this._MainApp._Color(CIndex[index]); 
+        child._IconText.style.color = "white";
+        child._IconText.style.mixBlendMode = "difference";
+      }
+      else { child._IconText.style.color = this._MainApp._Color(CIndex[index]); }
+    });
+  }
+  _SetColor(e) {
+    var CIndex = Object.keys(this._MainApp._Config['colors']);
+    this._ViewPort.querySelectorAll('.selected').forEach((child) => { 
+      this._MainApp._Config['colors'][CIndex[this._ViewPort.children().indexOf(child)]] = e.target.dataset.index;
+      if (/ Background$/i.test(child._IconText.innerText)) { child.style.background = e.target.style.background; }
+      else { child._IconText.style.color = e.target.style.background; }
+    });
+    this._MainApp._SaveConfig(true,true);
+  }
+}
+customElements.define('web-configcolors', ConfigColors);
 
 window.mobileCheck = function() {
   var check = false;

@@ -123,10 +123,11 @@ h1,h2,h3 { margin: 0; padding: 0; }
 .QTreeWidget { padding: 4px; display: flex; flex: auto; flex-direction: column; }
 .QTreeWidget > .CentralWidget { flex: auto; }
 
-.QTreeWidgetItem { white-space: nowrap; }
+.QTreeWidgetItem { white-space: nowrap; color: inherit; }
 .QTreeWidgetItem > .Container > .Icon { max-height: 16px; margin: 0 4px 0 0; }
 .QTreeWidgetItem > .CentralWidget { margin-left: 1em }
 
 .viewport span:first-child { margin-top: auto; }
 a:link,a:visited,a:hover,a:active { color: inherit; }
 input:focus,textarea:focus,select:focus { outline: none; }
+button { background: inherit; color: inherit; }

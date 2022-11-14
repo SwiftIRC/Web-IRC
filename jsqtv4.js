@@ -13,10 +13,11 @@ function IsBit(num,bit) { return BitOnOff(2,num,bit); }
 function BitOn(num,bit) { return BitOnOff(1,num,bit); }
 function BitOff(num,bit) { return BitOnOff(0,num,bit); }
 
-function QuickElement(name,attr,text) {
+function QuickElement(name,attr,text,parent) {
   var tmp = document.createElement(name) //Object.assign(,{textContent: text});
   for (var key in attr) { tmp.setAttribute(key,attr[key]); }
   tmp.innerHTML = text || '';
+  if (parent instanceof HTMLElement) { parent.appendChild(tmp); }
   return tmp;
 }
 
@@ -279,6 +280,9 @@ class QMdiArea extends QObject {
           e.detail.target.style.left = e.detail.target.style.top = e.detail.target.style.width = e.detail.target.style.height = null;
         }
       }
+      else if (e.detail.QEvent == QEvent.ChildRemoved) {
+        if (this.activeSubWindow() instanceof HTMLElement) { setTimeout(() => { this.setActiveSubWindow(this.activeSubWindow()); }); }
+      }
       else if (e.detail.QEvent == QEvent.WindowStateChange) {
         if (e.detail.state == Qt.WindowMaximized) { this._setSubWindowsMaximized(true); }
         else if (e.detail.state == Qt.WindowNoState) { this._setSubWindowsMaximized(false); }
@@ -354,23 +358,27 @@ class QMdiArea extends QObject {
   //Public Slots 
   //TODO: follow activation order instead of insertion order
   activateNextSubWindow() {
-    var index = this._Children.indexOf(this.lastElementChild) + 1;
-    if (index == this._Children.length) { index = 0; }
-    this.setActiveSubWindow(this._Children[index]);    
+    if (this.lastElementChild) {
+      var index = this._Children.indexOf(this.lastElementChild) + 1;
+      if (index == this._Children.length) { index = 0; }
+      this.setActiveSubWindow(this._Children[index]);    
+    }
   }
   //TODO: follow activation order instead of insertion order
   activatePreviousSubWindow() {
-    var index = this._Children.indexOf(this.lastElementChild) - 1;
-    if (index < 0) { index = this._Children.length - 1; }
-    this.setActiveSubWindow(this._Children[index]);
+    if (this.lastElementChild) {
+      var index = this._Children.indexOf(this.lastElementChild) - 1;
+      if (index < 0) { index = this._Children.length - 1; }
+      this.setActiveSubWindow(this._Children[index]);
+    }
   }
   cascadeSubWindows() { }
   closeActiveSubWindow() { }
   closeAllSubWindows() { }
   setActiveSubWindow(Window) { 
     Window._customEvent('aboutToActivate'); 
-    Window._customEvent('subWindowActivated',{ bubbles: true, detail: { target: Window } }); 
     Window.setParent(this); 
+    this._customEvent('subWindowActivated',{ bubbles: false, detail: { target: Window } }); 
   }
   tileSubWindows() { }
 }
@@ -1070,15 +1078,17 @@ class QListView extends QWidget {
 
     //Setup Event Listeners
     this.addEventListener('click',(e) => {
-        var owner = event.target; 
+        var owner = event.target , handled = 0; 
         while(owner.parentNode && owner.parentNode instanceof HTMLElement) {
           if (owner.classList.contains("QAction")) { 
             this._customEvent('selectionChanged',{ bubbles: false, detail: { target: owner } }); 
             //this._customEvent('itemClicked',{ bubbles: false, detail: { target: owner } }); 
+            handled = 1;
             break; 
           }
           else { owner = owner.parentNode; }
-        } 
+        }
+        if (!handled) { this.querySelectorAll('.selected').forEach((child) => { child.classList.remove('selected'); }); }
     });
 
     this.addEventListener('selectionChanged',(e) => {
@@ -1097,7 +1107,7 @@ class QListView extends QWidget {
   setViewMode(mode) {
     this.classList.remove("Static");
     this.classList.remove("IconView");
-    this.className.add((/^iconview$/i.test(mode) ? "IconView" : "Static"));
+    this.classList.add((/^iconview$/i.test(mode) ? "IconView" : "Static"));
     return this;
   }
   setCurrentItem(Action) {
@@ -1125,10 +1135,12 @@ class QTabWidget extends QWidget {
     this.style.userSelect = 'none';
 
     //Build UI Components
-    this._Handle = QuickElement('div',{class: "ToolBarHandle"});
-    this.appendChild(this._Handle);
+    //this._Handle = QuickElement('div',{class: "ToolBarHandle"});
+    //this.appendChild(this._Handle);
 
     this._TabBar = QuickElement('div',{class: ""});
+    this.appendChild(this._TabBar);
+    this._TabBody = QuickElement('div',{class: ""});
     this.appendChild(this._TabBar);
 
     /*==== Emitted Signals ====================================
@@ -1168,13 +1180,13 @@ class QTabWidget extends QWidget {
   //Private Functions
 
   //Public Functions
-  addTab() { }
+  addTab(page,icon,label) { }
   clear() { }
   count() { }
   currentIndex() { }
   currentWidget() { }
   documentMode() { } //bool
-  insertTab() { }
+  insertTab(index,page,icon,label) { }
   isMovable() { }
   movable() { } //bool
   removeTab() { }
@@ -1774,11 +1786,7 @@ class QMdiSubWindow extends QMainWindow {
     //Setup Event Listeners
     this.addEventListener('pointerdown',(e) => {
       if (this._Parent && this._Parent != document.body && this._Parent._Base.includes('QMdiArea')) {
-        if (this != this._Parent.lastElementChild) { 
-          this._customEvent('aboutToActivate'); 
-          this._customEvent('subWindowActivated',{ bubbles: true, detail: { target: this } }); 
-          this.parentNode.appendChild(this);
-        }
+        if (this != this._Parent.lastElementChild) { this.parentNode.setActiveSubWindow(this); } 
       }
     });  
     this.addEventListener('pointermove',(e) => { this._MoveSubWindowPosition(e); });
