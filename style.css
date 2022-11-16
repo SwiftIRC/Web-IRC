@@ -3,6 +3,7 @@
 h1,h2,h3 { margin: 0; padding: 0; }
 
 @media (prefers-color-scheme: light) {
+  :root { color-scheme: light; }
   .QWidget { color: #000000; background: #f0f0f0; }        
   .QMainWindow,.QDialog,.QMdiSubWindow { position: absolute; display: flex; flex-direction: column; top: 0; left: 0; bottom: 0; right: 0; border: 1px solid #cccccc; overflow: hidden; }
   .QMainWindow > div > div > div > div > .CentralWidget { background: #e2e2e2; border: 1px solid #cccccc; }
@@ -38,6 +39,7 @@ h1,h2,h3 { margin: 0; padding: 0; }
 
 }
 @media (prefers-color-scheme: dark) {
+  :root { color-scheme: dark; }
   .QWidget { color: #f1f1f1; background: #0c0c0d; }
   .QMainWindow,.QDialog,.QMdiSubWindow { position: absolute; display: flex; flex-direction: column; top: 0; left: 0; bottom: 0; right: 0; color: #f1f1f1; border: 1px solid #333333; overflow: hidden; }
   .QMainWindow > div > div > div > div > .CentralWidget { position: relative; background: #202020; }

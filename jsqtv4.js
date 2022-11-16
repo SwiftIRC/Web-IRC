@@ -26,6 +26,7 @@ Qt Style Object Constructor
 ===============================================================================*/
 
 class QObject extends HTMLElement {
+  //static get observedAttributes() { return []; } //Array of Element Attribute Names
   constructor(QParent) {
     super();
 
@@ -50,8 +51,10 @@ class QObject extends HTMLElement {
     //insert into DOM (delay so all extensions get to execute modifiers)
     setTimeout(() => { this.setParent(QParent); });
   }
-  connectedCallback() { }
-  disconnectedCallback() { }
+  connectedCallback() { } //Inserted into DOM
+  disconnectedCallback() { } //Removed from DOM
+  adoptedCallback() { } //Moved elsewhere in DOM
+  attributeChangedCallback(name,oldValue,newValue) { } //Element attributes changed
   
   //Default Event Handler Callback function
   handleEvent(e) { 
@@ -94,11 +97,13 @@ class QObject extends HTMLElement {
   children() { return this._Children; }
   connect(signal,reciever,slot,args) { if (!this._Signals[signal]) { this._Signals[signal] = []; } this._Signals[signal].push({Bind: reciever, Call: slot, Args: args }); return this; }
   disconnect(signal,reciever,slot) { var Cbs = this._Signals[signal] , i = Cbs.length; while (i--) { var CB = Cbs[i]; if (CB.Bind == reciever && CB.Call == slot) { Cbs.splice(i,1); } } }
+  inherits(type) { return this._Base.includes(type); }
   isWidgetType() { return this._Base.includes('QWidget'); }
-  isWindowType() { }
+  isWindowType() { return !this._Base.includes('QWidget'); }
   metaObject() { return this._Base[this._Base.length - 1]; }
   objectName() { return this._ObjectName; }
   parent() { return this._Parent; }
+  property(name) { return this.dataset[name]; }
   setObjectName(text) { this._ObjectName = text; this._customEvent('objectNameChanged',{ detail: { objectName: text } }); }
   setParent(parent,before) {
 	  if (parent && parent.nodeType === Node.ELEMENT_NODE) {
@@ -114,6 +119,7 @@ class QObject extends HTMLElement {
     }
     return this;
   }
+  setProperty(name,value) { this.dataset[name] = value; return this; }
   signalsBlocked() { return this._BlockSignals; }
   
   //Public Slots
@@ -719,10 +725,10 @@ class QWidget extends QObject {
     this._Title = QuickElement('span',{class: "WindowTitle",style: "margin: 0 4px 0 4px; flex: auto; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;"},"");
     this._ClipControls = QuickElement('span',{class: "WindowClipControls", style: "max-width: 48px;"})
 
-    this._Undock = QuickElement('span',{class: "Undock"},"&#9660;");
-    this._Minimize = QuickElement('span',{class: "Minimize"},"&#128469;&#xFE0E;");
-    this._Maximize = QuickElement('span',{class: "Maximize"},"&#128470;&#xFE0E;");
-    this._Close = QuickElement('span',{class: "Close"},"&#128473;&#xFE0E;");
+    this._Undock = QuickElement('span',{style: "width:32px;height:32px;", class: "Undock"},"&#9660;&#xFE0E;");
+    this._Minimize = QuickElement('span',{style: "width:32px;height:32px;", class: "Minimize"},"&#128469;&#xFE0E;");
+    this._Maximize = QuickElement('span',{style: "width:32px;height:32px;", class: "Maximize"},"&#128470;&#xFE0E;");
+    this._Close = QuickElement('span',{style: "width:32px;height:32px;", class: "Close"},"&#128473;&#xFE0E;");
 
     this._Handle.appendChild(this._Icon);
     this._Handle.appendChild(this._Title);	
