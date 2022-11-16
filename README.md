@@ -7,7 +7,7 @@ If you wish to link this say on your site to your irc server, you can feed this 
 
 Example: &lt;a href="/path/here/?perform=/server+wss://fiery.swiftirc.net:4443"&gt;Chat Now!&lt;/a&gt;
 
-Try out this <a href="https://chat.swiftirc.net/?perform=/server+wss://fiery.swiftirc.net:4443">Demo</a>
+Try out this <a href="https://chat.swiftirc.net/?perform=/server+-j+%23swiftirc,%23bullshit+wss://fiery.swiftirc.net:4443">Demo</a>
 
 By using this project or its source code, for any purpose and in any shape or form, you grant your implicit agreement that:
 
