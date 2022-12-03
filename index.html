@@ -1129,7 +1129,7 @@ class CustomWindow extends QMdiSubWindow {
     else if (Attributes.type == 'status') {
       this.Toolbar = new QToolBar();
       this.QuickConnect = new QAction('images/star.ico').setToolTip('Favorites').setMenu();
-      new QAction('images/status.ico','ExampleNET',this.QuickConnect).connect('triggered',this,() => { this._Root._processInputLine(this,'/server ws://localhost:8000'); });
+      //new QAction('images/status.ico','ExampleNET',this.QuickConnect).connect('triggered',this,() => { this._Root._processInputLine(this,'/server ws://localhost:8000'); });
       new QAction('images/status.ico','SwiftIRC',this.QuickConnect).connect('triggered',this,() => { this._Root._processInputLine(this,'/server wss://fiery.swiftirc.net:4443'); });
       new QAction('images/status.ico','Libera.Chat',this.QuickConnect).connect('triggered',this,() => { this._Root._processInputLine(this,'/server wss://web.libera.chat/webirc/websocket/'); });
       new QAction('images/status.ico','mIRCScripts',this.QuickConnect).connect('triggered',this,() => { this._Root._processInputLine(this,'/server ws://irc.mircscripts.info:8000'); });
