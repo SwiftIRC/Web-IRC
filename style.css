@@ -1,0 +1,137 @@
+/* { font-family: Lucida Console, Lucida Sans Typewriter, monaco, Bitstream Vera Sans Mono, monospace; } */
+* { font-family: Segoe UI; font-size: 9pt; }
+h1,h2,h3 { margin: 0; padding: 0; }
+body {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+@media (prefers-color-scheme: light) {
+  :root { color-scheme: light; }
+  .QWidget { color: #000000; background: #f0f0f0; }        
+  .QMainWindow,.QDialog,.QMdiSubWindow { position: absolute; display: flex; flex-direction: column; top: 0; left: 0; bottom: 0; right: 0; border: 1px solid #cccccc; overflow: hidden; }
+  .QMainWindow > div > div > div > div > .CentralWidget { background: #e2e2e2; border: 1px solid #cccccc; }
+  .QMdiArea > .QMdiSubWindow > .WindowTitleBar { color: #999999; }
+
+  .QMenuBar .QMenu:hover,.QMenu > .CentralWidget .QAction:hover { background: #e5f3ff; border: 1px solid #cce8ff; } /**/
+  .QMenu > .CentralWidget { background: #f2f2f2; border: 1px solid #cccccc; top: 1em; left: 0; }
+  .QMenu .QMenu > .CentralWidget { background: #f2f2f2; border: 1px solid #cccccc; top: 0; left: 100%; }
+  .QMenu .QActionSeparator > .Text { vertical-align: top; display: inline-block; width: 100%; height: 1px; border-top: 1px solid #bababa; }
+  
+  .QToolBarArea-Horizontal > .QToolBar > .ToolBarHandle { margin-left: 2px; padding: 2px; cursor: move; border-left: 2px dotted #bababa; }
+  .QToolBarArea-Vertical > .QToolBar > .ToolBarHandle { margin-top: 2px; padding: 2px; cursor: move; border-radius: 0px; height: 1px; border-top: 2px dotted #bababa; }
+
+  .QToolBar > .CentralWidget > .QAction:hover,.QDockWidget .QTabBarArea-Horizontal > .QAction:hover,.QDockWidget .QTabBarArea-Vertical > .QAction:hover { border: 1px solid #b0b1b1; }
+  .QToolBar > .CentralWidget > .QAction:active.QDockWidget .QTabBarArea-Horizontal > .QAction:active.QDockWidget .QTabBarArea-Vertical > .QAction:active { border: 1px inset #b0b1b1; }
+  .QToolBar > .CentralWidget > .QAction.checkable.checked,.QTabBarArea-Horizontal > .QAction.selected,.QDockWidget .QTabBarArea-Vertical > .QAction.selected { border: 1px inset #b0b1b1; }
+
+  .QToolBar > .CentralWidget .QAction.QMenu > .CentralWidget { background: #f2f2f2; border: 1px solid #cccccc; top: 1em; left: 0; }
+  .QToolBar > .CentralWidget .QAction.QMenu .QMenu > .CentralWidget { background: #f2f2f2; border: 1px solid #cccccc; top: 0; left: 100%; }
+  .QToolBar > .CentralWidget .QAction.QMenu .QMenu:hover,.QToolBar > .CentralWidget .QAction.QMenu .QAction:hover { background: #e5f3ff; border: 1px solid #cce8ff; }
+  .QToolBar > .CentralWidget .QAction.QMenu .QActionSeparator > .Text { vertical-align: top; display: inline-block; width: 100%; height: 1px; border-top: 1px solid #bababa; }
+
+  .QDockWidget > .WindowTitleBar { border: 1px solid #cccccc; }
+  .Undock:hover,.Minimize:hover,.Maximize:hover { background: #e5e5e5; }
+  .Undock:active,.Minimize:active,.Maximize:active { background: #cacacb; }
+  .Close:hover { background: #e81123; color: #ffffff; }
+  .Close:active { background: #8b0a14; color: #ffffff; } 
+
+  .QMdiArea > .QMdiSubWindow .Minimize:hover,.QMdiArea > .QMdiSubWindow .Maximize:hover { background: #e5e5e5; }
+  .QMdiArea > .QMdiSubWindow:last-child .Minimize:hover,.QMdiArea > .QMdiSubWindow:last-child .Maximize:hover { background: #e5e5e5; }
+
+  .QListView.Static > .CentralWidget > .QAction:hover,.QListView.IconView > .QAction:hover,.QTreeWidgetItem > .Container:hover { background: #91c9f7; }
+  .QListView > .CentralWidget > .QAction.selected { color: white; background: #0078d7; }
+  .QTreeWidgetItem > .Container.selected { color: white; background: #0078d7; }
+}
+@media (prefers-color-scheme: dark) {
+  :root { color-scheme: dark; }
+  .QWidget { color: #f1f1f1; background: #0c0c0d; }
+  .QMainWindow,.QDialog,.QMdiSubWindow { position: absolute; display: flex; flex-direction: column; top: 0; left: 0; bottom: 0; right: 0; color: #f1f1f1; border: 1px solid #333333; overflow: hidden; }
+  .QMainWindow > div > div > div > div > .CentralWidget { position: relative; background: #202020; }
+  .QMdiArea > .QMdiSubWindow > .WindowTitleBar { color: #7f7f7f; background: #2b2b2b; }
+  
+  .QMenuBar .QMenu:hover,.QMenu .QAction:hover { background: #4e4d53; }
+  .QMenu > .CentralWidget { background: #2b2b2b; border: 1px solid #a0a0a0; top: 1em; left: 0; }
+  .QMenu .QMenu > .CentralWidget { background: #2b2b2b; border: 1px solid #a0a0a0; top: -4px; left: 100%; }
+  .QMenu .QActionSeparator > .Text { vertical-align: top; display: inline-block; width: 100%; height: 1px; border-top: 1px solid #c4cad9; }
+  
+  .QToolBarArea-Horizontal > .QToolBar > .ToolBarHandle { margin-left: 2px; padding: 2px; cursor: move; border-left: 2px dotted #d2d2d2; }
+  .QToolBarArea-Vertical > .QToolBar > .ToolBarHandle { margin-top: 2px; padding: 2px; cursor: move; border-radius: 0px; height: 1px; border-top: 2px dotted #d2d2d2; }
+
+  .QToolBar > .CentralWidget > .QAction:hover,.QDockWidget .QTabBarArea-Horizontal > .QAction:hover,.QDockWidget .QTabBarArea-Vertical > .QAction:hover { border: 1px solid #b0b1b1; }
+  .QToolBar > .CentralWidget > .QAction:active.QDockWidget .QTabBarArea-Horizontal > .QAction:active.QDockWidget .QTabBarArea-Vertical > .QAction:active { border: 1px inset #b0b1b1; }
+  .QToolBar > .CentralWidget > .QAction.checkable.checked,.QTabBarArea-Horizontal > .QAction.selected,.QDockWidget .QTabBarArea-Vertical > .QAction.selected { border: 1px inset #b0b1b1; }
+
+  .QToolBar > .CentralWidget .QAction.QMenu > .CentralWidget { background: #2b2b2b; border: 1px solid #a0a0a0; top: 1em; left: 0; }
+  .QToolBar > .CentralWidget .QAction.QMenu .QMenu > .CentralWidget { background: #2b2b2b; border: 1px solid #a0a0a0; top: -4px; left: 100%; }
+  .QToolBar > .CentralWidget .QAction.QMenu .QMenu:hover,.QToolBar > .CentralWidget .QAction.QMenu .QAction:hover { background: #4e4d53; }
+  .QToolBar > .CentralWidget .QAction.QMenu .QActionSeparator > .Text { vertical-align: top; display: inline-block; width: 100%; height: 1px; border-top: 1px solid #c4cad9; }
+
+  .QDockWidget > .WindowTitleBar { color: #ffffff; border: 1px solid #333333; }
+  .Undock:hover,.Minimize:hover,.Maximize:hover { background: #1a1a1a; }
+  .Undock:active,.Minimize:active,.Maximize:active { background: #333333; }
+  .Close:hover { background: #e81123; }
+  .Close:active { background: #8b0a14; } 
+  
+  .QMdiArea > .QMdiSubWindow .Minimize:hover,.QMdiArea > .QMdiSubWindow .Maximize:hover { background: #414141; }
+  .QMdiArea > .QMdiSubWindow:last-child .Minimize:hover,.QMdiArea > .QMdiSubWindow:last-child .Maximize:hover { background: #1a1a1a; }
+
+  .QListView.Static > .CentralWidget > .QAction:hover,.QListView.IconView > .QAction:hover,.QTreeWidgetItem > .Container:hover { background: #4d4d4d; }
+  .QListView > .CentralWidget > .QAction.selected { background: #626262; }
+  .QTreeWidgetItem > .Container.selected { background: #626262; }
+}
+.WindowTitleBar { display: flex; font-family: Segoe UI; font-size: 9pt; }
+.QMenuBar,.QStatusBar,.QToolBar > .CentralWidget .QAction.QMenu,.QTreeWidget { font-family: Segoe UI; font-size: 9pt; }
+
+.QMenuBar .QMenu { padding: 0 6px 0 6px; border: 1px solid transparent; background: inherit; }
+.QMenu:hover > .CentralWidget,.QToolBar > .CentralWidget .QAction.QMenu .QMenu:hover > .CentralWidget { visibility: visible; transition: 0.2s 0.3s; }
+.QMenu > .Text { flex: auto; } 
+.QMenu .QActionSeparator:hover { background: transparent; }
+
+.QMenu > .CentralWidget { position: absolute; visibility: hidden; white-space: nowrap; margin: 0; padding: 5px; z-index: 2147483646; }
+.QMenu .QActionSeparator { height: 3px; vertical-align: middle; border-radius: 0; border: 1px solid transparent }
+.QMenu .QMenu,.QMenu .QAction { display: flex; padding: 4px; border: 1px solid transparent; }
+.QMenu .QMenu .Icon,.QMenu .QAction .Icon { width: 16px; height: 16px; margin-right: 4px; }
+
+.QTabBarArea-Horizontal,.QToolBarArea-Horizontal,.QDockWidgetArea-Horizontal { display: flex; flex-direction: row; flex-wrap: nowrap; }
+.QToolBarArea-Horizontal > .QToolBar,.QToolBarArea-Horizontal > .QToolBar > .CentralWidget { display: flex; flex-direction: row; flex-wrap: nowrap; }
+.QToolBarArea-Horizontal > .QToolBar > .CentralWidget > .QActionSeparator > .Text { width: 1px; border-left: 1px solid #c4cad9; }
+
+.QTabBarArea-Vertical,.QToolBarArea-Vertical,.QDockWidgetArea-Vertical { display: flex; flex-direction: column; flex-wrap: nowrap; }
+.QToolBarArea-Vertical > .QToolBar,.QToolBarArea-Vertical > .QToolBar > .CentralWidget { display: flex; flex-direction: column; flex-wrap: nowrap; }
+.QToolBarArea-Vertical > .QToolBar > .CentralWidget > .QActionSeparator > .Text { width: 100%; height: 1px; border-top: 1px solid #c4cad9; }
+.QTabBarArea-Horizontal > .QAction:only-child,.QTabBarArea-Vertical > .QAction:only-child { display: none; }
+.QToolBar > .CentralWidget > .QAction,.QTabBarArea-Horizontal > .QAction,.QTabBarArea-Vertical > .QAction { display: flex; margin: 0; padding: 2px; border: 1px solid transparent; border-radius: 5px; text-align: center; }
+.QToolBar > .CentralWidget > .QAction.menurequested:hover > .CentralWidget { visibility: visible; resize: none; }
+
+.QToolBar > .CentralWidget > .QAction > .Icon,.QMainWindow > .WindowTitleBar > .QAction > .Icon { max-width: 16px; max-height: 16px; }
+.QToolBar > .CentralWidget > .QActionSeparator,.QToolBar > .CentralWidget > .QActionSeparator:hover { vertical-align: middle; border: 1px solid transparent; border-radius: 0px; }
+
+.QMdiArea { position: relative; display: flex; flex: auto; flex-direction: column; overflow: auto; }
+.QMdiArea > .QMdiSubWindow:last-child > .WindowTitleBar { color: inherit; background: inherit; }
+
+
+.QDockWidget,.QTabWidget,.QTreeWidget,.QListView { display: flex; flex: 1 1 50%; flex-direction: column; overflow: hidden; }
+.QDockWidget > .CentralWidget,.QTabWidget > .CentralWidget { display: flex; flex: auto; overflow: auto; }
+
+.QListView.Static > .CentralWidget { display: flex; flex-direction: column; flex: auto; white-space: nowrap; overflow-x: hidden; overflow-y: auto; }
+.QListView.Static > .CentralWidget > .QAction > .Icon { max-height: 16px; margin: 0 4px 0 0; }
+.QListView.Static > .CentralWidget > .QAction > .Text { cursor: default; }
+
+.QListView.IconView > .CentralWidget { flex: auto; overflow: auto; }
+.QListView.IconView > .CentralWidget > .QAction { display: inline-block; text-align: center; padding: 4px; }
+.QListView.IconView > .CentralWidget > .QAction > .Icon { min-height: 16px; }
+.QListView.IconView > .CentralWidget > .QAction > .Text { display: block; cursor: default; }
+
+.QTreeWidget { padding: 4px; display: flex; flex: auto; flex-direction: row; overflow: auto;}
+.QTreeWidget > .CentralWidget { flex: auto; }
+
+.QTreeWidgetItem { display: flex; flex: auto; flex-direction: column; white-space: nowrap; color: inherit; }
+.QTreeWidgetItem > .Container > .Icon { max-height: 16px; margin: 0 4px 0 0; }
+.QTreeWidgetItem > .CentralWidget { margin-left: 1em }
+
+.viewport span:first-child { margin-top: auto; }
+a:link,a:visited,a:hover,a:active { color: inherit; }
+input:focus,textarea:focus,select:focus { outline: none; }
+button { background: inherit; color: inherit; }
