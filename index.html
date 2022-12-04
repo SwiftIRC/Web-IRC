@@ -435,13 +435,14 @@ class WebIRC extends QMainWindow {
       //Fix too-long privmsg's
       else if (/^PRIVMSG/i.test(Data) && Data.length > RFCLen) {
         RFCLen -= Data.substr(0,Data.indexOf(':') + 1).length; //Include "PRIVMSG <target> :" length (gotta prune to what a server relays... UGH...)
-        while(Data.length > RFCLen) {
-          var cmd = Data.substr(0,Data.indexOf(':') + 1);
-          var tmp = Data.substr(0,RFCLen) , wbreak = (tmp.lastIndexOf(" ") == -1 ? RFCLen : tmp.lastIndexOf(" "));          
-          Client.WSSend(Data.substr(0,wbreak));
-          Data = cmd + Data.substr(wbreak);
+        var cmd = Data.substr(0,Data.indexOf(':') + 1);
+        Data = Data.substr(cmd.length);
+        while (Data.length > RFCLen) {
+          var tmp = Data.substr(0,RFCLen) , wbreak = (tmp.lastIndexOf(" ") == -1 ? RFCLen : tmp.lastIndexOf(" "));
+          Client.WSSend(cmd + Data.substr(0,wbreak));
+          Data = Data.substr(wbreak);
         }
-        if (Data) { Client.WSSend(Tags + Data); }
+        if (Data) { Client.WSSend(Tags + cmd + Data); }
       }
       else { Client.WSSend(Tags + Data); }
     }
