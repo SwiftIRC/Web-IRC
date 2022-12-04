@@ -1276,7 +1276,7 @@ class CustomWindow extends QMdiSubWindow {
     });
     remove.forEach((key) => { delete this._TypeObject[key]; });
 
-    if (typers.length > 0 && typers.length <= 3) { this.EditBox.setAttribute('placeholder',typers.join(",") + " is typing..."); }
+    if (typers.length > 0 && typers.length <= 3) { this.EditBox.setAttribute('placeholder',typers.join(", ").replace(/\x2c([^\x2c]*)$/," and$1") + " is typing..."); }
     else if (typers.length > 3) { this.EditBox.setAttribute('placeholder',"Multiple people are typing..."); }
     else { this.EditBox.setAttribute('placeholder',""); }
     if (!bool) { this._TypeTimer = setTimeout(() => { this._updateTypers(true); },6000); }
