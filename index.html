@@ -1244,19 +1244,20 @@ class CustomWindow extends QMdiSubWindow {
     }
   }
   _echo(highlight,color,string) {
-    if (this.ViewPort.childNodes.length == this._Root._Config['windows'].buffer) { this.ViewPort.removeChild(this.ViewPort.firstElementChild); }
-    var Async = [];
-    if (!this.hasOwnProperty('_DocumentFragment')) { this._DocumentFragment = document.createDocumentFragment(); }
-
     if (this.hasOwnProperty('ViewPort')) {
-      this._DocumentFragment.appendChild(QuickElement('span',{style:'color:' + color},this._Root.CC2Html(string + "\n").replace(/((?:https?|ftp):\/\/(?:[\w_-]+(?:(?:\.[\w_-]+)+))(?:[\w.,@?^=%&:/~+#-;]*[\w@?^=%&/~+#-])?)/ig,function(match,url) {   
-        if (/^https?:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=)?(.+)/g.test(url)) { return '<iframe width="320" height="280" src="//www.youtube.com/embed/' + RegExp.$1 + '" frameborder="0" allowfullscreen></iframe>'; }
-        else {
-          var rng = "AsyncEmbed-" + (Math.random() + 1).toString(36).substring(2);
-          Async.push(rng);
-          return '<a href="' + url + '" target="_blank"><span id="' + rng + '">' + url + '</span></a>';
-        }
-      })));
+      if (this.ViewPort.childNodes.length == this._Root._Config['windows'].buffer) { this.ViewPort.removeChild(this.ViewPort.firstElementChild); }
+      if (!this.hasOwnProperty('_DocumentFragment')) { this._DocumentFragment = document.createDocumentFragment(); }
+      var Async = [] , str = this._Root.CC2Html(string + "\n");
+      if (this._Type != "status") { str = str.replace(/((?:https?|ftp):\/\/(?:[\w_-]+(?:(?:\.[\w_-]+)+))(?:[\w.,@?^=%&:/~+#-;]*[\w@?^=%&/~+#-])?)/ig,function(match,url) {   
+          if (/^https?:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=)?(.+)/g.test(url)) { return '<iframe width="320" height="280" src="//www.youtube.com/embed/' + RegExp.$1 + '" frameborder="0" allowfullscreen></iframe>'; }
+          else {
+            var rng = "AsyncEmbed-" + (Math.random() + 1).toString(36).substring(2);
+            Async.push(rng);
+            return '<a href="' + url + '" target="_blank"><span id="' + rng + '">' + url + '</span></a>';
+          }
+        });
+      }
+      this._DocumentFragment.appendChild(QuickElement('span',{style:'color:' + color},str));
       window.requestAnimationFrame(() => { this._embedFragment(Async); });
     }
 
@@ -1298,13 +1299,26 @@ class CustomWindow extends QMdiSubWindow {
       this.setWindowTitle(this._Target + " (" + Client.Network + ")" + (IAL ? " (" + IAL.address + ")" : ""));
     }
   }
-  _ToggleOnline(e) {
-    if (e.detail.checked) { this.OnlineContainer.style.display = null; this.Timer = setInterval(() => { this._updateOnline() },500); this._updateOnline(); }
-    else { this.OnlineContainer.style.display = 'none'; this.Timer = clearInterval(this.Timer); }
-  }
   _ToggleIdle(e) {
+    var ch = this.ViewPort.clientHeight;
     if (e.detail.checked) { this.IdleContainer.style.display = null; this.Timer = setInterval(() => { this._updateIdle() },500); this._updateIdle(); }
     else { this.IdleContainer.style.display = 'none'; this.Timer = clearInterval(this.Timer); }
+    ch -= this.ViewPort.clientHeight
+    if (ch > 0) { this.ViewPort.scrollTop += ch; }
+  }
+  _ToggleStats(e) {
+    var ch = this.ViewPort.clientHeight;
+    if (e.detail.checked) { this.StatsContainer.style.display = null; this._updateStats(); }
+    else { this.StatsContainer.style.display = 'none'; }
+    ch -= this.ViewPort.clientHeight
+    if (ch > 0) { this.ViewPort.scrollTop += ch; }
+  }
+  _ToggleOnline(e) {
+    var ch = this.ViewPort.clientHeight;
+    if (e.detail.checked) { this.OnlineContainer.style.display = null; this.Timer = setInterval(() => { this._updateOnline() },500); this._updateOnline(); }
+    else { this.OnlineContainer.style.display = 'none'; this.Timer = clearInterval(this.Timer); }
+    ch -= this.ViewPort.clientHeight
+    if (ch > 0) { this.ViewPort.scrollTop += ch; }
   }
   _updateIdle() { 
     var Client = this._Root.Sessions[this._Cid].Client , Chan = Client.GetICL(this._Target);
@@ -1313,10 +1327,6 @@ class CustomWindow extends QMdiSubWindow {
       this.IdleContainer.innerHTML = "Idle: " + H.toString().padStart(2,'0') + ":" + M.toString().padStart(2,'0') + ":" + N.toString().padStart(2,'0'); 
     }
     else { this.IdleContainer.innerHTML = "Idle: -"; }
-  }
-  _ToggleStats(e) {
-    if (e.detail.checked) { this.StatsContainer.style.display = null; this._updateStats(); }
-    else { this.StatsContainer.style.display = 'none'; }
   }
   _updateStats() { 
     var Client = this._Root.Sessions[this._Cid].Client , Chan = Client.GetICL(this._Target);
