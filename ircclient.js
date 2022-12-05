@@ -56,11 +56,12 @@ class IALItem {
   ================================================================================================*/
   class IRCClient {
     constructor(cid,nick,server,args) {
-      this.Listeners = {action: [],connect: [],chghost: [],ctcp: [],ctcpreply: [],disconnect: [],invite: [],join: [],kick: [],logon: [],mode: [],nick: [],notice: [],part: [],ping: [],pong: [],quit: [],raw: [],snotice: [],smode: [],privmsg: [],tagmsg: [],topic: [],umode: []}; //Collection of callbacks for IRC related events
+      this.Listeners = {action: [],batch: [],connect: [],chghost: [],ctcp: [],ctcpreply: [],disconnect: [],invite: [],join: [],kick: [],logon: [],mode: [],nick: [],notice: [],part: [],ping: [],pong: [],quit: [],raw: [],snotice: [],smode: [],privmsg: [],tagmsg: [],topic: [],umode: []}; //Collection of callbacks for IRC related events
       this.IAL = {}; //Internal Address List Object
       this.ICL = {}; //Internal Channels List Object
       this.ServerARGS = {}; //Raw 005 supported "features" and "limits" etc...
       this.IrcV3Cap = [];
+      this.IrcV3Batch = {};
       this.IrcV3ClientTagDeny = '';
       this.CID = cid;
       this.Server = '';
@@ -113,6 +114,7 @@ class IALItem {
         this.ICL = {}; //Internal Channels List Object
         this.ServerARGS = {}; //Raw 005 supported "features" and "limits" etc...
         this.IrcV3Cap = [];
+        this.IrcV3Batch = {};
         this.IrcV3ClientTagDeny = '';
         this.UMode = '';
         this.ChanModes = 'bIe,k,l';
@@ -193,6 +195,13 @@ class IALItem {
             }
           });      
         }
+        if (IRCv3.hasOwnProperty('batch')) {
+          if (this.IrcV3Batch.hasOwnProperty(IRCv3['batch'])) {
+            this.IrcV3Batch[IRCv3['batch']].lines.push(data);
+            return;
+          }
+          //else { console.log("Error batch don't exist!"); }
+        }
         Args = Args.split(' ');
         if (!FullAddress && /^PING$/i.test(Event)) { 
           this.Emit('ping',[this.CID,Extra,IRCv3]); 
@@ -211,12 +220,14 @@ class IALItem {
             Extra.split(' ').forEach((capability) => {
               if (/^account-notify$/i.test(capability)) { Request.push(capability); }
               else if (/^away-notify$/i.test(capability)) { Request.push(capability); }
+              else if (/^batch$/i.test(capability)) { Request.push(capability); }
               else if (/^cap-notify$/i.test(capability)) { Request.push(capability); }
               else if (/^chghost$/i.test(capability)) { Request.push(capability); }
               else if (/^extended-join$/i.test(capability)) { Request.push(capability); }
               else if (/^message-tags$/i.test(capability)) { Request.push(capability); }
               else if (/^multi-prefix$/i.test(capability)) { Request.push(capability); }
               else if (/^setname$/i.test(capability)) { Request.push(capability); }
+              else if (/^server-time$/i.test(capability)) { Request.push(capability); }
               else if (/^userhost-in-names$/i.test(capability)) { Request.push(capability); }
             });
             if (Request.length > 0) { 
@@ -297,6 +308,18 @@ class IALItem {
         //IRCv3 special events
         else if (/^ACCOUNT$/i.test(Event)) { this.IALUpdate(Nick,{account: Args[0]}); }
         else if (/^AWAY$/i.test(Event)) { this.IALUpdate(Nick,{away: (Extra != '' ? 'G' : 'H')}); }
+        else if (/^BATCH$/i.test(Event)) { //IRCv3 like privmsg but for client-only tags reporting stuff with no content (Extra)
+          if (/^\+(.*)$/.test(Args[0])) { this.IrcV3Batch[RegExp.$1] = {type: Args[1], lines: []}; }
+          else if (/^\-(.*)$/.test(Args[0])) { 
+            this.Emit(Event.toLowerCase(),[this.CID,"BATCH",this.IrcV3Batch[RegExp.$1]]);
+            var lines = this.IrcV3Batch[RegExp.$1].lines.splice(0);
+            delete this.IrcV3Batch[RegExp.$1]; 
+            lines.forEach((line) => { this.ParseLine(line); });
+          }
+          //this.IALUpdate(Nick,{'address': Address,'idle': Math.floor(Date.now() / 1000)});
+          //this.Emit(Event.toLowerCase(),[this.CID,Nick,Address,Args[0],IRCv3]);
+        }
+
         else if (/^SETNAME$/i.test(Event)) { this.IALUpdate(Nick,{gecos: Extra}); }
         else if (/^CHGHOST$/i.test(Event)) { this.IALUpdate(Nick,{address: Args[0] + "@" + Args[1]}); }
         //End of IRCv3 special events
@@ -347,9 +370,10 @@ class IALItem {
           }
         }
         else if (/^NICK$/i.test(Event)) {
-          if (Nick == this.Me) { this.Me = Extra; }
-          this.IALRen(Nick,Extra);
-          this.Emit(Event.toLowerCase(),[this.CID,Nick,Address,Extra,IRCv3]);
+          var newnick = Args[0] || Extra;
+          if (Nick == this.Me) { this.Me = newnick; }
+          this.IALRen(Nick,newnick);
+          this.Emit(Event.toLowerCase(),[this.CID,Nick,Address,newnick,IRCv3]);
         }
         else if (/^NOTICE$/i.test(Event)) { 
           this.IALUpdate(Nick,{'address': Address,'idle': Math.floor(Date.now() / 1000)});

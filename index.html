@@ -448,9 +448,9 @@ class WebIRC extends QMainWindow {
     }
     else { this._Echo(Client.CID,"status window",1,'#FF0000'," * Error: not connected!"); }
   }
-  _Echo(cid,target,highlight,color,line) {
+  _Echo(cid,target,highlight,color,line,IRCv3Time) {
     if (this.Sessions.hasOwnProperty(cid) && this.Sessions[cid].Windows.hasOwnProperty(target.toLowerCase())) {
-      var Stamp = (this._Config['options']['irc'].timestamp ? AscTime(new Date(),this._Config['options']['irc'].timestampformat) + " " : "");
+      var Stamp = (this._Config['options']['irc'].timestamp ? AscTime((IRCv3Time ? IRCv3Time : new Date()),(IRCv3Time ? "S:" : "") + this._Config['options']['irc'].timestampformat) + " " : "");
       this.Sessions[cid].Windows[target.toLowerCase()]._echo(highlight,color,Stamp + line);
       
       if (this.Sessions[cid].Windows[target.toLowerCase()]._Type == "status") {
@@ -762,8 +762,9 @@ class WebIRC extends QMainWindow {
       }
 
       ircv3.clientonly.typing = "done";
+      if (ircv3.hasOwnProperty('batch') && ircv3.hasOwnProperty('time')) { var time = new Date(ircv3.time); }
       this._updateWindowTypers(this.Sessions[cid].Windows[target.toLowerCase()],nick,ircv3);
-      this._Echo(cid,target,2,LineColor,Line);
+      this._Echo(cid,target,2,LineColor,Line,time);
       this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
     }
     else {
@@ -782,8 +783,9 @@ class WebIRC extends QMainWindow {
         }
 
         ircv3.clientonly.typing = "done";
+        if (ircv3.hasOwnProperty('batch') && ircv3.hasOwnProperty('time')) { var time = new Date(ircv3.time); }
         this._updateWindowTypers(this.Sessions[cid].Windows[nick.toLowerCase()],nick,ircv3);
-        this._Echo(cid,nick,2,LineColor,Line);
+        this._Echo(cid,nick,2,LineColor,Line,time);
         this._MonitorEcho(this.MonitorQueryViewPort,'inherit',(Client.Network != "" ? Client.Network : Client.Server) + ": " + Line);
       }
     }
@@ -969,8 +971,9 @@ class WebIRC extends QMainWindow {
       }
       else { var Line = "9<14" + IAL.channels[target.toLowerCase()].substr(0,1) + "" + nick + "9> " + msg; LineColor = this._Color('own'); }
       ircv3.clientonly.typing = "done";
+      if (ircv3.hasOwnProperty('batch') && ircv3.hasOwnProperty('time')) { var time = new Date(ircv3.time); }
       this._updateWindowTypers(this.Sessions[cid].Windows[target.toLowerCase()],nick,ircv3);
-      this._Echo(cid,target,Event,LineColor,Line);
+      this._Echo(cid,target,Event,LineColor,Line,time);
       this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
     }
     else {
@@ -991,8 +994,9 @@ class WebIRC extends QMainWindow {
           this._MonitorEcho(this.MonitorHighlightViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - Query: " + Line);
         }
         ircv3.clientonly.typing = "done";
+        if (ircv3.hasOwnProperty('batch') && ircv3.hasOwnProperty('time')) { var time = new Date(ircv3.time); }
         this._updateWindowTypers(this.Sessions[cid].Windows[nick.toLowerCase()],nick,ircv3);
-        this._Echo(cid,nick,Event,LineColor,Line);
+        this._Echo(cid,nick,Event,LineColor,Line,time);
         this._MonitorEcho(this.MonitorQueryViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + ": " + Line);
       }
     }
@@ -1039,7 +1043,7 @@ class WebIRC extends QMainWindow {
         UI._updateTitle();
       }
     } //channel end of names
-    else { this._Echo(cid,"status window",1,this._Color('normal'),(/^\d+/.test(numeric) ? "" : numeric + " ") + Tokens.slice(1).join(" ")); }
+    else { this._Echo(cid,"status window",1,this._Color('normal'),(/^\d+/.test(numeric) ? "" : numeric + " ") + (numeric == 372 ? "" : "") + Tokens.slice(1).join(" ")); }
   }
   onSnotice(cid,nick,address,target,msg) {
     var Client = this.Sessions[cid].Client;
@@ -1133,6 +1137,7 @@ class CustomWindow extends QMdiSubWindow {
       //new QAction('images/status.ico','ExampleNET',this.QuickConnect).connect('triggered',this,() => { this._Root._processInputLine(this,'/server ws://localhost:8000'); });
       new QAction('images/status.ico','SwiftIRC',this.QuickConnect).connect('triggered',this,() => { this._Root._processInputLine(this,'/server wss://fiery.swiftirc.net:4443'); });
       new QAction('images/status.ico','Libera.Chat',this.QuickConnect).connect('triggered',this,() => { this._Root._processInputLine(this,'/server wss://web.libera.chat/webirc/websocket/'); });
+      new QAction('images/status.ico','Ergo',this.QuickConnect).connect('triggered',this,() => { this._Root._processInputLine(this,'/server wss://irc.ergo.chat/webirc/'); });
       new QAction('images/status.ico','WRNet',this.QuickConnect).connect('triggered',this,() => { this._Root._processInputLine(this,'/server wss://irc.wrestlingnewssource.com:8000'); });
       //new QAction('images/status.ico','mIRCScripts',this.QuickConnect).connect('triggered',this,() => { this._Root._processInputLine(this,'/server ws://irc.mircscripts.info:8000'); });
 
