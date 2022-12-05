@@ -24,7 +24,21 @@ Qt Style enum Flags
 ===============================================================================*/
 var Qt = {
   //1x1 Transparent PNG Blob to be used with <img> tags not assigned a src.
+  Pin: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABSElEQVQ4T2NkoBAwkqBfCaj2Hrp6Yg2YZsXHGnPs029boAEXkQ0hxgClUhnuu4Uy3Azptz9+2fz2pw2yIcQYELFAm2W5N58Aw5//TAxpaIbgMsDGTZCt5/Gvfz+zZf/auQkzMDADId8/AYbfQEOQXYLNgAigk5fnS3Mz/GH4x/CX5QPDXyAEgWMfmBnefedimP3y26HrX/8EAYXeYjNA31eY/ch0FX4eHmZGoI1/GT4xfWDY/vYvQ86N/9OBmpYB8RFYQOLygn60iuSFidKsDCy/fzJ8+PuXwfnS+0d3v/+VJyoaNTU1FzU1NcVuqMxj6BT+ywBySezND6AY4CVoAExzaWnppQcPHmQDvbNdg5OFp/vJ10ig5hWEDGhdvXp1FVSzEyiQgFgfiDWxaQYZhh4Graqqqrq3b99OhGommNKJSUh4DRl4AwAkSoERsE4D5gAAAABJRU5ErkJggg==",
   TransparentPNG: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAALHRFWHRDcmVhdGlvbiBUaW1lAFR1ZSAyMyBOb3YgMjAyMSAwMjowNzowOSAtMDUwMPDEJCEAAAAHdElNRQflCxcHCAtqBzujAAAACXBIWXMAAB7CAAAewgFu0HU+AAAABGdBTUEAALGPC/xhBQAAAAtJREFUeNpjYAACAAAFAAHp+tzYAAAAAElFTkSuQmCC",
+  BlackDock: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAZklEQVQ4T2NkoBAwUqifYQQYYAMMo2dAfA9XWBEKgx1QzVnkGACy/TBUozIuV+BzAch2d6gB04E0VlfgMgDZdpjrsboClwHItsMMwOoKbAZEAHUsxxFotkDxI8hyhGKBYEofBgYAAJo2DhHPY845AAAAAElFTkSuQmCC",
+  WhiteDock: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAcUlEQVQ4T2NkoBAwUqifYbgb8P///zxgGJ1nZGQ8jCus8IYB0IBbQI1vgQZYkmwA1PaJUI12uFyB0wVQ21WhBpzA5QqsBqDZDnM9VlfgMgDkd5jtMAOwugLDAKDtk4E6cnAEWj7QK5OQ5YZ7SiQmpwIAQlEjEepMPNYAAAAASUVORK5CYII=",
+  BlackUnDock: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAaUlEQVQ4T2NkoBAwUqifYZgaEAEMl+U4wsYWKH4EWQ5XGNwBKlJGM2QnkO+BbjAuA7C5AsN2kGH4YgHZFVhtJ2QAsiuw2k7IAJA8yBUgjOF3WFgQSkggVzxBD3liYoHoFE7IBQQNGngDAKAGDhG8dIjjAAAAAElFTkSuQmCC",
+  WhiteUnDock: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAbUlEQVQ4T2NkoBAwUqifYTga8P///8nAcMnBETb5jIyMk5DlsIYB0JA3QEXCaIbcBmpWQzcYlwHYXIFhO8gwnLGA5gqsthMyANkVWG3HawBIEuqKd9j8DgsLvAkJGiMg56OEPMFYICV5D4OkDABIFSMRL7y75wAAAABJRU5ErkJggg==",
+  BlackMinimise: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAQElEQVQ4T2NkoBAwUqifYdQAhtEwACYimqWDMqDhnWiptBzI70JPubhcoARUKIWm+BmQf49YA4jOIjQLA6JdAAAZRAQR8PbkJwAAAABJRU5ErkJggg==",
+  WhiteMinimize: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAR0lEQVQ4T2NkoBAwUqifYdQAhtEwACYi2qSD////bwQa7oeWSjcxMjL6o6dcrC4AGmALVGiIpvg80IDDRBlASv6gTRiQ4gIAdd4KEdn4j7wAAAAASUVORK5CYII=",
+  BlackMaximize: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAT0lEQVQ4T2NkoBAwUqifYZga0AoMF2McYXMWKF6NLIctDHYAFezDYYATUNyDGANQFCFpABk+UgygKBD1gQHFiyMWPgPFLxKKBZKyx8DnBQBlXBARxGMRyAAAAABJRU5ErkJggg==",
+  WhiteMaximize: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAVklEQVQ4T2NkoBAwUqifYTga8P///z3AcJHDETaPGBkZXZDlMMIAaMAtoILrOAzQBBqgRtAAdEUwDSDDR4oBlAZiONAAcRyx8BIYiCvxxgKpeWPg8wIAOZM0EbzxIzIAAAAASUVORK5CYII=",
+  BlackRestore: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAdklEQVQ4T2NkoBAwUqifYZgbsANL+JwFilUji+MLgztAhbPQDHEC8j0IGaAPVMALxP1AXIik+AiQDXIVQQNAityxOB/kWqINQLEFqhFkJlFhgGELNpthLsQWiCAD9qF5IQ3IV8GWarEZAAtEdPWgQMQAwyApAwBKURERmKzpGQAAAABJRU5ErkJggg==",
+  WhiteRestore: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAgklEQVQ4T2NkoBAwUqifYTgb8P///1tYwucRIyOjC7I4zjAAGvAGqPAomiGaQAPU8BoA1BgOVCAOxKVA3A1TDNQ4CeQqYgwAOV0V3flAjYxEG4BuC1J4EA4DbLZgE4N7Dd2pUNuuo4lbA10lgi3VYsQCUiCiqAcFIlEGkJo3Bj4vAAAcSDURA8pCDgAAAABJRU5ErkJggg==",
+  BlackClose: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAjUlEQVQ4T2NkoBAwUqifYXAaIAz0liYQH0Hznj6Q/wSI3yKLY/MCSOEFIJ4OxFlQxRFAejkQGwDxRUIGgORhGkCGHIJqjgTSK9ADHV8gwgwB6cGqGSRBrAHI3kFxBC4DYLaDbAYBkP+xGoIvEJGdDTPQFj12sBkAikYZ9NAG8omORvSAxssfnEmZJC8AAMyuGREFDduvAAAAAElFTkSuQmCC",
+  WhiteClose: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAkElEQVQ4T2NkoBAwUqifYRAa8P//f3mgt/wZGRknIXsPKB4O5J8Aij9EFsfwAlThCqhiS5BioNhkIJUDxBFAA1biNQBNwwkg/wxU8xSg5lz0QMcZiEi2gvRg1QySINYAkN/B3iHKBUi2T4FqAPkfqyH4AhHubCQD89FjB5sBoGi0QA9toqOR1KQ9CJMyqV4AAL1UPRFjX4vfAAAAAElFTkSuQmCC",
+
   DockWidgetArea: {
     LeftDockWidgetArea: 1,
     RightDockWidgetArea: 2,
@@ -819,10 +833,22 @@ class QWidget extends QObject {
     this._ClipControls = QuickElement('span',{class: "WindowClipControls", style: "max-width: 48px;"},'',this._Handle);
 
     //TODO: use img with Blob
-    this._Minimize = QuickElement('span',{style: "width:32px;height:32px;", class: "Minimize"},"&#128469;&#xFE0E;",this._ClipControls);
-    this._Maximize = QuickElement('span',{style: "width:32px;height:32px;", class: "Maximize"},"&#128470;&#xFE0E;",this._ClipControls);
-    this._Close = QuickElement('span',{style: "width:32px;height:32px;", class: "Close"},"&#128473;&#xFE0E;",this._ClipControls);
-    
+    //this._Minimize = QuickElement('span',{style: "width:32px;height:32px;", class: "Minimize"},"&#128469;&#xFE0E;",this._ClipControls);
+    //this._Maximize = QuickElement('span',{style: "width:32px;height:32px;", class: "Maximize"},"&#128470;&#xFE0E;",this._ClipControls);
+    //this._Close = QuickElement('span',{style: "width:32px;height:32px;", class: "Close"},"&#128473;&#xFE0E;",this._ClipControls);
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      // dark mode
+      this._Minimize = QuickElement('img',{style: "width:16px;height:16px;", class: "Minimize", src: Qt.WhiteMinimize },'',this._ClipControls);
+      this._Maximize = QuickElement('img',{style: "width:16px;height:16px;", class: "Maximize", src: Qt.WhiteMaximize },'',this._ClipControls);
+      this._Close = QuickElement('img',{style: "width:16px;height:16px;", class: "Close", src: Qt.WhiteClose },'',this._ClipControls);
+    }
+    else {
+      // light mode?
+      this._Minimize = QuickElement('img',{style: "width:16px;height:16px;", class: "Minimize", src: Qt.BlackMinimise },'',this._ClipControls);
+      this._Maximize = QuickElement('img',{style: "width:16px;height:16px;", class: "Maximize", src: Qt.BlackMaximize },'',this._ClipControls);
+      this._Close = QuickElement('img',{style: "width:16px;height:16px;", class: "Close", src: Qt.BlackClose },'',this._ClipControls);
+    }
+
     //Listen to Signals
     this.addEventListener('customContextMenuRequested',this);
     this.addEventListener('windowIconChanged',this);
@@ -896,7 +922,10 @@ class QWidget extends QObject {
             this._Restore = {X: this.style.left, Y: this.style.top, W: this.style.width, H: this.style.height};
             this.style.left = this.style.top = 0;
             this.style.width = this.style.height = null;
-            this._Maximize.innerHTML = "&#128471;&#xFE0E;";
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) { this._Maximize.src = Qt.WhiteRestore; }
+            else { this._Maximize.src = Qt.BlackRestore; }
+            //this._Maximize.innerHTML = "&#128471;&#xFE0E;";
+
             this.style.resize = 'none';
           }
           else if (e.detail.state == Qt.WindowState.WindowNoState && this._Maximized == true) { 
@@ -905,7 +934,9 @@ class QWidget extends QObject {
             this.style.top = this._Restore.Y;
             this.style.width = this._Restore.W;
             this.style.height = this._Restore.H;
-            this._Maximize.innerHTML = "&#128470;&#xFE0E;";
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) { this._Maximize.src = Qt.WhiteMaximize; }
+            else { this._Maximize.src = Qt.BlackMaximize; }
+            //this._Maximize.innerHTML = "&#128470;&#xFE0E;";
             this.style.resize = 'both';
           }
           //else if (e.detail.state == Qt.WindowState.WindowMinimized) { this.activatePreviousSubWindow(); }
@@ -1105,9 +1136,19 @@ class QDockWidget extends QWidget {
 
     //Build UI Components
     this.setWindowTitle(qstring);
-    this._Undock = QuickElement('span',{style: "width:32px;height:32px;display:none", class: "Undock"},"&#9660;&#xFE0E;");
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      // dark mode
+      this._Undock = QuickElement('img',{style: "width:16px;height:16px;", class: "Undock", src: Qt.WhiteUnDock });
+    }
+    else {
+      // light mode?
+      this._Undock = QuickElement('img',{style: "width:16px;height:16px;", class: "Undock", src: Qt.BlackUnDock });
+    }
+    this._UnTab = QuickElement('img',{style: "display:none;width:16px;height:16px;", class: "Untab", src: Qt.Pin });
+
+    //this._Undock = QuickElement('span',{style: "width:32px;height:32px;display:none", class: "Undock"},"&#9660;&#xFE0E;");
     this._ClipControls.insertBefore(this._Undock,this._Minimize);
-    this._UnTab = QuickElement('span',{class:'Untab', style:'display: none'},"📌");
+    //this._UnTab = QuickElement('span',{class:'Untab', style:'display: none'},"📌");
     this._ClipControls.insertBefore(this._UnTab,this._Undock);
 
     this._Containers = [QuickElement('div',{style:"display: flex; flex-direction: row; flex: 1; overflow: hidden;"}),QuickElement('div',{style:"display: flex; flex-direction: column; flex: 1; overflow: hidden;"})];
@@ -1147,7 +1188,8 @@ class QDockWidget extends QWidget {
         this.style.position = "absolute";
         if (!this.style.width) { this.style.width = this.offsetWidth + "px"; }
         if (!this.style.height) { this.style.height = this.offsetHeight + "px"; }
-        this._Undock.innerHTML = "&#9650;";
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) { this._Undock.src = Qt.WhiteDock; }
+        else { this._Undock.src = Qt.BlackDock; }
         this.setWindowFlag(Qt.WindowType.Window,true);
         document.body.appendChild(this);
       }
@@ -1155,7 +1197,8 @@ class QDockWidget extends QWidget {
         this.style.position = "";
         this.style.width = this._DockParentData.w;
         this.style.height = this._DockParentData.h;
-        this._Undock.innerHTML = "&#9660;";
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) { this._Undock.src = Qt.WhiteUnDock; }
+        else { this._Undock.src = Qt.BlackUnDock; }
         this.setWindowFlag(Qt.WindowType.Window,false);
         this._DockParent.appendChild(this);
       }
@@ -1375,6 +1418,7 @@ class QTreeWidget extends QWidget {
 
     //Build UI Components
     this._CentralWidget = QuickElement('div',{'class':"CentralWidget"});
+    this.Header = QuickElement('div',{'class':"Header"},'',this._CentralWidget);
     this.appendChild(this._CentralWidget);
 
     /*==== Emitted Signals ====================================
@@ -1406,11 +1450,22 @@ class QTreeWidget extends QWidget {
 
   //Public Functions
   addTopLevelItem(Item) { }
+  addTopLevelItems(Items) { }
+  columnCount() { }
+  currentItem() { }
+  headerItem() { }
   insertTopLevelItem(Before,Item) { }
+  setColumnCount(count) { 
+    for (var i = this.Header.childNodes.length; i < count; i++) { QuickElement('div',{'class':"HeaderItem"},'moo',this.Header); }
+  }
   setCurrentItem(item) {
     this.querySelectorAll('.selected').forEach((child) => { child.classList.remove('selected'); });
     item._Container.classList.add('selected');
   }
+  setHeaderItem() { }
+  setHeaderLabel() { }
+  setHeaderLabels(labels) { }
+
 }
 // Define the new element
 customElements.define('q-treewidget', QTreeWidget);
