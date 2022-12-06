@@ -1309,7 +1309,7 @@ class CustomWindow extends QMdiSubWindow {
       if (this.ViewPort.childNodes.length == this._Root._Config['windows'].buffer) { this.ViewPort.removeChild(this.ViewPort.firstElementChild); }
       if (!this.hasOwnProperty('_DocumentFragment')) { this._DocumentFragment = document.createDocumentFragment(); }
       var Async = [] , str = this._Root.CC2Html(string + "\n");
-      if (this._Type != "status") { str = str.replace(/((?:https?|ftp):\/\/(?:[\w_-]+(?:(?:\.[\w_-]+)+))(?:[\w.,@?^=%&:/~+#-;]*[\w@?^=%&/~+#-])?)/ig,function(match,url) {   
+      if (this._Type != "status") { str = str.replace(/((?:https?|ftps?):\/\/(?:[\w_-]+(?:(?:\.[\w_-]+)+))(?:[\w.,@?^=%&:/~+#-;]*[\w@?^=%&/~+#-])?)/ig,function(match,url) {   
           if (/^https?:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=)?(.+)/g.test(url)) { return '<iframe width="320" height="280" src="//www.youtube.com/embed/' + RegExp.$1 + '" frameborder="0" allowfullscreen></iframe>'; }
           else {
             var rng = "AsyncEmbed-" + (Math.random() + 1).toString(36).substring(2);
@@ -1318,10 +1318,11 @@ class CustomWindow extends QMdiSubWindow {
           }
         });
       }
+      //Avoid making embeds in status windows, instead just provide clickable links
+      else { str = str.replace(/((?:https?|ftps?):\/\/(?:[\w_-]+(?:(?:\.[\w_-]+)+))(?:[\w.,@?^=%&:/~+#-;]*[\w@?^=%&/~+#-])?)/ig,function(match,url) { return '<a href="' + url + '" target="_blank">' + url + '</a>'; }); }
       this._DocumentFragment.appendChild(QuickElement('span',{style:'color:' + color},str));
       window.requestAnimationFrame(() => { this._embedFragment(Async); });
     }
-
     if (this._Type == "query") { this._updateTitle(); }
     if (!this.TreeItem.isSelected() && highlight > this._Highlight) { this._Highlight = highlight; }
     this.TreeItem._TreeLabel.style.color = this._Root._Config['palette'][([99,this._Root._Config['windows'].event,this._Root._Config['windows'].message,this._Root._Config['windows'].highlight][this._Highlight])];
