@@ -1759,13 +1759,6 @@ class QDialog extends QMainWindow {
     
     //Listen to Signals
     this.addEventListener('aboutToActivate',this);
-
-    //Setup Event Listeners
-    this.addEventListener('pointerdown',(e) => {
-      if (this.parent() && this.parent() != document.body && this.parent()._MetaObject.includes('QMdiArea')) {
-        if (this != this.parent().lastElementChild) { this.parentNode.setActiveSubWindow(this); } 
-      }
-    });  
   }
   //connectedCallback() { super.connectedCallback(); } 
   //disconnectedCallback() { super.disconnectedCallback(); }

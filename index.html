@@ -98,7 +98,7 @@ class WebIRC extends QMainWindow {
           'own':'inherit',
           'part':10,
           'topic':3,
-          'quit':12,
+          'quit':72,
 
           'treebar':'inherit',
           'treebartext':'inherit',
@@ -123,13 +123,10 @@ class WebIRC extends QMainWindow {
           }
         },
         'windows': { 
-          'event':12,
+          'event':47,
           'message':4,
           'highlight':9,
           'buffer': 500,
-          //'status':{w: 320, h: 240},
-          //'channel':{w: 520, h: 340},
-          //'query':{w: 320, h: 240},
         },
       };
     }
@@ -177,8 +174,8 @@ class WebIRC extends QMainWindow {
     this.TreeDock = new QDockWidget('Treebar').setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea | Qt.DockWidgetArea.LeftDockWidgetArea).setBaseSize(150,null).setResizable(true);
     this.HelpDock = new QDockWidget('Help').setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea | Qt.DockWidgetArea.LeftDockWidgetArea).setBaseSize(300,200).setResizable(true).setVisible(false);
     this.HelpDialog = new QDialog().setBaseSize(270,240).setWindowTitle('About Web-IRC').setWindowFlag(Qt.WindowType.WindowMinMaxButtonsHint,false).hide();
-    //this.GeneralDialog = new ConfigGeneral(this).setBaseSize(200,290).setWindowTitle('Web-IRC Preferences').hide();
-    //this.ColorsDialog = new ConfigColors(this).setBaseSize(408,290).setWindowTitle('Web-IRC Colors').hide();
+    this.GeneralDialog = new ConfigGeneral(this).setBaseSize(200,290).setWindowTitle('Web-IRC Preferences').hide();
+    this.ColorsDialog = new ConfigColors(this).setBaseSize(408,290).setWindowTitle('Web-IRC Colors').hide();
     setTimeout(() => {
       this.HelpDialog.setCentralWidget(document.getElementById('helpabout'));
       document.getElementById('helpabout').style.display = "";
@@ -242,6 +239,53 @@ class WebIRC extends QMainWindow {
   }
   //handleEvent(e) { super.handleEvent(e); }
 
+  _SaveConfig(bool,preview) { 
+    if (bool && !preview) { window.localStorage.setItem('Web-IRC.Config',JSON.stringify(this._Config)); }
+    else if (!preview) { this._Config = JSON.parse(window.localStorage.getItem('Web-IRC.Config')); }
+    this.Treebar.style.background = this._Color('treebar');
+    this.Treebar.style.color = this._Color('treebartext');
+    this.MDI.style.background = this._Color('mdi');
+    this.MonitorChanViewPort.style.background = this.MonitorHighlightViewPort.style.background = this.MonitorNoticeViewPort.style.background = this.MonitorQueryViewPort.style.background = this.MonitorServerViewPort.style.background = this._Color('viewport');
+    this.MDI.Children().forEach((child) => {
+      if (child.hasOwnProperty('ViewPort')) { child.ViewPort.style.background = this._Color('viewport'); }
+      if (child.hasOwnProperty('EditBox')) { child.EditBox.style.background = this._Color('editbox'); child.EditBox.style.color = this._Color('editboxtext'); }
+      if (child.hasOwnProperty('List')) { child.List.style.background = this._Color('listbox'); child.List.style.color = this._Color('listboxtext'); }
+    });
+  }
+  _InternalBeep() {
+    if (this._Config['options']['irc'].ebeeps) {
+      var context = new(window.AudioContext || window.webkitAudioContext)();
+      var square_wave = context.createOscillator();
+      var envelope = context.createGain();
+      var volume = context.createGain();
+      var destination = context.destination;
+      var t0 = context.currentTime;
+
+      square_wave.type = "square";
+      square_wave.frequency.value = 440 * 4;
+      square_wave.detune.value = 0;
+      envelope.gain.value = 0.0;
+      volume.gain.value = 0.05;
+
+      square_wave.connect(envelope).connect(volume).connect(destination);
+
+      // Envelope
+      var t1, v = 0.5;
+      envelope.gain.setValueAtTime(0.0, t1 = t0);
+      envelope.gain.linearRampToValueAtTime(1.0, t1 = t0 + v * 0.01);
+      envelope.gain.linearRampToValueAtTime(0.1, t1 = t0 + v * 0.09);
+      envelope.gain.linearRampToValueAtTime(0.0, t1 = t0 + v * 0.50);
+
+      square_wave.addEventListener('ended',() => { 
+        square_wave.disconnect(envelope);
+        envelope.disconnect(volume);
+        volume.disconnect(context.destination);
+      });
+      //square_wave.onended = on_ended;
+      square_wave.start();
+      square_wave.stop(t1);
+    }
+  }
   _ToggleConnection(bool) {
     if (this.MDI.activeSubWindow() && this.MDI.activeSubWindow()._Cid) {
       if (this.Sessions[this.MDI.activeSubWindow()._Cid].Windows.hasOwnProperty('status window')) { this.Sessions[this.MDI.activeSubWindow()._Cid].Windows['status window']._SortTree(); }
@@ -266,6 +310,18 @@ class WebIRC extends QMainWindow {
     this.HelpDialog.style.left = (parseInt(document.body.firstElementChild.offsetWidth) / 2 - parseInt(this.HelpDialog.style.width) / 2) + "px";
     this.HelpDialog.style.top = (parseInt(document.body.firstElementChild.offsetHeight) / 2 - parseInt(this.HelpDialog.style.height) / 2) + "px";
     this.HelpDialog.show();
+  }
+  _ToggleConfigGeneral() {
+    this.GeneralDialog.style.left = (parseInt(document.body.firstElementChild.offsetWidth) / 2 - parseInt(this.GeneralDialog.style.width) / 2) + "px";
+    this.GeneralDialog.style.top = (parseInt(document.body.firstElementChild.offsetHeight) / 2 - parseInt(this.GeneralDialog.style.height) / 2) + "px";
+    this.GeneralDialog._Init();
+    this.GeneralDialog.show();
+  }
+  _ToggleConfigColors() {
+    this.ColorsDialog.style.left = (parseInt(document.body.firstElementChild.offsetWidth) / 2 - parseInt(this.ColorsDialog.style.width) / 2) + "px";
+    this.ColorsDialog.style.top = (parseInt(document.body.firstElementChild.offsetHeight) / 2 - parseInt(this.ColorsDialog.style.height) / 2) + "px";
+    this.ColorsDialog._InitList();
+    this.ColorsDialog.show();
   }
   _ToggleAll() {
     if (this.vChan.isChecked() && this.vHighlight.isChecked() && this.vNotice.isChecked() && this.vQuery.isChecked() && this.vServer.isChecked()) { var Invert = true; }
@@ -1416,6 +1472,270 @@ class CustomWindow extends QMdiSubWindow {
   }
 }
 customElements.define('web-customwindow', CustomWindow);
+
+class ConfigGeneral extends QDialog {
+  constructor(mainapp) {
+    super();
+    this.setWindowFlag(Qt.WindowType.WindowMinMaxButtonsHint,false);
+    /*-------------------------------------------------------------------------------------------------
+	  Private Properties
+    -------------------------------------------------------------------------------------------------*/
+	  this._MetaObject.push("ConfigGeneral");
+    this.classList.add("ConfigGeneral");
+    this._Root = mainapp;
+
+    /*-------------------------------------------------------------------------------------------------
+    Build UI Components
+    -------------------------------------------------------------------------------------------------*/
+	  this._Container = QuickElement('div',{style: "overflow: auto;"},'IRC Options:');
+    QuickElement('br',{},'',this._Container);
+    this._EBeeps = QuickElement('input',{type: "checkbox"},'',this._Container);
+    QuickElement('span',{},'Event Beeps',this._Container);
+    QuickElement('br',{},'',this._Container);
+    this._Reconnect = QuickElement('input',{type: "checkbox"},'',this._Container);
+    QuickElement('span',{},'Reconnect on Disconnect',this._Container);
+    QuickElement('br',{},'',this._Container);
+    this._ConnectRejoin = QuickElement('input',{type: "checkbox"},'',this._Container);
+    QuickElement('span',{},'Rejoin chans on Connect',this._Container);
+    QuickElement('br',{},'',this._Container);
+    this._KickRejoin = QuickElement('input',{type: "checkbox"},'',this._Container);
+    QuickElement('span',{},'Rejoin chans on Kick',this._Container);
+    QuickElement('br',{},'',this._Container);
+    this._KeepOpen = QuickElement('input',{type: "checkbox"},'',this._Container);
+    QuickElement('span',{},'Keep chan open on Kick',this._Container);
+    QuickElement('br',{},'',this._Container);
+    this._Timestamp = QuickElement('input',{type: "checkbox"},'',this._Container);
+    QuickElement('span',{},'Timestamp Events',this._Container);
+    QuickElement('br',{},'',this._Container);
+    this._Prefix = QuickElement('input',{type: "checkbox"},'',this._Container);
+    QuickElement('span',{},'Show Nickname Prefix',this._Container);
+    QuickElement('p',{},'',this._Container);
+    QuickElement('span',{},'Window Options:',this._Container);
+    QuickElement('br',{},'',this._Container);
+    QuickElement('span',{},'Tree Event Color: ',this._Container);
+    this._WEvent = QuickElement('select',{name: "event"},'',this._Container);
+    QuickElement('br',{},'',this._Container);
+    QuickElement('span',{},'Tree Message Color: ',this._Container);
+    this._WMsg = QuickElement('select',{name: "message"},'',this._Container);
+    QuickElement('br',{},'',this._Container);
+    QuickElement('span',{},'Tree Highlight Color: ',this._Container);
+    this._WHlt = QuickElement('select',{name: "highlight"},'',this._Container);
+    QuickElement('br',{},'',this._Container);
+    for (var x = 0; x <= 99; x++) {
+      QuickElement('option',{value: x, style: "color: #ffffff; background: " + this._Root._Config['palette'][x]},(x).toString().padStart(2,'0'),this._WEvent);
+      QuickElement('option',{value: x, style: "color: #ffffff; background: " + this._Root._Config['palette'][x]},(x).toString().padStart(2,'0'),this._WMsg);
+      QuickElement('option',{value: x, style: "color: #ffffff; background: " + this._Root._Config['palette'][x]},(x).toString().padStart(2,'0'),this._WHlt);
+    }
+
+    /*'options': { 
+          'irc': {
+            'ebeeps': false,
+            'reconnect': true,
+            'showprefix': true,
+            'kickrejoin': true,
+            'connectrejoin': true,
+            'keepchanopen': true,
+            'timestamp': true,
+            'timestampformat': '[HH:nn]',
+            'quitmsg': '',
+          }
+        },
+        'windows': { 
+          'event':12,
+          'message':4,
+          'highlight':9,
+          'buffer': 500,
+          'status':{w: 320, h: 240},
+          'channel':{w: 520, h: 340},
+          'query':{w: 320, h: 240},
+        },*/
+
+    
+    this.setCentralWidget(this._Container);
+    this._Init();
+
+    /*-------------------------------------------------------------------------------------------------
+    Setup Event Listeners
+    -------------------------------------------------------------------------------------------------*/
+    this.addEventListener('childEvent',this.handleEvent.bind(this));
+
+    this._EBeeps.addEventListener('change',(e) => {  this._Root._Config['options']['irc'].ebeeps = e.target.checked; });
+    this._Reconnect.addEventListener('change',(e) => {  this._Root._Config['options']['irc'].reconnect = e.target.checked; });
+    this._ConnectRejoin.addEventListener('change',(e) => {  this._Root._Config['options']['irc'].connectrejoin = e.target.checked; });
+    this._KickRejoin.addEventListener('change',(e) => {  this._Root._Config['options']['irc'].kickrejoin = e.target.checked; });
+    this._KeepOpen.addEventListener('change',(e) => {  this._Root._Config['options']['irc'].keepchanopen = e.target.checked; });
+    this._Timestamp.addEventListener('change',(e) => {  this._Root._Config['options']['irc'].timestamp = e.target.checked; });
+    this._Prefix.addEventListener('change',(e) => {  this._Root._Config['options']['irc'].showprefix = e.target.checked; });
+    this._WEvent.addEventListener('change',(e) => {  this._Root._Config['windows'].event = e.target.value; });
+    this._WMsg.addEventListener('change',(e) => {  this._Root._Config['windows'].message = e.target.value; });
+    this._WHlt.addEventListener('change',(e) => {  this._Root._Config['windows'].highlight = e.target.value; });
+  }
+
+  /*-------------------------------------------------------------------------------------------------
+  Default Callbacks and Event Handler
+  -------------------------------------------------------------------------------------------------*/
+  connectedCallback() { super.connectedCallback(); }
+  disconnectedCallback() { super.disconnectedCallback(); }
+  handleEvent(e) { 
+    super.handleEvent(e);
+    if (e.type == 'childEvent') {
+      if (e.detail.QEvent == Qt.QEvent.Close) { 
+        this._Root._SaveConfig(true);
+        this.hide(); 
+      }
+    }
+  }
+
+  /*-------------------------------------------------------------------------------------------------
+  Private Functions
+  -------------------------------------------------------------------------------------------------*/
+  _Init() {
+    this._EBeeps.checked = this._Root._Config['options']['irc'].ebeeps;
+    this._Reconnect.checked = this._Root._Config['options']['irc'].reconnect;
+    this._ConnectRejoin.checked = this._Root._Config['options']['irc'].connectrejoin;
+    this._KickRejoin.checked = this._Root._Config['options']['irc'].kickrejoin;
+    this._KeepOpen.checked = this._Root._Config['options']['irc'].keepchanopen;
+    this._Timestamp.checked = this._Root._Config['options']['irc'].timestamp;
+    this._Prefix.checked = this._Root._Config['options']['irc'].showprefix;
+    this._WEvent.value = this._Root._Config['windows'].event;
+    this._WMsg.value = this._Root._Config['windows'].message;
+    this._WHlt.value = this._Root._Config['windows'].highlight;
+  }
+}
+customElements.define('web-configgeneral', ConfigGeneral);
+
+class ConfigColors extends QDialog {
+  constructor(mainapp) {
+    super();
+    this.setWindowFlag(Qt.WindowType.WindowMinMaxButtonsHint,false);
+    /*-------------------------------------------------------------------------------------------------
+	  Private Properties
+    -------------------------------------------------------------------------------------------------*/
+	  this._MetaObject.push("ConfigColors");
+    this.classList.add("ConfigColors");
+    this._Root = mainapp;
+
+    /*-------------------------------------------------------------------------------------------------
+    Build UI Components
+    -------------------------------------------------------------------------------------------------*/
+	  this._Container = QuickElement('div',{style: "overflow: auto;"},'Appearance:');
+    this._ViewPort = new QListView().setBaseSize(null,100);
+    //this._ViewPort.style.flexDirection = "row";
+    this._ViewPort._CentralWidget.style.flexWrap = "wrap";
+    this._Container.appendChild(this._ViewPort);
+    this._ViewPort.addAction(new QAction('','Action Text'));
+    this._ViewPort.addAction(new QAction('','Ctcp Text'));
+    this._ViewPort.addAction(new QAction('','Highlight Text'));
+    this._ViewPort.addAction(new QAction('','Info Text'));
+    this._ViewPort.addAction(new QAction('','Invite Text'));
+    this._ViewPort.addAction(new QAction('','Join Text'));
+    this._ViewPort.addAction(new QAction('','Kick Text'));
+    this._ViewPort.addAction(new QAction('','Mode Text'));
+    this._ViewPort.addAction(new QAction('','Nick Text'));
+    this._ViewPort.addAction(new QAction('','Normal Text'));
+    this._ViewPort.addAction(new QAction('','Notice Text'));
+    this._ViewPort.addAction(new QAction('','Own Text'));
+    this._ViewPort.addAction(new QAction('','Part Text'));
+    this._ViewPort.addAction(new QAction('','Topic Text'));
+    this._ViewPort.addAction(new QAction('','Quit Text'));
+
+    this._ViewPort.addAction(new QAction('','Treebar Background'));
+    this._ViewPort.addAction(new QAction('','Treebar Text'));
+    this._ViewPort.addAction(new QAction('','MDI Background'));
+    this._ViewPort.addAction(new QAction('','Viewport Background'));
+    this._ViewPort.addAction(new QAction('','Listbox Background'));
+    this._ViewPort.addAction(new QAction('','Listbox Text'));
+    this._ViewPort.addAction(new QAction('','Editbox Background'));
+    this._ViewPort.addAction(new QAction('','Editbox Text'));
+
+
+    this.setCentralWidget(this._Container);
+    this._Table = QuickElement('table',{});
+    for (var x = 0; x <= 1; x++) {
+      var tr = QuickElement('tr',{});
+      for (var y = 0; y <= 7; y++) {
+        var td = QuickElement('td',{style: "background: " + this._Root._Config['palette'][x * 7 + y + x]},(x * 7 + y + x).toString().padStart(2,'0'))
+        td.dataset.index = x * 7 + y + x;
+        td.addEventListener('click',(e) => { this._SetColor(e); });
+        tr.appendChild(td);
+      }
+      this._Table.appendChild(tr);
+    }
+    this._TableEx = QuickElement('table',{});
+    for (var x = 0; x <= 6; x++) {
+      var tr = QuickElement('tr',{});
+      for (var y = 0; y <= 11; y++) {
+        var td = QuickElement('td',{style: "color: #ffffff; background: " + this._Root._Config['palette'][x * 11 + y + x + 16]},(x * 11 + y + x + 16).toString().padStart(2,'0'))
+        td.dataset.index = x * 11 + y + x + 16;
+        td.addEventListener('click',(e) => { this._SetColor(e); });
+        tr.appendChild(td);
+      }
+      this._TableEx.appendChild(tr);
+    }
+    this._ColorTable = QuickElement('table',{});
+    var tr = QuickElement('tr',{},'',this._ColorTable);
+    var td1 = QuickElement('td',{valign: 'top'},'',tr);
+    var td2 = QuickElement('td',{},'',tr);
+    var td3 = QuickElement('td',{valign: 'bottom'},'',tr);
+    td1.appendChild(this._Table);
+    td1.appendChild(document.createTextNode('Select an item from the list then select a color to change. Theme temporarily modifies, you must hit apply to save changes.'))
+    td2.appendChild(this._TableEx);
+    this._Apply = QuickElement('button',{},'Apply',td3);
+    this._Apply.addEventListener('click',(e) => { this._Root._SaveConfig(true); });
+
+    this._CloseBttn = QuickElement('button',{},'Close',td3);
+    this._CloseBttn.addEventListener('pointerup',(e) => { this._customEvent('childEvent',{ bubbles: true, detail: { target: this, jsEvent: e, 'QEvent': Qt.QEvent.Close } }); });
+    this._Container.appendChild(this._ColorTable);
+
+    this._InitList();
+
+    /*-------------------------------------------------------------------------------------------------
+    Setup Event Listeners
+    -------------------------------------------------------------------------------------------------*/
+    this.addEventListener('childEvent',this.handleEvent.bind(this));
+  }
+
+  /*-------------------------------------------------------------------------------------------------
+  Default Callbacks and Event Handler
+  -------------------------------------------------------------------------------------------------*/
+  connectedCallback() { super.connectedCallback(); }
+  disconnectedCallback() { super.disconnectedCallback(); }
+  handleEvent(e) { 
+    super.handleEvent(e);
+    if (e.type == 'childEvent') {
+      if (e.detail.QEvent == Qt.QEvent.Close) { 
+        this._Root._SaveConfig(false);
+        this.hide(); 
+      }
+    }
+  }
+
+  /*-------------------------------------------------------------------------------------------------
+  Private Functions
+  -------------------------------------------------------------------------------------------------*/
+  _InitList() {
+    var CIndex = Object.keys(this._Root._Config['colors']);
+    this._ViewPort.Children().forEach((child,index) => {
+      if (/ Background$/i.test(child._IconText.innerText)) { 
+        child.style.background = this._Root._Color(CIndex[index]); 
+        child._IconText.style.color = "white";
+        child._IconText.style.mixBlendMode = "difference";
+      }
+      else { child._IconText.style.color = this._Root._Color(CIndex[index]); }
+    });
+  }
+  _SetColor(e) {
+    var CIndex = Object.keys(this._Root._Config['colors']);
+    this._ViewPort.querySelectorAll('.selected').forEach((child) => { 
+      this._Root._Config['colors'][CIndex[this._ViewPort.Children().indexOf(child)]] = e.target.dataset.index;
+      if (/ Background$/i.test(child._IconText.innerText)) { child.style.background = e.target.style.background; }
+      else { child._IconText.style.color = e.target.style.background; }
+    });
+    this._Root._SaveConfig(true,true);
+  }
+}
+customElements.define('web-configcolors', ConfigColors);
+
 
 window.addEventListener('load',() => {
   var App = new WebIRC();
