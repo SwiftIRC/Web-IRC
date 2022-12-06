@@ -818,7 +818,7 @@ class QWidget extends QObject {
     this._MoveData = null;
 
 	  //Build UI Components
-    this._Handle = QuickElement('div',{class: "WindowTitleBar", style: "user-select: none; border-spacing: 0; margin: 0; padding: 2px; flex-wrap: nowrap; white-space: nowrap;"},'',this);
+    this._Handle = QuickElement('div',{class: "WindowTitleBar", style: "user-select: none; border-spacing: 0; margin: 0; padding: 0 2px; flex-wrap: nowrap; white-space: nowrap;"},'',this);
     //TODO: Move icon to QAction so we can do menu stuffs
 
     this._Icon = new QAction('favicon.ico','',this._Handle).setMenu();
@@ -830,7 +830,7 @@ class QWidget extends QObject {
 
     //QuickElement('img',{class: "WindowIcon", src: "favicon.ico",style: "max-width: 16px; max-height: 16px;",draggable: "false"},'',this._Handle);
     this._Title = QuickElement('span',{class: "WindowTitle",style: "margin: 0 4px 0 4px; flex: auto; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;"},'',this._Handle);
-    this._ClipControls = QuickElement('span',{class: "WindowClipControls", style: "max-width: 48px;"},'',this._Handle);
+    this._ClipControls = QuickElement('span',{class: "WindowClipControls", style: "max-width: 80px;"},'',this._Handle);
 
     //TODO: use img with Blob
     //this._Minimize = QuickElement('span',{style: "width:32px;height:32px;", class: "Minimize"},"&#128469;&#xFE0E;",this._ClipControls);

@@ -60,8 +60,9 @@ class IALItem {
       this.IAL = {}; //Internal Address List Object
       this.ICL = {}; //Internal Channels List Object
       this.ServerARGS = {}; //Raw 005 supported "features" and "limits" etc...
-      this.IrcV3Cap = [];
-      this.IrcV3Batch = {};
+      this.IrcV3Cap = []; //Collection of capabilities ACK'd
+      this.IrcV3ReqCap = []; //Collection of capabilities requested, pruned from CAP ACK/NAK to determine once empty to CAP END.
+      this.IrcV3Batch = {}; //Blank storage for batches
       this.IrcV3ClientTagDeny = '';
       this.CID = cid;
       this.Server = '';
@@ -113,8 +114,9 @@ class IALItem {
         this.IAL = {}; //Internal Address List Object
         this.ICL = {}; //Internal Channels List Object
         this.ServerARGS = {}; //Raw 005 supported "features" and "limits" etc...
-        this.IrcV3Cap = [];
-        this.IrcV3Batch = {};
+        this.IrcV3Cap = []; //Collection of capabilities ACK'd
+        this.IrcV3ReqCap = []; //Collection of capabilities requested, pruned from CAP ACK/NAK to determine once empty to CAP END.
+        this.IrcV3Batch = {}; //Blank storage for batches
         this.IrcV3ClientTagDeny = '';
         this.UMode = '';
         this.ChanModes = 'bIe,k,l';
@@ -213,39 +215,46 @@ class IALItem {
         }
         else if (Event == "CAP") {
           this.Emit('raw',[this.CID,Event,Args.join(" ") + " " + Extra,IRCv3]);
-          if (Args[1] == "LS") { 
+          if (Args[1] == "LS") {
             var Request = [];
             //mIRC 7.72 === away-notify invite-notify extended-join userhost-in-names multi-prefix cap-notify setname chghost account-notify message-tags batch server-time account-tag labeled-response
 
             Extra.split(' ').forEach((capability) => {
-              if (/^account-notify$/i.test(capability)) { Request.push(capability); }
-              else if (/^away-notify$/i.test(capability)) { Request.push(capability); }
-              else if (/^batch$/i.test(capability)) { Request.push(capability); }
-              else if (/^cap-notify$/i.test(capability)) { Request.push(capability); }
-              else if (/^chghost$/i.test(capability)) { Request.push(capability); }
-              else if (/^extended-join$/i.test(capability)) { Request.push(capability); }
-              else if (/^message-tags$/i.test(capability)) { Request.push(capability); }
-              else if (/^multi-prefix$/i.test(capability)) { Request.push(capability); }
-              else if (/^setname$/i.test(capability)) { Request.push(capability); }
-              else if (/^server-time$/i.test(capability)) { Request.push(capability); }
-              else if (/^userhost-in-names$/i.test(capability)) { Request.push(capability); }
+              if (/^account-notify$/i.test(capability)) { Request.push(capability); this.IrcV3ReqCap.push(capability); }
+              else if (/^away-notify$/i.test(capability)) { Request.push(capability); this.IrcV3ReqCap.push(capability); }
+              else if (/^batch$/i.test(capability)) { Request.push(capability); this.IrcV3ReqCap.push(capability); }
+              else if (/^cap-notify$/i.test(capability)) { Request.push(capability); this.IrcV3ReqCap.push(capability); }
+              else if (/^chghost$/i.test(capability)) { Request.push(capability); this.IrcV3ReqCap.push(capability); }
+              else if (/^extended-join$/i.test(capability)) { Request.push(capability); this.IrcV3ReqCap.push(capability); }
+              else if (/^message-tags$/i.test(capability)) { Request.push(capability); this.IrcV3ReqCap.push(capability); }
+              else if (/^multi-prefix$/i.test(capability)) { Request.push(capability); this.IrcV3ReqCap.push(capability); }
+              else if (/^setname$/i.test(capability)) { Request.push(capability); this.IrcV3ReqCap.push(capability); }
+              else if (/^server-time$/i.test(capability)) { Request.push(capability); this.IrcV3ReqCap.push(capability); }
+              else if (/^userhost-in-names$/i.test(capability)) { Request.push(capability); this.IrcV3ReqCap.push(capability); }
             });
             if (Request.length > 0) { 
-              if (this.Socket) { 
-                this.WSSend('CAP REQ :' + Request.join(" "));
-                this.WSSend('CAP END');
-              }
+              if (this.Socket) { this.WSSend('CAP REQ :' + Request.join(" ")); }
             }
           }
           else if (Args[1] == "ACK") {
             Extra.split(' ').forEach((capability) => {
               if (/^-/.test(capability) && this.IrcV3Cap.includes(capability.substr(1))) { this.IrcV3Cap.splice(this.IrcV3Cap.indexOf(capability.substr(1)),1); }
-              else if (capability != "") { this.IrcV3Cap.push(capability); }
+              else if (capability != "") {
+                this.IrcV3Cap.push(capability); 
+                if (this.IrcV3ReqCap.includes(capability)) { 
+                  if (this.IrcV3ReqCap.length == 1) { this.WSSend('CAP END') } //If last internally requested cap, send end. This prevents sending CAP END on user requested capabilities.
+                  this.IrcV3ReqCap.splice(this.IrcV3ReqCap.indexOf(capability),1); 
+                }
+              }
             });
           }
           else if (Args[1] == "NAK") {
             Extra.split(' ').forEach((capability) => {
               if (capability != "" && this.IrcV3Cap.includes(capability)) { this.IrcV3Cap.splice(this.IrcV3Cap.indexOf(capability),1); }
+              else if (capability != "" && this.IrcV3ReqCap.includes(capability)) { 
+                if (this.IrcV3ReqCap.length == 1) { this.WSSend('CAP END') } //If last internally requested cap, send end. This prevents sending CAP END on user requested capabilities.
+                this.IrcV3ReqCap.splice(this.IrcV3ReqCap.indexOf(capability),1); 
+              }
             });
           }
         }
@@ -273,7 +282,7 @@ class IALItem {
           },this);
           this.Emit('raw',[this.CID,Event,Args.join(" ") + " " + Extra,IRCv3]);
         }
-        else if (Event == "221") { this.UMode = Extra.replace("+",""); this.Emit('raw',[this.CID,Event,Args.join(" ") + " " + Extra,IRCv3]); }
+        else if (Event == "221") { var umodes = (Extra ? Extra : Args[1]); this.UMode = umodes.replace("+",""); this.Emit('umode',[this.CID,umodes,IRCv3]); }
         else if (Event == "302") { if (Extra.match(/^([^=*]+)(?:\*)?=(?:[+-])(.*)$/)) { this.IALUpdate(RegExp.$1,{address: RegExp.$2}); } this.Emit('raw',[this.CID,Event,Args.join(" ") + " " + Extra,IRCv3]); }
         else if (Event == "324") { 
           if (this.ICL.hasOwnProperty(Args[1].toLowerCase())) {
