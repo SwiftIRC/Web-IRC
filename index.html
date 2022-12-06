@@ -224,6 +224,9 @@ class WebIRC extends QMainWindow {
     this.Toolbar.addAction(new QAction('images/colors.ico').setToolTip('Colors').connect('triggered',this,this._ToggleConfigColors));
     this.Toolbar.addAction(new QAction('','').setSeparator());
     this.Toolbar.addAction(new QAction('images/monitor.ico').setToolTip('Toggle Monitor Panels').connect('triggered',this,this._ToggleAll));
+    this.Toolbar.addAction(new QAction('','').setSeparator());
+    this.Toolbar.addAction(new QAction('images/previous.ico').setToolTip('Previous Subwindow').connect('triggered',this,() => this.MDI.activatePreviousSubWindow() ));
+    this.Toolbar.addAction(new QAction('images/next.ico').setToolTip('Next Subwindow').connect('triggered',this,() => this.MDI.activateNextSubWindow() ));
     this.addToolBar(Qt.ToolBarArea.TopToolBarArea,this.Toolbar);
 
     this.TreeDock.addEventListener('visibilityChanged',(e) => { this.vTree.setChecked(e.detail.visible); });
