@@ -23,6 +23,7 @@ Current IRCv3 Support:<br>
 • setname<br>
 • server-time (currently only used for chathistory)<br>
 • userhost-in-names<br>
+• echo-message (disabled by default, can be user enabled)<br>
 • client-only tags (See Note below)
 
 Currently only +typing is supported for client-only tags, and within IRC events and the special "TAGMSG". Up to three nicknames will be shown in a channels input element placeholder value, more than 3 results in "Multiple people are typing..."
