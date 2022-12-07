@@ -11,6 +11,19 @@ A feature-rich Websocket IRC client in JavaScript
 • Inline media embedding (Images, Audio, Video and YouTube urls)<br>
 • Somewhat Mobile-Friendly. See details below.<br>
 
+Current IRCv3 Support:<br>
+• account-notify<br>
+• away-notify<br>
+• batch (includes chathistory)<br>
+• cap-notify<br>
+• chghost<br>
+• extended-join<br>
+• message-tags<br>
+• multi-prefix<br>
+• setname<br>
+• server-time (currently only used for chathistory)<br>
+• userhost-in-names<br>
+
 There's absolutely no setup required. Pure HTML/CSS/JavaScript. Connect to any IRC server that allows websockets and the underlying websocket protocol 'text.ircv3.net'
 
 NOTE: Chromium based and FireFox do NOT allow ws:// sockets to be opened over a https:// connection! If you want to offer the ability to connect to both ws:// and wss:// this page must be hosted via http://, not https://. Unfortunately ONLY http connections can open both insecure and secure websockets, where https forces only secure sockets.
