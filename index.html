@@ -239,6 +239,8 @@ class WebIRC extends QMainWindow {
     //this.MDI.addEventListener('subWindowActivated',(e) => { this._ToggleConnection(true); });
     this.MDI.addEventListener('childEvent',(e) => { this._ToggleConnection(true); });
     this._NewSession('','',['text.ircv3.net']);
+    var params = new Proxy(new URLSearchParams(window.location.search), { get: (searchParams, prop) => searchParams.get(prop), });
+    if (params.perform) { this._processInputLine(this.Sessions["1"].Windows['status window'],params.perform); }
   }
   //handleEvent(e) { super.handleEvent(e); }
 
@@ -1203,6 +1205,7 @@ class CustomWindow extends QMdiSubWindow {
       new QAction('images/status.ico','SwiftIRC',this.QuickConnect).connect('triggered',this,() => { this._Root._processInputLine(this,'/server wss://fiery.swiftirc.net:4443'); });
       new QAction('images/status.ico','Libera.Chat',this.QuickConnect).connect('triggered',this,() => { this._Root._processInputLine(this,'/server wss://web.libera.chat/webirc/websocket/'); });
       new QAction('images/status.ico','Ergo',this.QuickConnect).connect('triggered',this,() => { this._Root._processInputLine(this,'/server wss://irc.ergo.chat/webirc/'); });
+      new QAction('images/status.ico','Unreal',this.QuickConnect).connect('triggered',this,() => { this._Root._processInputLine(this,'/server wss://irc.unrealircd.org'); });
       new QAction('images/status.ico','WRNet',this.QuickConnect).connect('triggered',this,() => { this._Root._processInputLine(this,'/server wss://irc.wrestlingnewssource.com:8000'); });
       //new QAction('images/status.ico','mIRCScripts',this.QuickConnect).connect('triggered',this,() => { this._Root._processInputLine(this,'/server ws://irc.mircscripts.info:8000'); });
 
