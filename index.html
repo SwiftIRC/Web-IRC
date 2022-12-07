@@ -298,15 +298,19 @@ class WebIRC extends QMainWindow {
         else { this.ConnectToggle.setIcon('images/connect.ico').setToolTip('Connect'); }
       }
       else if (Client) {
-        if (Client.hasOwnProperty('Socket') && Client.Socket.readyState < 3) { Client.WSClose(); }
+        if (Client.hasOwnProperty('Socket') && Client.Socket.readyState < 3) { 
+          this.ConnectToggle.setIcon('images/connect.ico').setToolTip('Connect');
+          Client.WSClose();
+        }
         else { 
-          if (Client.WSServerURI && Client.WSServerPROTO && Client.Socket.readyState == 3) {
-            Client.ConnectRetry = 1;
+          if (!Client.hasOwnProperty('Socket') && Client.WSServerURI && Client.WSServerPROTO) {
+            this.ConnectToggle.setIcon('images/disconnect.ico').setToolTip('Disconnect');
             Client.WSConnect(Client.Me,Client.WSServerURI,Client.WSServerPROTO,true);
           }
         }
       }
     }
+    else { this.ConnectToggle.setIcon('images/connect.ico').setToolTip('Connect'); }
   }
   _ToggleHelp(e) { this.HelpDock.setVisible(e.detail.checked); }
   _ToggleAbout() { 
@@ -397,10 +401,11 @@ class WebIRC extends QMainWindow {
   }
   _CloseSession(cid) {
     if (this.Sessions.hasOwnProperty(cid)) {
-      var close = window.confirm("Are you sure you wish to close this session and all subsequent windows?")
+      var Client = this.Sessions[cid].Client , windows = Object.keys(this.Sessions[cid].Windows) , close = true;
+      if (windows.length > 1 || (Client.hasOwnProperty('Socket') && Client.Socket.readyState < 3)) { var close = window.confirm("Are you sure you wish to close this session and all subsequent windows?"); }
       if (close) {
         if (this.Sessions[cid].hasOwnProperty('Windows')) {
-          Object.keys(this.Sessions[cid].Windows).reduceRight((_, key) => {
+          windows.reduceRight((_, key) => {
             if (this.Sessions[cid].Windows[key].TreeItem.parentNode) { this.Sessions[cid].Windows[key].TreeItem.parentNode.removeChild(this.Sessions[cid].Windows[key].TreeItem); }
             if (this.Sessions[cid].Windows[key].parentNode) { this.Sessions[cid].Windows[key].parentNode.removeChild(this.Sessions[cid].Windows[key]); }
             if (this.Sessions[cid].Windows[key]._Type == 'status') { clearInterval(this.Sessions[cid].Windows[key].OnlineTimer); }
@@ -659,7 +664,7 @@ class WebIRC extends QMainWindow {
           if (/-j ([^ ]+)/i.test(Flags)) { AJ = RegExp.$1; }
           if (/-p ([^ ]+)/i.test(Flags)) { Proto[0] = RegExp.$1; }
         }
-        else if (Flags.indexOf('n') > -1) { this._NewSession(Nick,'',Proto); }
+        else if (Flags.indexOf('n') > -1) { this._NewSession(Nick,Server,Proto); }
         if (NS == true) { this._NewSession(Nick,Server,Proto,AJ); }
         else if (/^wss?:\/\//i.test(Server)) { 
           this.Sessions[Sender._Cid].TempAutoJoin = AJ;
@@ -901,7 +906,7 @@ class WebIRC extends QMainWindow {
           }
         }
       });
-      if (this._Config['options']['irc'].reconnect && Client.WSServerURI && !Client.WSForceClose) {
+      if (this._Config['options']['irc'].reconnect && Client.WSServerURI && !/1000$/.test(msg)) {
         if (Client.ConnectRetry) { Client.ConnectRetry++; }
         else { Client.ConnectRetry = 1; }
         //TODO: Remove hard-coded retry attempts
@@ -912,6 +917,7 @@ class WebIRC extends QMainWindow {
           delete Client.ConnectRetry;
         }
       }
+      else { delete Client.ConnectRetry; }
     }
   }
   onInvite(cid,nick,address,target,ircv3) { 
@@ -920,8 +926,8 @@ class WebIRC extends QMainWindow {
   }
   onJoin(cid,nick,address,target,ircv3) { 
     var Client = this.Sessions[cid].Client , LineColor = this._Color('join');
-    if (nick == Client.Me && !this.Sessions[cid].Windows.hasOwnProperty(target.toLowerCase())) { 
-      this._NewSubWindow(cid,'channel',target); 
+    if (nick == Client.Me) { 
+      if (!this.Sessions[cid].Windows.hasOwnProperty(target.toLowerCase())) { this._NewSubWindow(cid,'channel',target); }
       this.Sessions[cid].Windows[target.toLowerCase()]._BlockNAMES = true;
       this.Sessions[cid].Windows[target.toLowerCase()]._BlockWHO = true;
     }

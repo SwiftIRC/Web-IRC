@@ -57,6 +57,13 @@ class IALItem {
   class IRCClient {
     constructor(cid,nick,server,args) {
       this.Listeners = {action: [],batch: [],connect: [],chghost: [],ctcp: [],ctcpreply: [],disconnect: [],invite: [],join: [],kick: [],logon: [],mode: [],nick: [],notice: [],part: [],ping: [],pong: [],quit: [],raw: [],snotice: [],smode: [],privmsg: [],tagmsg: [],topic: [],umode: []}; //Collection of callbacks for IRC related events
+      this.CID = cid;
+      this.Server = server;
+      this.Port = '';
+      this.Me = nick || 'Guest-' + (Math.random() + 1).toString(36).substring(7);
+      this.InitDefaultValues();
+    }
+    InitDefaultValues() {
       this.IAL = {}; //Internal Address List Object
       this.ICL = {}; //Internal Channels List Object
       this.ServerARGS = {}; //Raw 005 supported "features" and "limits" etc...
@@ -64,10 +71,6 @@ class IALItem {
       this.IrcV3ReqCap = []; //Collection of capabilities requested, pruned from CAP ACK/NAK to determine once empty to CAP END.
       this.IrcV3Batch = {}; //Blank storage for batches
       this.IrcV3ClientTagDeny = '';
-      this.CID = cid;
-      this.Server = '';
-      this.Port = '';
-      this.Me = nick || 'Guest-' + (Math.random() + 1).toString(36).substring(7);
       this.UMode = '';
       this.ChanModes = 'bIe,k,l';
       this.ChanTypes = '#&';
@@ -75,7 +78,6 @@ class IALItem {
       this.Network = '';
       this.NickMode = 'ohv';
       this.Prefix = '@%+';
-      this.WSForceClose = false;
       this.Latency = '';
       this.OTime = '';
     }
@@ -85,7 +87,7 @@ class IALItem {
       this.Server = server;
       this.WSServerURI = server;
       this.WSServerPROTO = type;
-      this.WSForceClose = false;
+      if (this.hasOwnProperty('Socket')) { delete this.Socket; }
       this.Socket = new WebSocket(server,type);
       this.Emit('connect',[this.CID,this.Socket.readyState]);
       this.Socket.addEventListener('open', () => { 
@@ -107,28 +109,15 @@ class IALItem {
         this.PingSocket = setInterval(() => { this.WSSend("PING " + new Date().getTime()); },"60000");
       }
     }
-    WSClose() { this.WSForceClose = true; if (this.hasOwnProperty('Socket') && this.Socket.readyState <= 1) { this.Socket.close(); } }
-    WSClosed(e) {
-      if (this.Socket.readyState == 3) {
-        this.Emit('disconnect',[this.CID,"Code: " + e.code + (e.reason != "" ? " Reason: " + e.reason : "")]);
-        this.IAL = {}; //Internal Address List Object
-        this.ICL = {}; //Internal Channels List Object
-        this.ServerARGS = {}; //Raw 005 supported "features" and "limits" etc...
-        this.IrcV3Cap = []; //Collection of capabilities ACK'd
-        this.IrcV3ReqCap = []; //Collection of capabilities requested, pruned from CAP ACK/NAK to determine once empty to CAP END.
-        this.IrcV3Batch = {}; //Blank storage for batches
-        this.IrcV3ClientTagDeny = '';
-        this.UMode = '';
-        this.ChanModes = 'bIe,k,l';
-        this.ChanTypes = '#&';
-        this.ModeSpl = 3;
-        this.Network = '';
-        this.NickMode = 'ohv';
-        this.Prefix = '@%+';
-        this.Latency = '';
-        this.OTime = '';
-      }
+    WSClose() { 
+      if (this.hasOwnProperty('Socket') && this.Socket.readyState <= 1) { 
+        this.Socket.close(1000); 
+        delete this.Socket;
+        this.Emit('disconnect',[this.CID,"Code: 1000"]);
+      } 
+      this.InitDefaultValues(); 
     }
+    WSClosed(e) { if (this.hasOwnProperty('Socket') && this.Socket.readyState == 3) { this.Emit('disconnect',[this.CID,"Code: " + e.code + (e.reason != "" ? " Reason: " + e.reason : "")]); } }
     SortNicks(chan,array) {
       array.sort((a,b) => {
         var c = this.Prefix.split("").indexOf(this.GetIAL(a).getPrefix(chan).substr(0,1)), d = this.Prefix.split("").indexOf(this.GetIAL(b).getPrefix(chan).substr(0,1));
