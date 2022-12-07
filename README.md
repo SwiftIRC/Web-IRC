@@ -23,6 +23,9 @@ Current IRCv3 Support:<br>
 • setname<br>
 • server-time (currently only used for chathistory)<br>
 • userhost-in-names<br>
+• client-only tags (See Note below)
+
+Currently only +typing is supported for client-only tags, and within IRC events and the special "TAGMSG". Up to three nicknames will be shown in a channels input element placeholder value, more than 3 results in "Multiple people are typing..."
 
 There's absolutely no setup required. Pure HTML/CSS/JavaScript. Connect to any IRC server that allows websockets and the underlying websocket protocol 'text.ircv3.net'
 
