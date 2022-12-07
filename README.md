@@ -1,12 +1,12 @@
 Web-IRC
 A feature-rich Websocket IRC client in JavaScript
 
-• Multi-server support.
-• Multi-Document Interface allows viewing multiple windows at the same time
-• Support for both ws:// and wss:// connections (See note below)
-• Auto-completion of nicknames, commands and channels. (tab-key)
-• Text formatting supported: Bold, Underline, Reverse, Color, Italic, Strikethru, HexColor and Monospace
-• Inline media embedding (Images, Audio, Video and YouTube urls)
+• Multi-server support.<br>
+• Multi-Document Interface allows viewing multiple windows at the same time<br>
+• Support for both ws:// and wss:// connections (See note below)<br>
+• Auto-completion of nicknames, commands and channels. (tab-key)<br>
+• Text formatting supported: Bold, Underline, Reverse, Color, Italic, Strikethru, HexColor and Monospace<br>
+• Inline media embedding (Images, Audio, Video and YouTube urls)<br>
 
 There's absolutely no setup required. Pure HTML/CSS/JavaScript. Connect to any IRC server that allows websockets and the underlying websocket protocol 'text.ircv3.net'
 
