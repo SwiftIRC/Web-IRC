@@ -1090,6 +1090,24 @@ class WebIRC extends QMainWindow {
     if (numeric == "332") { this._Echo(cid,Tokens[1],1,this._Color('topic'),"* Topic is '" + Tokens.slice(2).join(" ") + "'"); }
     else if (numeric == "333") { this._Echo(cid,Tokens[1],1,this._Color('topic'),"* Set by " + Tokens[2] + " on " + AscTime(new Date(parseInt(Tokens[3]) * 1000),'ddd mmm dd HH:nn:ss yyyy')); }
     //Prevent these for now... caused by joining channels
+    else if (numeric == "321") { 
+      if (this.Sessions.hasOwnProperty(cid) && this.Sessions[cid].Windows.hasOwnProperty('channels list')) {
+        this.Sessions[cid].Windows['channels list']._customEvent('childEvent',{ bubbles: true, detail: { target: this.Sessions[cid].Windows['channels list'], 'QEvent': Qt.QEvent.Close } });
+      }
+      this._NewSubWindow(cid,"chanlist","channels list");
+    }
+    else if (numeric == "322") { 
+      if (this.Sessions.hasOwnProperty(cid) && this.Sessions[cid].Windows.hasOwnProperty('channels list')) {
+        if (Client.isChan(Tokens[1])) { new QTreeWidgetItem('','',this.Sessions[cid].Windows['channels list'].TreeList).setColumnTexts([Tokens[1],Tokens[2],this.CC2Html(Tokens.slice(3).join(" "))]); }
+      }
+    }
+    else if (numeric == "323") { 
+      if (this.Sessions.hasOwnProperty(cid) && this.Sessions[cid].Windows.hasOwnProperty('channels list')) {
+        var array = this.Sessions[cid].Windows['channels list'].TreeList.Children();
+        var sorted = array.sort((a,b) => { return (parseInt(a._Container.childNodes[1].innerText) < parseInt(b._Container.childNodes[1].innerText)); });
+        sorted.forEach((item) => { item.parentNode.appendChild(item); });
+      }
+    }
     else if (numeric == "324") { this.Sessions[cid].Windows[Tokens[1].toLowerCase()]._updateTitle(); } //Channel Modes
     else if (numeric == "329") { } //Channel Created
     else if (numeric == "352") { 
@@ -1170,14 +1188,18 @@ class CustomWindow extends QMdiSubWindow {
     this.style.zIndex = 0;
 
     var IconURL = 'favicon.ico', treeparent = (Attributes.owner ? Attributes.owner.TreeItem : Attributes.root.Treebar);
-    if (/^(status|channel|query)$/i.test(Attributes.type)) { IconURL = "images/" + Attributes.type + ".ico"; }
+    if (/^(status|channel|query|chanlist)$/i.test(Attributes.type)) { IconURL = "images/" + Attributes.type + ".ico"; }
 
     this.setWindowIcon(IconURL);
     this.setWindowTitle((Attributes.title || Attributes.target));
 
     this.TreeItem = new QTreeWidgetItem(IconURL,Attributes.target,treeparent).connect('itemClicked',this,() => { if (Array.isArray(this.parent()._MetaObject) && this.parent()._MetaObject.includes('QMdiArea')) { this.parent().setActiveSubWindow(this); } });
     this.Container = QuickElement('div',{style: 'display: flex; flex-direction: column; flex: auto; overflow: hidden;'},'',this._CentralWidget);
-    if (Attributes.type == 'channel') {
+    if (Attributes.type == 'chanlist') {
+      this.TreeList = new QTreeWidget(this.Container).setColumnCount(3);
+      this.TreeList.addEventListener('dblclick',(e) => { if (/^div$/i.test(e.target.tagName)) { this._Root._processInputLine(this._Root.Sessions[this._Cid].Windows['status window'],'/join ' + e.target.parentNode.childNodes[0].innerText); } });
+    }
+    else if (Attributes.type == 'channel') {
       this.ListDock = new QDockWidget('Nicklist').setBaseSize(100,null).setResizable(false).setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea).setWindowFlag(Qt.WindowType.WindowUndockButtonHint,false).setWindowFlag(Qt.WindowType.WindowCloseButtonHint,false).setFeature(Qt.DockWidgetFeature.DockWidgetFloatable,false);
       this.List = new QListView(this.ListDock).setBaseSize(100,null);
       this.List.style.background = this._Color('listbox');

@@ -211,9 +211,13 @@ class QObject extends HTMLElement {
   //Public Functions
   blockSignals(bool) { this._BlockSignals = bool; return this; }
   Children() { //can't match Qt's lowercase children() because of it existing already on a node....
-    if (this.hasOwnProperty('_CentralWidget')) { return Array.from(this._CentralWidget.childNodes); }
-    else { return Array.from(this.childNodes); }
-  }
+    if (this.hasOwnProperty('_CentralWidget')) { var array = Array.from(this._CentralWidget.childNodes); }
+    else { var array = Array.from(this.childNodes); }
+    array.reduceRight((_, elem) => {
+      if (!elem.classList.contains('QObject')) { array.splice(array.indexOf(elem),1); }
+    }, null);
+    return array;
+}
   connect(signal,reciever,slot,args) { if (!this._Signals[signal]) { this._Signals[signal] = []; } this._Signals[signal].push({Bind: reciever, Call: slot, Args: args }); return this; }
   disconnect(signal,reciever,slot) { var Cbs = this._Signals[signal] , i = Cbs.length; while (i--) { var CB = Cbs[i]; if (CB.Bind == reciever && CB.Call == slot) { Cbs.splice(i,1); } } return this; }
   dumpObjectInfo() { console.log(this); return this; }
@@ -1418,7 +1422,7 @@ class QTreeWidget extends QWidget {
 
     //Build UI Components
     this._CentralWidget = QuickElement('div',{'class':"CentralWidget"});
-    this.Header = QuickElement('div',{'class':"Header"},'',this._CentralWidget);
+    this.Header = QuickElement('div',{'class':"Header"},'<div class="HeaderItem"></div>',this._CentralWidget);
     this.appendChild(this._CentralWidget);
 
     /*==== Emitted Signals ====================================
@@ -1451,16 +1455,15 @@ class QTreeWidget extends QWidget {
   //Public Functions
   addTopLevelItem(Item) { }
   addTopLevelItems(Items) { }
-  columnCount() { }
+  columnCount() { return this.Header.childNodes.length; }
   currentItem() { }
   headerItem() { }
   insertTopLevelItem(Before,Item) { }
-  setColumnCount(count) { 
-    for (var i = this.Header.childNodes.length; i < count; i++) { QuickElement('div',{'class':"HeaderItem"},'moo',this.Header); }
-  }
+  setColumnCount(count) { for (var i = this.Header.childNodes.length; i < count; i++) { QuickElement('div',{'class':"HeaderItem"},'',this.Header); } return this; }
   setCurrentItem(item) {
     this.querySelectorAll('.selected').forEach((child) => { child.classList.remove('selected'); });
     item._Container.classList.add('selected');
+    return this;
   }
   setHeaderItem() { }
   setHeaderLabel() { }
@@ -1475,7 +1478,7 @@ customElements.define('q-treewidget', QTreeWidget);
 Qt Style Tree Widget Item Constructor (Temporary)
 ===============================================================================*/
 
-class QTreeWidgetItem extends QWidget {
+class QTreeWidgetItem extends QObject {
   constructor(qicon,qstring,parent) {
     super(parent);
 
@@ -1485,11 +1488,13 @@ class QTreeWidgetItem extends QWidget {
   
     //Build UI Components
     this._Container = QuickElement('div',{'class':'Container'});
-    this._TreeIcon = QuickElement('img',{'class':'Icon',src: qicon || '',draggable: "false"});
-    this._TreeLabel = QuickElement('span',{'class':'Text'},qstring);
+    this._Columns = [];
+    for (var i = 0; i < parent.columnCount(); i++) { this._Columns.push(QuickElement('div',{'class':'Column'},'',this._Container)); }
+    this._TreeIcon = QuickElement('img',{'class':'Icon',src: qicon || Qt.TransparentPNG,draggable: "false"},'',this._Columns[0]);
+    this._TreeLabel = QuickElement('span',{'class':'Text'},qstring,this._Columns[0]);
     this._CentralWidget = QuickElement('div',{'class':"CentralWidget"});
-    this._Container.appendChild(this._TreeIcon);
-    this._Container.appendChild(this._TreeLabel);
+    //this._Container.appendChild(this._TreeIcon);
+    //this._Container.appendChild(this._TreeLabel);
     this.appendChild(this._Container);
     this.appendChild(this._CentralWidget);
 
@@ -1532,12 +1537,15 @@ class QTreeWidgetItem extends QWidget {
   // Public Functions
   addChild(child) { this._CentralWidget.appendChild(child); }
   addChildren(children) { chilren.forEach((child) => { this._CentralWidget.appendChild(child); }); }
+  columnCount() { return this._Columns.length; }
   insertChild(before,child) { }
   insertChildren(Before,children) { }
   isSelected() { return this._Container.classList.contains('selected'); }
   //removeChild(child) { this._removeChildObject(child); }
   setIcon(icon) { this._TreeIcon.src = icon; return this; }
   setText(text) { this._TreeLabel.innerHTML = text; return this; }
+  setColumnText(column,text) { this._Columns[column].innerHTML = text; return this; }
+  setColumnTexts(text) { text.forEach((caption,column) => { this._Columns[column].innerHTML = caption; }); return this; }
   setToolTip (tooltip) { this.title = tooltip; return this; }
   setExpanded(bool) {
     if (bool) { this._CentralWidget.style.display = null; }

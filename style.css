@@ -125,10 +125,14 @@ body {
 .QListView.IconView > .CentralWidget > .QAction > .Text { display: block; cursor: default; }
 
 .QTreeWidget { padding: 4px; display: flex; flex: auto; flex-direction: row; overflow: auto;}
-.QTreeWidget > .CentralWidget { flex: auto; }
+.QTreeWidget > .CentralWidget { flex: auto; overflow: auto; }
+
+.QTreeWidget > .CentralWidget > .Header,.QTreeWidgetItem > .Container { display: flex; }
+.QTreeWidget > .CentralWidget >.Header > .HeaderItem,.QTreeWidgetItem > .Container > .Column { padding: 0 2px; flex: 1 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .QTreeWidgetItem { display: flex; flex: auto; flex-direction: column; white-space: nowrap; color: inherit; }
-.QTreeWidgetItem > .Container > .Icon { max-height: 16px; margin: 0 4px 0 0; }
+.QTreeWidgetItem > .Container > .Column > .Icon { max-height: 16px; margin: 0 4px 0 0; }
+.QTreeWidgetItem > .Container > .Column > .Text { vertical-align: top; }
 .QTreeWidgetItem > .CentralWidget { margin-left: 1em }
 
 .viewport span:first-child { margin-top: auto; }
