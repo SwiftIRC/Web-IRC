@@ -888,10 +888,11 @@ class WebIRC extends QMainWindow {
     var win = "status window";
     if (Client.isChan(target)) { win = target; }
     this._Echo(cid,win,2,LineColor,"[" + nick + " " + msg + "]");
+    if (/^version$/.test(msg)) { Client.WSSend("NOTICE " + nick + " :VERSION Web-IRC v1.0 Beta https://chat.swiftirc.net/"); }
   }
   //TODO: Fix ctcp reply (remove Args)
   onCtcpReply(cid,nick,address,target,msg,ircv3) { 
-    var Client = this.Sessions[cid].Client , LineColor = this._Color('ctcp');
+    var Client = this.Sessions[cid].Client , LineColor = this._Color('ctcp') , Args = msg.split(" ");
     var win = "status window";
     if (Client.isChan(target)) { win = target; }
     this._Echo(cid,win,2,LineColor,"[" + nick + (Client.isChan(target) ? ":" + target : "") + " " + Args[0] + " reply]: " + Args.slice(1).join(" "));
