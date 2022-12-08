@@ -1079,7 +1079,9 @@ class WebIRC extends QMainWindow {
     }
   }
   onTagmsg(cid,nick,address,target,ircv3) {
+    var Client = this.Sessions[cid].Client;
     if (this.Sessions[cid].Windows.hasOwnProperty(target.toLowerCase())) { this._updateWindowTypers(this.Sessions[cid].Windows[target.toLowerCase()],nick,ircv3); }
+    else if (target == Client.Me && this.Sessions[cid].Windows.hasOwnProperty(nick.toLowerCase())) { this._updateWindowTypers(this.Sessions[cid].Windows[nick.toLowerCase()],nick,ircv3); }
   }
   onRaw(cid,numeric,msg,ircv3) {
     var Client = this.Sessions[cid].Client;
