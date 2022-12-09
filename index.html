@@ -994,6 +994,7 @@ class WebIRC extends QMainWindow {
         this.Sessions[cid].Windows[newnick.toLowerCase()] = win;
         win._Target = newnick;
         win.TreeItem.setText(newnick);
+        win.TreeItem._SwitchItem.setText(newnick);
         win._updateTitle();
         delete this.Sessions[cid].Windows[nick.toLowerCase()];
       }
@@ -1315,6 +1316,7 @@ class CustomWindow extends QMdiSubWindow {
       this._Root._updateStatus();
       this._Highlight = 0;
       this.TreeItem._TreeLabel.style.color = this._Root._Config['palette'][([99,this._Root._Config['windows'].event,this._Root._Config['windows'].message,this._Root._Config['windows'].highlight][this._Highlight])];
+      this.TreeItem._SwitchItem.style.color = this.TreeItem._TreeLabel.style.color; 
       if (this.hasOwnProperty('ViewPort')) { this.ViewPort.scrollTop = this.ViewPort._LastTop; }
       if (this.hasOwnProperty('EditBox') && !window.mobileCheck()) { this.EditBox.focus(); }
     }
@@ -1394,6 +1396,7 @@ class CustomWindow extends QMdiSubWindow {
     if (this._Type == "query") { this._updateTitle(); }
     if (!this.TreeItem.isSelected() && highlight > this._Highlight) { this._Highlight = highlight; }
     this.TreeItem._TreeLabel.style.color = this._Root._Config['palette'][([99,this._Root._Config['windows'].event,this._Root._Config['windows'].message,this._Root._Config['windows'].highlight][this._Highlight])];
+    this.TreeItem._SwitchItem.style.color = this.TreeItem._TreeLabel.style.color;
   }
   _scrollBottom() { 
     //We need to give the browser time to render, so a slight timeout before scrolling to the bottom is necessary...
