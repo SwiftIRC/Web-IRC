@@ -148,6 +148,7 @@ class WebIRC extends QMainWindow {
       this.vMenu = new QAction('','Menubar',this.mView).setCheckable(true).setChecked(true).connect('toggled',this,this._ToggleMenubar);
       this.vTool = new QAction('','Toolbar',this.mView).setCheckable(true).setChecked(true).connect('toggled',this,this._ToggleToolbar);
       this.vTree = new QAction('','Treebar',this.mView).setCheckable(true).setChecked(true).connect('toggled',this,this._ToggleTreebar);
+      this.vSwitch = new QAction('','Switchbar',this.mView).setCheckable(true).setChecked(true).connect('toggled',this,this._ToggleSwitch);
       this.vStatus = new QAction('','Statusbar',this.mView).setCheckable(true).setChecked(true).connect('toggled',this,this._ToggleStatus);
 
       new QAction('','',this.mView).setSeparator();
@@ -166,6 +167,10 @@ class WebIRC extends QMainWindow {
 
     this.MDI = new QMdiArea(this);
     this.MDI._CurrentWindowState = Qt.WindowState.WindowMaximized;
+    this.SwitchBar = new QToolBar();
+    this.SwitchBar.style.overflow = "hidden";
+    this.SwitchBar._CentralWidget.style.overflow = "hidden";
+    this.addToolBar(Qt.ToolBarArea.BottomToolBarArea,this.SwitchBar);
 
     this.MDI.style.background = this._Color('mdi');
     //this.SwitchDock = new QDockWidget('Switchbar').setWindowFlag(Qt.WindowType.WindowTitleHint,false);
@@ -237,7 +242,10 @@ class WebIRC extends QMainWindow {
     this.MonitorQuery.addEventListener('visibilityChanged',(e) => { this.vQuery.setChecked(e.detail.visible); });
     this.MonitorServer.addEventListener('visibilityChanged',(e) => { this.vServer.setChecked(e.detail.visible); });
     //this.MDI.addEventListener('subWindowActivated',(e) => { this._ToggleConnection(true); });
-    this.MDI.addEventListener('childEvent',(e) => { this._ToggleConnection(true); });
+    this.MDI.addEventListener('childEvent',(e) => { 
+        this.MDI.Children().forEach((child) => { if (e.detail.QEvent == Qt.QEvent.Resize && child.hasOwnProperty('ViewPort') && child.ViewPort._isEnd == true) { child.ViewPort.scrollTop = child.ViewPort.scrollHeight; } })
+        this._ToggleConnection(true);
+      });
     this._NewSession('','',['text.ircv3.net']);
     var params = new Proxy(new URLSearchParams(window.location.search), { get: (searchParams, prop) => searchParams.get(prop), });
     if (params.perform) { this._processInputLine(this.Sessions["1"].Windows['status window'],params.perform); }
@@ -351,6 +359,7 @@ class WebIRC extends QMainWindow {
   _ToggleQuery(e) { this.MonitorQuery.setVisible(e.detail.checked); }
   _ToggleServer(e) { this.MonitorServer.setVisible(e.detail.checked); }
   _ToggleStatus(e) { this._StatusBar.style.display = (e.detail.checked == true ? '' : 'none'); }
+  _ToggleSwitch(e) { this.SwitchBar.setVisible(e.detail.checked); }
   _ToggleToolbar(e) { this.Toolbar.setVisible(e.detail.checked); }
   _ToggleTreebar(e) { this.TreeDock.setVisible(e.detail.checked); }
 
@@ -397,9 +406,11 @@ class WebIRC extends QMainWindow {
   _NewSubWindow(x,wtype,wtarget) {
     if (this.Sessions.hasOwnProperty(x)) {
       if (!this.Sessions[x].Windows.hasOwnProperty(wtarget.toLowerCase())) {
+        if (wtype == 'status window') { this.SwitchBar.addAction(new QAction().setSeparator()); }
         this.Sessions[x].Windows[wtarget.toLowerCase()] = new CustomWindow(this.MDI,{root:this,owner:this.Sessions[x].Windows['status window'],type:wtype,cid:x,target:wtarget});    
       }
       else { this.MDI.setActiveSubWindow(this.Sessions[x].Windows[wtarget.toLowerCase()]); }
+      this.Sessions[x].Windows['status window']._SortTree();
     }
   }
   _CloseSession(cid) {
@@ -411,6 +422,7 @@ class WebIRC extends QMainWindow {
           windows.reduceRight((_, key) => {
             if (this.Sessions[cid].Windows[key].TreeItem.parentNode) { this.Sessions[cid].Windows[key].TreeItem.parentNode.removeChild(this.Sessions[cid].Windows[key].TreeItem); }
             if (this.Sessions[cid].Windows[key].parentNode) { this.Sessions[cid].Windows[key].parentNode.removeChild(this.Sessions[cid].Windows[key]); }
+            if (this.Sessions[cid].Windows[key].TreeItem._SwitchItem.parentNode) { this.Sessions[cid].Windows[key].TreeItem._SwitchItem.parentNode.removeChild(this.Sessions[cid].Windows[key].TreeItem._SwitchItem); }
             if (this.Sessions[cid].Windows[key]._Type == 'status') { clearInterval(this.Sessions[cid].Windows[key].OnlineTimer); }
             delete this.Sessions[cid].Windows[key];
           }, null);
@@ -426,6 +438,7 @@ class WebIRC extends QMainWindow {
         Object.keys(this.Sessions[cid].Windows).reduceRight((_, key) => {
           if (this.Sessions[cid].Windows[key] == target) {
             if (this.Sessions[cid].Windows[key].TreeItem.parentNode) { this.Sessions[cid].Windows[key].TreeItem.parentNode.removeChild(this.Sessions[cid].Windows[key].TreeItem); }
+            if (this.Sessions[cid].Windows[key].TreeItem._SwitchItem.parentNode) { this.Sessions[cid].Windows[key].TreeItem._SwitchItem.parentNode.removeChild(this.Sessions[cid].Windows[key].TreeItem._SwitchItem); }
             if (this.Sessions[cid].Windows[key].parentNode) { this.Sessions[cid].Windows[key].parentNode.removeChild(this.Sessions[cid].Windows[key]); }
             delete this.Sessions[cid].Windows[key];
           }
@@ -1194,6 +1207,9 @@ class CustomWindow extends QMdiSubWindow {
     this.setWindowTitle((Attributes.title || Attributes.target));
 
     this.TreeItem = new QTreeWidgetItem(IconURL,Attributes.target,treeparent).connect('itemClicked',this,() => { if (Array.isArray(this.parent()._MetaObject) && this.parent()._MetaObject.includes('QMdiArea')) { this.parent().setActiveSubWindow(this); } });
+    this.TreeItem._SwitchItem = new QAction(IconURL,Attributes.target).setCheckable(true).connect('toggled',this,() => { if (Array.isArray(this.parent()._MetaObject) && this.parent()._MetaObject.includes('QMdiArea')) { this.parent().setActiveSubWindow(this); } });
+    this.TreeItem._SwitchItem.setAttribute("style","flex-shrink:1;overflow:hidden");
+    Attributes.root.SwitchBar.addAction(this.TreeItem._SwitchItem);
     this.Container = QuickElement('div',{style: 'display: flex; flex-direction: column; flex: auto; overflow: hidden;'},'',this._CentralWidget);
     if (Attributes.type == 'chanlist') {
       this.TreeList = new QTreeWidget(this.Container).setColumnCount(3);
@@ -1261,7 +1277,10 @@ class CustomWindow extends QMdiSubWindow {
         var selectedText = window.getSelection().toString().replace(/\u200B/g, "");
         if (selectedText != '') { navigator.clipboard.writeText(selectedText); }
       });
-      this.ViewPort.addEventListener('scroll',(e) => { this.ViewPort._LastTop = this.ViewPort.scrollTop; });
+      this.ViewPort.addEventListener('scroll',(e) => { 
+        this.ViewPort._LastTop = this.ViewPort.scrollTop; 
+        this.ViewPort._isEnd = ((this.ViewPort.scrollTop + this.ViewPort.clientHeight) == this.ViewPort.scrollHeight ? true : false);
+      });
       //this._ViewPortObserver = new MutationObserver(this._Observation.bind(this));
       //this._ViewPortObserver.observe(this.ViewPort,{childList: true});
 
@@ -1284,6 +1303,7 @@ class CustomWindow extends QMdiSubWindow {
     }
 
     this._Root.Treebar.setCurrentItem(this.TreeItem);
+    this._Root.SwitchBar.Children().forEach((child) => { child.setChecked((child == this.TreeItem._SwitchItem ? true : false)); });
     this.addEventListener('pointerup',(e) => { if (this.hasOwnProperty('EditBox') && !window.mobileCheck()) { this.EditBox.focus(); } });
     if (this._Type == "query") { this._updateTitle(); }
   }
@@ -1291,6 +1311,7 @@ class CustomWindow extends QMdiSubWindow {
   handleEvent(e) { 
     if (e.type == 'aboutToActivate') {
       this._Root.Treebar.setCurrentItem(this.TreeItem);
+      this._Root.SwitchBar.Children().forEach((child) => { child.setChecked((child == this.TreeItem._SwitchItem ? true : false)); });
       this._Root._updateStatus();
       this._Highlight = 0;
       this.TreeItem._TreeLabel.style.color = this._Root._Config['palette'][([99,this._Root._Config['windows'].event,this._Root._Config['windows'].message,this._Root._Config['windows'].highlight][this._Highlight])];
@@ -1395,6 +1416,7 @@ class CustomWindow extends QMdiSubWindow {
     var Client = this._Root.Sessions[this._Cid].Client;
     if (this._Type == "status") { 
       this.TreeItem.setText((Client.Network != "" ? Client.Network : (Client.Server != "" ? Client.Server : "Status")) + (Client.Me != "" ? " " + Client.Me : ""));
+      this.TreeItem._SwitchItem.setText((Client.Network != "" ? Client.Network : (Client.Server != "" ? Client.Server : "Status")));
       if (Client.Socket && Client.Socket.readyState == 1) { this.setWindowTitle("Status: " + Client.Me + " [+" + Client.UMode + "] on " + Client.Network + " (" + Client.Server + ")"); }
       else { this.setWindowTitle("Status: Not Connected"); }
     }
@@ -1516,7 +1538,12 @@ class CustomWindow extends QMdiSubWindow {
       if (!c && d) { return 1; }
       return 0;
     });
-    sorted.forEach((item) => { item.parentNode.appendChild(item); });
+    sorted.forEach((item) => { 
+      item.parentNode.appendChild(item);
+      var index = sorted.indexOf(item) , prev = (index == 0 ? this.TreeItem._SwitchItem : sorted[index-1]._SwitchItem );
+      item._SwitchItem.parentNode.insertBefore(item._SwitchItem,prev.nextSibling);
+      //if (index + 1 < sorted.length) { sorted[index+1].parentNode.insertBefore(item._SwitchItem,sorted[index+1]._SwitchItem); }
+     });
   }
 }
 customElements.define('web-customwindow', CustomWindow);

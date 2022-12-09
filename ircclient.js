@@ -56,7 +56,7 @@ class IALItem {
   ================================================================================================*/
   class IRCClient {
     constructor(cid,nick,server,args) {
-      this.Listeners = {action: [],batch: [],connect: [],chghost: [],ctcp: [],ctcpreply: [],disconnect: [],invite: [],join: [],kick: [],logon: [],mode: [],nick: [],notice: [],part: [],ping: [],pong: [],quit: [],raw: [],snotice: [],smode: [],privmsg: [],tagmsg: [],topic: [],umode: []}; //Collection of callbacks for IRC related events
+      this.Listeners = {action: [],batch: [],connect: [],chghost: [],ctcp: [],ctcpreply: [],disconnect: [],error: [],invite: [],join: [],kick: [],logon: [],mode: [],nick: [],notice: [],part: [],ping: [],pong: [],quit: [],raw: [],snotice: [],smode: [],privmsg: [],tagmsg: [],topic: [],umode: []}; //Collection of callbacks for IRC related events
       this.CID = cid;
       this.Server = server;
       this.Port = '';
@@ -322,6 +322,7 @@ class IALItem {
         else if (/^CHGHOST$/i.test(Event)) { this.IALUpdate(Nick,{address: Args[0] + "@" + Args[1]}); }
         //End of IRCv3 special events
 
+        else if (/^ERROR$/i.test(Event)) { this.Emit(Event.toLowerCase(),[this.CID,Extra,IRCv3]); }
         else if (/^INVITE$/i.test(Event)) { 
           this.IALUpdate(Nick,{'address': Address,'idle': Math.floor(Date.now() / 1000)});
           this.Emit(Event.toLowerCase(),[this.CID,Nick,Address,Extra,IRCv3]); 
