@@ -38,7 +38,7 @@ Other unique features requiring drag-n-drop have been forced with the usage of D
 You can specify a "perform" query string which will execute a SINGLE command if this field is present. Useful for linking to your server and/or channels you wish people to join. 
 Try out this <a href="https://chat.swiftirc.net/?perform=/server+-j+%23swiftirc,%23bullshit+wss://fiery.swiftirc.net:4443">Demo</a>. 
 
-There are currently 4 default "Favorites" (SwiftIRC running UnrealIRCd, Libera.Chat running solanum, Ergo running Ergo/Oragono, and WRNet another UnrealIRCd) which can be found under the star icon of any status window. Just click on one of the networks to connect to them.
+There are currently 5 default "Favorites" (SwiftIRC running UnrealIRCd, Libera.Chat running solanum, Ergo running Ergo/Oragono, Unreal and WRNet another UnrealIRCd) which can be found under the star icon of any status window. Just click on one of the networks to connect to them.
 
 By using this project or its source code, for any purpose and in any shape or form, you grant your implicit agreement that:
 
