@@ -7,9 +7,11 @@ A feature-rich Websocket IRC client in JavaScript
 • Monitor panels are able to be tabified by dragging one ontop anothers titlebar.<br>
 • Support for both ws:// and wss:// connections (See note below)<br>
 • Auto-completion of nicknames, commands and channels. (tab-key)<br>
-• Text formatting supported: Bold, Underline, Reverse, Color, Italic, Strikethru, HexColor and Monospace<br>
+• Text formatting supported: Bold, Underline, Reverse, Color, Italic, Strikethru, HexColor(See Note) and Monospace<br>
 • Inline media embedding (Images, Audio, Video and YouTube urls)<br>
 • Somewhat Mobile-Friendly. See details below.<br>
+
+HexColor Note: the control code to initialize hex-color is \x04, firefox replaces this with \ufffd BEFORE JS gets a chance to interact with the data, Chrome however does not. In order to maintain parsings for both browsers, I look for [\x04|\ufffd] for a temporary solution. This CAN and WILL break color parsing if there are legitimate \ufffd characters either by someone including it within their message or the NON-UTF8 replacement from the ircd according to IRCv3's websocket protocol.
 
 Current IRCv3 Support:<br>
 • account-notify<br>
