@@ -24,9 +24,10 @@ class IALItem {
     constructor(chan) {
       this.channel = chan;
       this.idle = Math.floor(Date.now() / 1000);
+      this.Mode = {};
       this.mode = '';
       this.key = '';
-      this.limit = 0;
+      this.limit = '';
       this.topic = '';
       this.topicby = '';
       this.topicset = 0;
@@ -35,7 +36,7 @@ class IALItem {
       this.IBL = {}; //Internal Bans List
       this.IEL = {}; //Internal Excepts List
       this.IIL = {}; //Internal Invites List
-      this.IQL = {}; //Internal Quiets List  
+      this.IQL = {}; //Internal Quiets List
     }
     addBan(mask,setby,settime) { if (!this.IBL.hasOwnProperty(mask)) { this.IBL[mask] = {by: setby, date: settime}; } }
     delBan(mask) { if (this.IBL.hasOwnProperty(mask)) { delete this.IBL[mask]; } }
@@ -45,10 +46,29 @@ class IALItem {
     delInvite(mask) { if (this.IIL.hasOwnProperty(mask)) { delete this.IIL[mask]; } }
     addQuiet(mask,setby,settime) { if (!this.IQL.hasOwnProperty(mask)) { this.IQL[mask] = {by: setby, date: settime}; } }
     delQuiet(mask) { if (this.IQL.hasOwnProperty(mask)) { delete this.IQL[mask]; } }
-    addMode(mode) { if (this.mode.indexOf(mode) < 0) { this.mode += mode; } }
-    delMode(mode) { if (this.mode.indexOf(mode) > -1) { this.mode = this.mode.replace(mode,""); } }
+    addMode(mode,arg) {
+      if (!this.Mode.hasOwnProperty(mode)) { this.Mode[mode] = arg; }
+      if (mode == "k") { this.key = arg; }
+      if (mode == "l") { this.limit = arg; }
+      this.ModesToString();
+    }
+    delMode(mode) { 
+      if (this.Mode.hasOwnProperty(mode)) { delete this.Mode[mode]; }
+      if (mode == "k") { this.key = ''; }
+      if (mode == "l") { this.limit = ''; }
+      this.ModesToString();
+    }
     addNick(nick) { if (!this.Nicks.includes(nick)) { this.Nicks.push(nick); } }
     delNick(nick) { if (this.Nicks.includes(nick)) { this.Nicks.splice(this.Nicks.indexOf(nick),1); } }
+    ModesToString() {
+      var modes = [], args = [];
+      Object.keys(this.Mode).forEach((key) => {
+        modes.push(key);
+        if (this.Mode[key] != "") { args.push(this.Mode[key]); }
+      });
+      this.mode = modes.join("");
+      if (args.length > 0) { this.mode += " " + args.join(" "); }
+    }
   }    
   
   /*================================================================================================
@@ -442,16 +462,15 @@ class IALItem {
                   //modify channel modes (requires parms)
                   if (porm == "+") {
                     if (mode == "b") { this.ICL[target.toLowerCase()].addBan(InParm[parmcnt],nick,Math.floor(Date.now() / 1000)); handled = 1; }
-                    else if (mode == "I") { this.ICL[target.toLowerCase()].addInvite(InParm[parmcnt],nick,Math.floor(Date.now() / 1000)); handled = 1; }
                     else if (mode == "e") { this.ICL[target.toLowerCase()].addExcept(InParm[parmcnt],nick,Math.floor(Date.now() / 1000)); handled = 1; }
-                    else if (mode == "k") { this.ICL[target.toLowerCase()].key = InParm[parmcnt]; handled = 1; }
-                    else if (mode == "l") { this.ICL[target.toLowerCase()].limit = parseInt(InParm[parmcnt]); handled = 1; }
+                    else if (mode == "I") { this.ICL[target.toLowerCase()].addInvite(InParm[parmcnt],nick,Math.floor(Date.now() / 1000)); handled = 1; }
+                    else { this.ICL[target.toLowerCase()].addMode(mode,InParm[parmcnt]); }
                   }
                   else { 
                     if (mode == "b") { this.ICL[target.toLowerCase()].delBan(InParm[parmcnt]); }
-                    else if (mode == "I") { this.ICL[target.toLowerCase()].delInvite(InParm[parmcnt]); }
                     else if (mode == "e") { this.ICL[target.toLowerCase()].delExcept(InParm[parmcnt]); }
-                    else if (mode == "k") { this.ICL[target.toLowerCase()].key = ''; } 
+                    else if (mode == "I") { this.ICL[target.toLowerCase()].delInvite(InParm[parmcnt]); }
+                    else { this.ICL[target.toLowerCase()].delMode(mode); }
                   }
                 }
                 parmcnt++;
@@ -460,8 +479,7 @@ class IALItem {
           },this);
           if (!handled) {
             //modify channel modes (no parms)
-            if (porm == "+") { this.ICL[target.toLowerCase()].addMode(mode); }
-            else if (porm == "-" && mode == "l") { this.ICL[target.toLowerCase()].limit = 0; }
+            if (porm == "+") { this.ICL[target.toLowerCase()].addMode(mode,""); }
             else { this.ICL[target.toLowerCase()].delMode(mode); }
           }
         }
