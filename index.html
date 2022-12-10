@@ -1,7 +1,7 @@
 <!DOCTYPE html> 
   <html>
     <head>
-      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
       <meta charset='UTF-8' name='viewport' content='width=device-width, initial-scale=1.0, user-scalable=0'>
       <title>Web-IRC</title>
       <link rel="stylesheet" href="style.css">
@@ -806,7 +806,7 @@ class WebIRC extends QMainWindow {
     var cc = this._Config['palette'];
     var b = 0, u = 0, r = 0 , i = 0, s = 0, m = 0, bg = cc.length, fg = cc.length;
 
-    return text.replace(/([&<>])/g,(m,e) => { return "&#" + e.charCodeAt(0) + ";"; }).replace(/(\x03(?:(?:\d\d?),)?(?:\d\d?)|[\x04\ufffd](?:(?:[0-9A-Fa-f]{6}),)?(?:[0-9A-Fa-f]{6})|[\x02\x03\x04\ufffd\x11\x16\x1d\x1e\x0f\x1f])([^\x02\x03\x04\ufffd\x11\x16\x1d\x1e\x0f\x1f]*)/gu,function(match,control,string) {
+    return text.replace(/([&<>])/g,(m,e) => { return "&#" + e.charCodeAt(0) + ";"; }).replace(/(\x03(?:(?:\d\d?),)?(?:\d\d?)|[\x04](?:(?:[0-9A-Fa-f]{6}),)?(?:[0-9A-Fa-f]{6})|[\x02\x03\x04\x11\x16\x1d\x1e\x0f\x1f])([^\x02\x03\x04\x11\x16\x1d\x1e\x0f\x1f]*)/gu,function(match,control,string) {
       if (control == '\x03') { fg = bg = cc.length; } //Blank ctrl+k
       else if (control == '\x02') { b = !b } //ctrl+b (bold)
       else if (control == '\x1f') { u = !u }  //ctrl+u (underline)
@@ -820,8 +820,8 @@ class WebIRC extends QMainWindow {
         if (Array.isArray(fgt) && fgt.length > 0) { fg = parseInt(fgt[1]) + 0; }
         else if (Array.isArray(bt) && bt.length > 0) { fg = parseInt(bt[1]) + 0; bg = parseInt(bt[2]) + 0; }
       }
-      else if (/^(?:\x04|\ufffd)/u.test(control)) { //ctrl+? (color RGB-hex) TODO: remove \ufffd <?> replacement char. Websockets see this instead of \x04
-        var fgt = /^[\x04\ufffd]([0-9A-Fa-f]{6})$/.exec(control), bt = /^[\x04\ufffd]([0-9A-Fa-f]{6}),([0-9A-Fa-f]{6})$/.exec(control);
+      else if (/^(?:\x04)/u.test(control)) { //ctrl+? (color RGB-hex) TODO: remove \ufffd <?> replacement char. Websockets see this instead of \x04
+        var fgt = /^[\x04]([0-9A-Fa-f]{6})$/.exec(control), bt = /^[\x04]([0-9A-Fa-f]{6}),([0-9A-Fa-f]{6})$/.exec(control);
         if (Array.isArray(fgt) && fgt.length > 0) { fg = fgt[1]; }
         else if (Array.isArray(bt) && bt.length > 0) { fg = bt[1]; bg = bt[2]; }
       }
