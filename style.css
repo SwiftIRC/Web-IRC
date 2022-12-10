@@ -128,7 +128,8 @@ body {
 .QTreeWidget > .CentralWidget { flex: auto; overflow: auto; }
 
 .QTreeWidget > .CentralWidget > .Header,.QTreeWidgetItem > .Container { display: flex; }
-.QTreeWidget > .CentralWidget >.Header > .HeaderItem,.QTreeWidgetItem > .Container > .Column { padding: 0 2px; flex: 1 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.QTreeWidget > .CentralWidget > .Header > .HeaderItem,.QTreeWidgetItem > .Container > .Column { padding: 0 2px; flex: 1 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.QTreeWidgetItem > .Container .Column:last-child { flex-grow: 3; }
 
 .QTreeWidgetItem { display: flex; flex: auto; flex-direction: column; white-space: nowrap; color: inherit; }
 .QTreeWidgetItem > .Container > .Column > .Icon { max-height: 16px; margin: 0 4px 0 0; }

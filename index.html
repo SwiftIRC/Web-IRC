@@ -1156,11 +1156,14 @@ class WebIRC extends QMainWindow {
         UI._updateTitle();
       }
     } //channel end of names
-    else { this._Echo(cid,"status window",1,this._Color('normal'),(/^\d+/.test(numeric) ? "" : numeric + " ") + (numeric == 372 ? "" : "") + Tokens.slice(1).join(" ")); }
-    //show whois in query window
-    if (parseInt(numeric) >= 307 && parseInt(numeric) <= 320) {
-      if (this.Sessions.hasOwnProperty(cid) && this.Sessions[cid].Windows.hasOwnProperty(Tokens[1].toLowerCase())) {
-        this._Echo(cid,Tokens[1],1,this._Color('normal'),(/^\d+/.test(numeric) ? "" : numeric + " ") + (numeric == 372 ? "" : "") + Tokens.slice(1).join(" "));
+    else { 
+      this._Echo(cid,"status window",1,this._Color('normal'),(/^\d+/.test(numeric) ? "" : numeric + " ") + (numeric == 372 ? "" : "") + Tokens.slice(1).join(" "));
+      //show whois in query window
+      var whoisraws = [276,307,311,312,313,317,319,320,330,338,378,379,671,301];
+      if (whoisraws.includes(parseInt(numeric))) {
+        if (this.Sessions.hasOwnProperty(cid) && this.Sessions[cid].Windows.hasOwnProperty(Tokens[1].toLowerCase())) {
+          this._Echo(cid,Tokens[1],1,this._Color('normal'),(/^\d+/.test(numeric) ? "" : numeric + " ") + (numeric == 372 ? "" : "") + Tokens.slice(1).join(" "));
+        }
       }
     }
   }
