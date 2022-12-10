@@ -347,6 +347,7 @@ class WebIRC extends QMainWindow {
     if (!this.vNotice.isChecked() || Invert) { this.vNotice.toggle(); }
     if (!this.vQuery.isChecked() || Invert) { this.vQuery.toggle(); }
     if (!this.vServer.isChecked() || Invert) { this.vServer.toggle(); }
+    [this.MonitorChanViewPort,this.MonitorHighlightViewPort,this.MonitorNoticeViewPort,this.MonitorQueryViewPort,this.MonitorServerViewPort].forEach((target) => { target.scrollTop = target.scrollHeight; });
   }
   _ToggleFullscreen() { 
     if (document.fullscreenElement == null) { document.documentElement.requestFullscreen(); }
@@ -1156,6 +1157,12 @@ class WebIRC extends QMainWindow {
       }
     } //channel end of names
     else { this._Echo(cid,"status window",1,this._Color('normal'),(/^\d+/.test(numeric) ? "" : numeric + " ") + (numeric == 372 ? "" : "") + Tokens.slice(1).join(" ")); }
+    //show whois in query window
+    if (parseInt(numeric) >= 307 && parseInt(numeric) <= 320) {
+      if (this.Sessions.hasOwnProperty(cid) && this.Sessions[cid].Windows.hasOwnProperty(Tokens[1].toLowerCase())) {
+        this._Echo(cid,Tokens[1],1,this._Color('normal'),(/^\d+/.test(numeric) ? "" : numeric + " ") + (numeric == 372 ? "" : "") + Tokens.slice(1).join(" "));
+      }
+    }
   }
   onSnotice(cid,nick,address,target,msg) {
     var Client = this.Sessions[cid].Client;
