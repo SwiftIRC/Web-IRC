@@ -11,7 +11,7 @@ A feature-rich Websocket IRC client in JavaScript
 • Inline media embedding (Images, Audio, Video and YouTube urls)<br>
 • Somewhat Mobile-Friendly. See details below.<br>
 
-HexColor Note: the control code to initialize hex-color is \x04, firefox replaces this with \ufffd BEFORE JS gets a chance to interact with the data, Chrome however does not. In order to maintain parsings for both browsers, I look for [\x04|\ufffd] for a temporary solution. This CAN and WILL break color parsing if there are legitimate \ufffd characters either by someone including it within their message or the NON-UTF8 replacement from the ircd according to IRCv3's websocket protocol. Due to associating \ufffd with hex-color, you will never see this character in messages. 
+HexColor Note: the control code to initialize hex-color is \x04, firefox replaces this with \ufffd BEFORE JS gets a chance to interact with the data, Chrome however does not. In order to maintain parsings for both browsers, I look for [\x04|\ufffd] for a temporary solution. This CAN and WILL break color parsing if there are legitimate \ufffd characters either by someone including it within their message or the NON-UTF8 replacement from the ircd according to IRCv3's websocket protocol. Due to associating \ufffd with hex-color, you will never see this character "�" in messages. 
 
 Current IRCv3 Support:<br>
 • account-notify<br>
