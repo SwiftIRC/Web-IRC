@@ -2073,6 +2073,7 @@ Asteroids.prototype = {
 	      this._Player.vx = NewVX;
 	      this._Player.vy = NewVY;
 	    }
+      if (this._Invul == true) { this._Invul = false; }
 	    //TODO: I believe the original game had a very small velocity decay...
 	  }
 	  //Spacebar
@@ -2293,7 +2294,7 @@ Asteroids.prototype = {
             if (SortB.type == "Bullet" || SortB.type == "Missile") {
               if (this.InPoly(ObjectB.x,ObjectB.y,APoly)) {
                 if ((SortB.type == "Bullet" && /ship/.test(SortA.type)) || (SortB.type == "Missile" && /ufo/.test(SortA.type))) { collision = 0; }
-                else { collision = 1; }
+                else { collision = ((/ship$/.test(SortA.type) || /ship$/.test(SortB.type)) && this._Invul ? 0 : 1); }
               }
             }
             else {
@@ -2301,7 +2302,7 @@ Asteroids.prototype = {
               if (this.OnPoly(APoly,BPoly)) {
                 if (/Rock\d$/.test(SortA.type) && /Rock\d$/.test(SortB.type)) { collision = 0; }
                 else if (/ship$/.test(SortA.type) && /ship$/.test(SortB.type)) { collision = 0; }
-                else { collision = 1; }
+                else { collision = ((/ship$/.test(SortA.type) || /ship$/.test(SortB.type)) && this._Invul ? 0 : 1); }
               }
             }
           }
@@ -2405,6 +2406,10 @@ Asteroids.prototype = {
     this._Window.DrawText("","#ffffff","12px Arial",0,36,"Lives: " + this.Lives);
     this._Window.DrawText("","#ffffff","12px Arial",0,48,"Entities: " + (this._Entities.length + this._Bullets.length + this._Missiles.length));
     this._Window.DrawText("","#ffffff","12px Arial",0,60,"FPS: " + (1000 / DeltaTime).toFixed(2));
+
+    if (this.Score == 0 && this._Invul) {
+      this._Window.DrawText("","#ffffff","12px Arial",this._Player.x + this._ox - 125,this._Player.y + this._oy + 20,"Up Arrow: thrust, L/R Arrow: rotate, space: shoot");
+    }
   },
   Polygons: function(Type) {
     //Polygons are an array of Points (X,Y,X,Y,etc..), which are a distance away from the origin: 0,0
