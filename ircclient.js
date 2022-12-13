@@ -501,7 +501,7 @@ class IALItem {
     if (this.IAL.hasOwnProperty(nick)) { return this.mask(nick + "!" + this.IAL[nick].address,level); }
     else { return this.mask(nick + "!user@host",level); }
   }
-  isChan(chan) { var tmp = new RegExp('^[' + this.ChanTypes + ']'); return tmp.test(chan); }
+  isChan(chan) { var tmp = new RegExp('^(?:[' + this.Prefix + '])?[' + this.ChanTypes + ']'); return tmp.test(chan); }
   isQuery(nick) { return this.IQL.hasOwnProperty(nick) }
   isOn(nick,chan) { if (this.ICL.hasOwnProperty(chan.toLowerCase())) { return (this.ICL[chan.toLowerCase()].Nicks.indexOf(nick) == -1 ? false : true); } return false; }
   isOp(nick,chan) { if (this.IAL.hasOwnProperty(nick) && this.IAL[nick].channels.hasOwnProperty(chan.toLowerCase())) { return (this.IAL[nick].channels[chan.toLowerCase()].indexOf("@") == -1 ? false : true); } return false; }

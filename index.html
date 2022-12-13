@@ -9,6 +9,7 @@
       <script src="ircclient.js"></script>
       <script src="Qtv5.js"></script>
       <script>
+
 if (Array.prototype.forEachReverse === undefined) { 
   Object.defineProperty(Array.prototype, 'forEachReverse', { 
       writable : false,
@@ -131,6 +132,8 @@ class WebIRC extends QMainWindow {
       };
     }
     this.Sessions = { };
+    this.Aliases = {};
+
     /*-------------------------------------------------------------------------------------------------
     Build UI Components
     -------------------------------------------------------------------------------------------------*/
@@ -250,7 +253,15 @@ class WebIRC extends QMainWindow {
     var params = new Proxy(new URLSearchParams(window.location.search), { get: (searchParams, prop) => searchParams.get(prop), });
     if (params.perform) { this._processInputLine(this.Sessions["1"].Windows['status window'],params.perform); }
   }
-  //handleEvent(e) { super.handleEvent(e); }
+  handleEvent(e) { 
+    super.handleEvent(e);
+    if (this.hasOwnProperty("MDI") && this.MDI.activeSubWindow()) { this.MDI.activeSubWindow()._customEvent('input', { bubbles: false, detail: { target: this, jsEvent: e } }); } //Hook later? @window stuffs
+    if (e.type == 'keydown') {
+      var key = e.keyCode || e.charCode;
+      //shift+tab window move 
+      if (e.shiftKey && key == 9) { e.preventDefault(); this.MDI.activateNextSubWindow(); }
+    }
+  }
 
   _SaveConfig(bool,preview) { 
     if (bool && !preview) { window.localStorage.setItem('Web-IRC.Config',JSON.stringify(this._Config)); }
@@ -404,7 +415,7 @@ class WebIRC extends QMainWindow {
     this._updateStatus();
     //this._ShowNotification('favicon.ico','Web-IRC','Welcome to Web-IRC!',2000);
   }
-  _NewSubWindow(x,wtype,wtarget) {
+  _NewSubWindow(x,wtype,wtarget,width,height) {
     if (this.Sessions.hasOwnProperty(x)) {
       if (!this.Sessions[x].Windows.hasOwnProperty(wtarget.toLowerCase())) {
         if (wtype == 'status window') { this.SwitchBar.addAction(new QAction().setSeparator()); }
@@ -413,6 +424,8 @@ class WebIRC extends QMainWindow {
       else { this.MDI.setActiveSubWindow(this.Sessions[x].Windows[wtarget.toLowerCase()]); }
       this.Sessions[x].Windows['status window']._SortTree();
     }
+    if (width && height) { this.Sessions[x].Windows[wtarget.toLowerCase()].setBaseSize(width,height); }
+    return this.Sessions[x].Windows[wtarget.toLowerCase()];
   }
   _CloseSession(cid) {
     if (this.Sessions.hasOwnProperty(cid)) {
@@ -454,7 +467,6 @@ class WebIRC extends QMainWindow {
       if (Client.Socket && Client.Socket.readyState == 1) { this._StatusBar.innerText = Client.Me + " [+" + Client.UMode + "] on " + Client.Server + (Client.Latency != "" && !isNaN(Client.Latency) ? " Latency: " + Client.Latency + " ms" : ""); }
       else { this._StatusBar.innerText = Client.Me + " (Not Connected)"; }
     }
-    else { console.log("status error:"); console.log(active); }
   }
   async _ShowNotification(icon,title,body,N) {
     var granted = false;
@@ -560,11 +572,20 @@ class WebIRC extends QMainWindow {
   _processInputLine(Sender,line,ctrlKey) {
     var Client = this.Sessions[Sender._Cid].Client;
 	  if (!ctrlKey && line.match(/^(\x2f+[^ ]+) ?((?: ?[+-][^-+ ]+(?: [^ ]+)?)*) ?(.*)$/)) {
-      var Cmd = RegExp.$1 , Flags = RegExp.$2, Extra = RegExp.$3 || '';
+      var Cmd = RegExp.$1 , Flags = RegExp.$2, Extra = RegExp.$3 || '' , handled = 0;
       //console.log('CMD: ' + Cmd + ' F: ' + Flags + ' Extra: ' + Extra);
         
       //Single Tier Cmds (No Flags)
-      if (/^\x2f+serverargs$/i.test(Cmd)) {
+      Object.keys(this.Aliases).forEach((Alias) => { 
+        var exp = new RegExp("^\x2f+" + Alias + "$","i");
+        if (exp.test(Cmd)) {
+          this.Aliases[Alias].Call.apply(this.Aliases[Alias].Bind,[Sender,line,ctrlKey]);
+          handled = 1;
+        }
+      });
+
+      if (handled) { }
+      else if (/^\x2f+serverargs$/i.test(Cmd)) {
         console.log(Client.ServerARGS);
       }
      else if (/^\x2f+ame$/i.test(Cmd)) {
@@ -714,6 +735,9 @@ class WebIRC extends QMainWindow {
     //handle enter in editbox (send)
     if (key == 13 || key == 10) { Sender._Root._processInputLine(Sender,Sender.EditBox.value,e.ctrlKey); Sender.EditBox.dataset.typing = ''; }
 
+    //forward keypresses to viewport (pgup/pgdn)
+    else if (key == 33 || key == 34) { Sender.ViewPort.focus(); setTimeout(() => { e.target.focus(); }); }
+
     //handle editbox history (up/dn arrows)
     else if (key == 38 || key == 40) {
       var dir = key - 39 , LastHistory = parseInt(Sender.EditBox.dataset.hindex) , hindex = LastHistory + dir;
@@ -800,6 +824,15 @@ class WebIRC extends QMainWindow {
       Win._updateTypers();
     }
   }
+
+  AddAlias(alias,reciever,slot,args) { 
+    if (!this.Aliases.hasOwnProperty(alias)) { this.Aliases[alias] = { Bind: reciever, Call: slot, Args: args } } 
+    Object.keys(this.Sessions).forEach((session) => { 
+      if (this.Sessions[session].Windows.hasOwnProperty('status window')) { this._processInputLine(this.Sessions[session].Windows['status window'],"/echo -s *** Custom Alias Registered: /" + alias); }
+    });
+    return this; 
+  }
+  RemoveAlias(alias) { if (!this.Aliases.hasOwnProperty(alias)) { delete this.Aliases[alias]; } return this; }
 
   CC2Html(text) {
     // === CC var is a direct rip of $rgb($color(N)) converted to base 16. N is 0-99 for all 100 new colors added to mIRC.
@@ -1017,7 +1050,8 @@ class WebIRC extends QMainWindow {
     var win = "status window";
     if (Client.isChan(target)) { win = target; }
     var Line = "-" + nick + (Client.isChan(target) ? ":" + target : "") + "- " + msg;
-    this._Echo(cid,win,2,LineColor,Line);
+    if (ircv3.hasOwnProperty('batch') && ircv3.hasOwnProperty('time')) { var time = new Date(ircv3.time); }
+    this._Echo(cid,win,2,LineColor,Line,time);
     this._MonitorEcho(this.MonitorNoticeViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + (Client.isChan(target) ? " - " + target : "") + ": " + Line);
   }
   onPart(cid,nick,address,target,msg,ircv3) { 
@@ -1235,7 +1269,7 @@ class CustomWindow extends QMdiSubWindow {
       this.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea,this.ListDock);
 
       this.Toolbar = new QToolBar();
-      this.Info = new QAction('images/info.ico').setToolTip('Chan Info');
+      this.Info = new QAction('images/info.ico').setToolTip('Chan Info').setCheckable(true).connect('toggled',this,this._ToggleChanCentral);
       this.Idle = new QAction('images/hourglass.ico').setToolTip('Channel Idle').setCheckable(true).connect('toggled',this,this._ToggleIdle);
       this.UserStats = new QAction('images/piechart.ico').setToolTip('User Statistics').setCheckable(true).connect('toggled',this,this._ToggleStats);
       this.ToggleNick = new QAction('images/users.ico').setToolTip('Toggle Nicklist').setCheckable(true).setChecked(true).connect('toggled',this,this._ToggleNicklist);
@@ -1246,6 +1280,21 @@ class CustomWindow extends QMdiSubWindow {
       this.Toolbar.addAction(new QAction().setSeparator());
       this.Toolbar.addAction(this.ToggleNick);
       this.addToolBar(Qt.ToolBarArea.TopToolBarArea,this.Toolbar);
+
+      this.ChanCentral = QuickElement('div',{'class': 'chancentral', style: "display: none; flex-direction: column; background: inherit; flex: auto; overflow-y: scroll;"},'',this.Container);
+      QuickElement('span',{},'Topic:<br>',this.ChanCentral);
+      QuickElement('input',{style: 'flex: 0 1'},'',this.ChanCentral);
+      QuickElement('span',{},'Bans List:<br>',this.ChanCentral);
+      this.CentralTree = new QTreeWidget(this.ChanCentral);
+      this.CentralTree.setColumnCount(3);
+      this.CentralTree.setHeaderLabels(['mask','set by','time']);
+      this.ButtonSpan = QuickElement('span',{},'',this.ChanCentral);
+      QuickElement('button',{},'Bans',this.ButtonSpan);
+      QuickElement('button',{},'Excepts',this.ButtonSpan);
+      QuickElement('button',{},'Invites',this.ButtonSpan);
+      QuickElement('button',{},'Quiets',this.ButtonSpan);
+      QuickElement('button',{},'Edit',this.ButtonSpan);
+      QuickElement('button',{},'Remove',this.ButtonSpan);
 
       //this.NickModeBar = new QToolBar();
       //Client.NickMode.split("").forEach((mode) => { 
@@ -1269,6 +1318,8 @@ class CustomWindow extends QMdiSubWindow {
       new QAction('images/status.ico','Ergo',this.QuickConnect).connect('triggered',this,() => { this._Root._processInputLine(this,'/server wss://irc.ergo.chat/webirc/'); });
       new QAction('images/status.ico','Unreal',this.QuickConnect).connect('triggered',this,() => { this._Root._processInputLine(this,'/server wss://irc.unrealircd.org'); });
       new QAction('images/status.ico','WRNet',this.QuickConnect).connect('triggered',this,() => { this._Root._processInputLine(this,'/server wss://irc.wrestlingnewssource.com:8000'); });
+      //new QAction('images/status.ico','irchighway',this.QuickConnect).connect('triggered',this,() => { this._Root._processInputLine(this,'/server wss://webchat.irchighway.net/socket'); });
+      //new QAction('images/status.ico','tilde.chat',this.QuickConnect).connect('triggered',this,() => { this._Root._processInputLine(this,'/server wss://tilde.chat/webirc'); });      
       //new QAction('images/status.ico','mIRCScripts',this.QuickConnect).connect('triggered',this,() => { this._Root._processInputLine(this,'/server ws://irc.mircscripts.info:8000'); });
 
       this.NewSession = new QAction('images/addserver.ico').setToolTip('New Server Window').connect('triggered',this,() => { this._Root._NewSession() });
@@ -1280,6 +1331,16 @@ class CustomWindow extends QMdiSubWindow {
       this.Toolbar.addAction(this.ToggleOnline);
       this.addToolBar(Qt.ToolBarArea.TopToolBarArea,this.Toolbar);
       this.OnlineContainer = QuickElement('span',{style: 'padding: 0 4px; display: none'},'Online: -',this.statusBar());
+    }
+    else if (Attributes.type == 'picture') {
+      this.Picture = QuickElement('canvas',{},'',this.Container);
+      this.Picture.addEventListener('pointerdown',(e) => { this._customEvent('input', { bubbles: true, detail: { target: this, jsEvent: e } }); });
+      this.Picture.addEventListener('pointermove',(e) => { this._customEvent('input', { bubbles: true, detail: { target: this, jsEvent: e } }); });
+      this.Picture.addEventListener('pointerup',(e) => { this._customEvent('input', { bubbles: true, detail: { target: this, jsEvent: e } }); });
+      this.Picture.addEventListener('pointercancel',(e) => { this._customEvent('input', { bubbles: true, detail: { target: this, jsEvent: e } }); });
+      //this.Canvas.addEventListener('keyboard',this._MainApp._picwinRelay.bind(this));
+
+
     }
     if (/^(status|channel|query)$/i.test(Attributes.type)) { 
       this.ViewPort = QuickElement('div',{'class': 'viewport', style: "display: flex; flex-direction: column; background: inherit; flex: auto; text-indent: -1em; padding: 0 0 0 1.2em; word-wrap: break-word; white-space: pre-wrap; overflow-y: scroll;"},'',this.Container);
@@ -1315,7 +1376,7 @@ class CustomWindow extends QMdiSubWindow {
 
     this._Root.Treebar.setCurrentItem(this.TreeItem);
     this._Root.SwitchBar.Children().forEach((child) => { child.setChecked((child == this.TreeItem._SwitchItem ? true : false)); });
-    this.addEventListener('pointerup',(e) => { if (this.hasOwnProperty('EditBox') && !window.mobileCheck()) { this.EditBox.focus(); } });
+    this.addEventListener('pointerup',(e) => { if (this.hasOwnProperty('EditBox') && !window.mobileCheck() && document.activeElement.tagName != "INPUT") { this.EditBox.focus(); } });
     if (this._Type == "query") { this._updateTitle(); }
   }
 
@@ -1332,9 +1393,11 @@ class CustomWindow extends QMdiSubWindow {
     }
     else if (e.type == 'childEvent') {
       if (e.detail.QEvent == Qt.QEvent.Resize) {
-        if (this.hasOwnProperty('Canvas')) {
-          this.Canvas.setAttribute('width',this.Container.offsetWidth);
-          this.Canvas.setAttribute('height',this.Container.offsetHeight);
+        if (this.hasOwnProperty('Picture')) {
+          var blob = this.Picture.toDataURL('image/png');
+          this.Picture.setAttribute('width',this.Container.offsetWidth);
+          this.Picture.setAttribute('height',this.Container.offsetHeight);
+          this._loadBlob(blob,true);
         }
       }
       else if (e.detail.QEvent == Qt.QEvent.Close) {
@@ -1442,6 +1505,10 @@ class CustomWindow extends QMdiSubWindow {
       var IAL = Client.GetIAL(this._Target);
       this.setWindowTitle(this._Target + " (" + Client.Network + ")" + (IAL ? " (" + IAL.address + ")" : ""));
     }
+  }
+  _ToggleChanCentral(e) {
+    if (e.detail.checked) { this.ChanCentral.style.display = 'flex'; this.ViewPort.style.display = 'none'; }
+    else { this.ChanCentral.style.display = 'none'; this.ViewPort.style.display = 'flex'; }
   }
   _ToggleIdle(e) {
     var ch = this.ViewPort.clientHeight;
@@ -1558,6 +1625,103 @@ class CustomWindow extends QMdiSubWindow {
       item._SwitchItem.parentNode.insertBefore(item._SwitchItem,prev.nextSibling);
       //if (index + 1 < sorted.length) { sorted[index+1].parentNode.insertBefore(item._SwitchItem,sorted[index+1]._SwitchItem); }
      });
+  }
+  _loadBlob(blob,url) {
+    var source = new Image();
+    source.addEventListener('load', (e) => { this.Picture.getContext('2d').drawImage(source,0,0,source.width,source.height); });
+    source.addEventListener('error', () => { console.log('fuck! ' + blob); } );
+    source.src = (!url ? 'data:' + [blob]: blob);
+  }
+
+  DrawCopy(flags,Source,x,y,w,h,dx,dy,dw,dh) {
+    var Ctx = this.Picture.getContext("2d");
+    Ctx.putImageData(Source.getImageData(x,y,w,h),dx,dy); 
+  }
+  DrawDot(flags,color,size,x,y) {  
+    var Ctx = this.Picture.getContext("2d");
+    Ctx.beginPath();
+    Ctx.arc(x,y,size,0,Math.PI*2);
+    Ctx.closePath();
+	
+    if (flags.indexOf("f") != -1) {
+	    Ctx.fillStyle = color;
+      Ctx.fill();
+    }
+    else {
+      //this._ctx.lineWidth = size;
+	    Ctx.strokeStyle = color;
+      Ctx.stroke();
+    }
+  }
+  DrawLine(flags,color,size,x1,y1,x2,y2) {
+    var Ctx = this.Picture.getContext("2d");
+    Ctx.beginPath();
+    Ctx.moveTo(x1,y1);
+    Ctx.lineTo(x2,y2);
+    Ctx.closePath();
+
+    Ctx.lineWidth = size;
+    Ctx.strokeStyle = color;
+    Ctx.stroke();
+  }
+  DrawArrow(flags,color,size,headlen,x1,y1,x2,y2) {
+    var Ctx = this.Picture.getContext("2d") , angle = Math.atan2(y2-y1, x2-x1);
+    Ctx.beginPath();
+    Ctx.moveTo(x1,y1);
+    Ctx.lineTo(x2,y2);
+    Ctx.moveTo(x2,y2);
+    Ctx.lineTo(x2 - headlen * Math.cos(angle - Math.PI / 6), y2 - headlen * Math.sin(angle - Math.PI / 6));
+    Ctx.lineTo(x2,y2);
+    Ctx.lineTo(x2 - headlen * Math.cos(angle + Math.PI / 6), y2 - headlen * Math.sin(angle + Math.PI / 6));
+    Ctx.closePath();
+
+    Ctx.lineWidth = size;
+    Ctx.strokeStyle = color;
+    Ctx.stroke();     
+  }
+
+  DrawRect(flags,color,size,x,y,w,h) {
+    var Ctx = this.Picture.getContext("2d");
+    Ctx.beginPath();
+    if (flags.indexOf("d") != -1) { }
+    else if (flags.indexOf("e") != -1) { }
+    else { Ctx.rect(x,y,w,h); }
+    Ctx.closePath();
+
+    Ctx.lineWidth = size;
+    if (flags.indexOf("f") != -1) {
+      Ctx.fillStyle = color;
+      Ctx.fill();
+    }
+    else {
+      Ctx.strokeStyle = color;
+      Ctx.stroke();
+    }
+  }
+  DrawPolygon(flags,color,size,Points) {
+    var Ctx = this.Picture.getContext("2d");
+    Ctx.beginPath();
+    Ctx.moveTo(Points[0],Points[1]);
+    for (var i = 2; i < Points.length; i += 2) { Ctx.lineTo(Points[i],Points[i+1]); }
+    Ctx.lineTo(Points[0],Points[1]);
+    Ctx.closePath();
+    if (flags.indexOf("f") != -1) {
+      Ctx.fillStyle = color;
+      Ctx.fill();
+    }
+    else {
+      Ctx.lineWidth = size;
+      Ctx.strokeStyle = color;
+      Ctx.stroke();
+    }
+  }
+  DrawText(flags,color,font,x,y,text) {
+    var Ctx = this.Picture.getContext("2d") , metrics = Ctx.measureText(text);
+    Ctx.fillStyle = color;
+    Ctx.font = font;
+    //metrics are funny... ascent+decent != actual height... *2 is too much... 1.5 is a crapshoot close guess...
+    Ctx.fillText(text,x,y);
+    //+ (metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent) * 1.5);
   }
 }
 customElements.define('web-customwindow', CustomWindow);
@@ -1801,8 +1965,599 @@ class ConfigColors extends QDialog {
 customElements.define('web-configcolors', ConfigColors);
 
 
+
+/*---------------------------------------------------------------------------------------------------------
+  Asteroids Entity Constructor
+---------------------------------------------------------------------------------------------------------*/
+
+function AsteroidsEntity(Type,X = 0,Y = 0,Dx = 1,Dy = 0,Vx = 0,Vy = 0,Rad = 1,RotMult = 0,RotSpeed = 0,Change,Shoot,LifeSpan) {
+  // Name of entity. Polygon type.
+  this.type = Type;
+
+  // Position vector
+  this.x = X;
+  this.y = Y;
+
+  // Direction vector
+  this.dx = Dx;
+  this.dy = Dy;
+  
+  // Velocity vector
+  this.vx = Vx;
+  this.vy = Vy;
+
+  // Rough circular size (enough to just fit the polygon)
+  this.radius = Rad;
+
+  // Rotational Multiplier (Y-Axis) 1 = clockwise, -1 = counter-clockwise, 0 = no rotation.
+  this.rotmult = RotMult;
+
+  // How fast should our entity rotate? (in degrees, convert to radians...)
+  this.rotspeed = RotSpeed * (Math.PI/180);
+
+  // Ufo-Specifics (change direction, delay until shoot)
+  this.change = Change;
+  this.shoot = Shoot;
+  
+  // Bullet/Explosion-Specifics both player/ufo bullets, and explosion bits (how long until we decay)
+  this.lifespan = LifeSpan;
+}
+
+/*---------------------------------------------------------------------------------------------------------
+  Asteroids Game Constructor
+---------------------------------------------------------------------------------------------------------*/
+
+function Asteroids(Window) {
+  //Where The Magic Gets Drawn!
+  this._Canvas = Window.Picture;
+  this._Window = Window;
+  this._Invul = true;
+}
+Asteroids.prototype = {
+  KeyDown: function(e) { this._Keys[e.keyCode] = 1; },
+  KeyUp: function(e) { this._Keys[e.keyCode] = 0; },
+  NewGame: function() {
+  //Offset values to convert our cartesian grid coordinates to canvas coordinates
+  this._ox = this._Canvas.width / 2;
+  this._oy = this._Canvas.height / 2;
+
+  //Spatial partitioning stuff, the bounds of our world, and the number of cells in the X and Y axis.
+  this._Bounds = [-this._ox,-this._oy,this._ox,this._oy];
+  this._Dimensions = [parseInt(this._Canvas.width / 40) - 1,parseInt(this._Canvas.height / 40) - 1];
+
+  //The keystrokes currently active...
+  this._Keys = [];
+
+    this._Map = []; //1D Collection of Entities per spatial partitioning grid cell (an array of arrays)
+    this._Entities = []; //Collection of Polygon Entities
+    this._Bullets = []; //Collection of your shot bullets
+    this._Missiles = []; //Collection of Ufo shot bullets
+	  this._Explosions = []; //Collection of Explosion-Bits
+    this._Player = new AsteroidsEntity("ship",0,0,0,-1,0,0,12,0,0.2,0,0,0); //You!
+
+    this.Level = 0;
+    this.Lives = 3;
+    this.Score = 0;
+    this.LastScore = 0;
+    this.Dead = 1;
+    this.FirstLaunch = 1;
+    this.SpawnUfo = 20000;  
+	  this.GenerateRocks();
+    if (!this.Animation) { this.Animation = requestAnimationFrame(this.Update.bind(this)); }
+  },
+  GenerateRocks: function() {
+    this.Level++;
+    for (var i = 0; i < (this.Level + 3); i++) {
+	    //TODO: Avoid spawning rocks onto our player ship...
+      var DirX = Math.random() / (RandInt(0,1) ? -1 : 1) * 320;
+      var DirY = Math.random() / (RandInt(0,1) ? -1 : 1) * 240;
+	    this._Entities.push(new AsteroidsEntity("largeRock" + RandInt(1,3),this._Player.x + DirX,this._Player.y + DirY,1,0,Math.random() / (RandInt(0,1) ? -10 : 10),Math.random() / (RandInt(0,1) ? -10 : 10),48,(RandInt(0,1) ? -1 : 1),0.015,0,0,0)); 
+	  }
+  },
+  CheckKeys: function(DeltaTime,Time) {
+    //Key values for left/right arrow
+    if (this._Keys[37] || this._Keys[39]) { 
+	    //Rotate our directional vector
+	    var Cosine = Math.cos(this._Player.rotspeed * DeltaTime) , Sine = Math.sin(this._Player.rotspeed * DeltaTime) * ((this._Keys[39] == 1 ? 1:0) - (this._Keys[37] == 1 ? 1:0));
+	    var NewDx = this._Player.dx * Cosine - this._Player.dy * Sine , NewDy = this._Player.dx * Sine + this._Player.dy * Cosine;
+	    this._Player.dx = NewDx / Math.sqrt(NewDx * NewDx + NewDy * NewDy);
+	    this._Player.dy = NewDy / Math.sqrt(NewDx * NewDx + NewDy * NewDy);
+	  }
+	  //key value of up arrow
+	  if (this._Keys[38]) {
+      //Increment our speed in our direction by 0.15 pixels per second
+	    var NewVX = this._Player.vx + this._Player.dx * 0.00015 * DeltaTime , NewVY = this._Player.vy + this._Player.dy * 0.00015 * DeltaTime;
+
+	    //Test that our new velocity vector isn't beyond a certain magnitude (compare squared values, instead of wasting time with sqare root)
+      if ((NewVX*NewVX+NewVY*NewVY) <= 0.0184) {
+	      this._Player.vx = NewVX;
+	      this._Player.vy = NewVY;
+	    }
+	    //TODO: I believe the original game had a very small velocity decay...
+	  }
+	  //Spacebar
+	  if (this._Keys[32]) {
+	    //Limit the rate of fire, can only shoot every 250ms.
+	    if (this._Fired == undefined || (Time - this._Fired) >= 250) {
+	      //True physics, our bullet speed should add the velocity of our ship... but firing backwards could result in a bullet sitting stationary... which looks dumb.. should we do it tho?
+	      this._Bullets.push(new AsteroidsEntity("Bullet",this._Player.x,this._Player.y,this._Player.dx,this._Player.dy,this._Player.dx * 0.2,this._Player.dy * 0.2,5,0,0,0,0,2500)); 
+        this._Fired = Time;
+        if (this._Invul == true) { this._Invul = false; }
+	    }
+	  }
+  },
+  SpatialInsert: function(Entity) {
+    var GMin = this.SpatialIndex(Entity.x - Entity.radius / 2,Entity.y - Entity.radius / 2);
+	  var GMax = this.SpatialIndex(Entity.x + Entity.radius / 2,Entity.y + Entity.radius / 2);
+	  for (var x = GMin[0]; x <= GMax[0]; x++) {
+	    for (var y = GMin[1]; y <= GMax[1]; y++) {
+	      var OneD = y * this._Dimensions[0] + x;
+		    //Initialize an empty cell if it doesn't exist already and shove in our entity...
+		    if (!Array.isArray(this._Map[OneD])) { this._Map[OneD] = []; }
+		    this._Map[OneD].push(Entity);
+	    }
+	  }
+  },
+  SpatialDelete: function(Entity) {
+    var GMin = this.SpatialIndex(Entity.x - Entity.radius / 2,Entity.y - Entity.radius / 2);
+  	var GMax = this.SpatialIndex(Entity.x + Entity.radius / 2,Entity.y + Entity.radius / 2);
+	  for (var x = GMin[0]; x <= GMax[0]; x++) {
+	    for (var y = GMin[1]; y <= GMax[1]; y++) {
+	      var OneD = y * this._Dimensions[0] + x;
+		    //Remove items from cell if the cell exists...
+		    if (Array.isArray(this._Map[OneD])) { this._Map[OneD].splice(this._Map[OneD].indexOf(Entity),1); }
+	    }
+	  }
+  },
+  SpatialIndex: function(x,y) { return [ Math.floor(Math.min(Math.max((x - this._Bounds[0]) / (this._Bounds[2] - this._Bounds[0]),0),1) * this._Dimensions[0]) , Math.floor(Math.min(Math.max((y - this._Bounds[1]) / (this._Bounds[3] - this._Bounds[1]),0),1) * this._Dimensions[0]) ]; },
+  SpatialNearBy: function(Entity) {
+    var GMin = this.SpatialIndex(Entity.x - Entity.radius / 2,Entity.y - Entity.radius / 2);
+	  var GMax = this.SpatialIndex(Entity.x + Entity.radius / 2,Entity.y + Entity.radius / 2);
+	  var Ret = [];
+	  for (var x = GMin[0]; x <= GMax[0]; x++) {
+	    for (var y = GMin[1]; y <= GMax[1]; y++) {
+	      var OneD = y * this._Dimensions[0] + x;
+		    //Shove entity into our set if it's not the entity itself we're lookin at!
+		    if (Array.isArray(this._Map[OneD])) { this._Map[OneD].forEach((Object) => { if (Object != Entity && !Ret.includes(Object)) { Ret.push(Object); } }); }
+	    }
+	  }
+	  return Ret;
+  },
+  InPoly: function(x,y,Poly) {
+    Poly.push(Poly[0]);
+    Poly.push(Poly[1]);
+    var Point = {'x':x,'y':y};
+    var cn = 0;
+    for (var i = 0; i < Poly.length - 2; i += 2) {
+      if ((Poly[i+1] <= Point.y) && (Poly[i+3] > Point.y) || (Poly[i+1] > Point.y) && (Poly[i+3] <= Point.y)) { //Condition1 = Upward Crossing, Condition2 = downward crossing
+        //compute the actual edge-ray intersect x-coordinate
+        var vt = (Point.y - Poly[i+1]) / (Poly[i+3] - Poly[i+1]);
+        if (Point.x < Poly[i] + vt * (Poly[i+2] - Poly[i])) { ++cn; } //Valid Crossing
+      }
+    }
+    cn &= 1;
+    if (cn > 0) { return true; }
+  },
+  Intersect: function(ax1,ay1,ax2,ay2,bx1,by1,bx2,by2,method) {
+    var dy = ay2 - ay1;
+    var dx = ax2 - ax1;
+    var db = by2 - by1;
+    var da = bx2 - bx1;
+    var c1 = (da * dy) - (db * dx);
+    var c2 = (db * dx) - (da * dy);
+    if (c1 == 0 || c2 == 0) { return; }
+    var t = ((da * (ay1 - by1)) + (db * (bx1 - ax1))) / c2;
+    var u = ((dx * (by1 - ay1)) + (dy * (ax1 - bx1))) / c1;
+
+    //lineseg to lineseg (ll)
+    if (method == "ll" && t >= 0 && t <= 1 && u >= 0 && u <= 1) { return {'x':ax1 + t * dx,'y':ay1 + t * dy}; }
+    //ray to lineseg (rl)
+    else if (method == "rl" && t >= 0 && u >= 0 && u <= 1) { return {'x':ax1 + t * dx,'y':ay1 + t * dy}; }
+    //lineseg to ray (lr)
+    else if (method == "lr" && t >= 0 && t <= 1 && u >= 0) { return {'x':ax1 + t * dx,'y':ay1 + t * dy}; }
+    //ray to ray (rr)
+    else if (method == "rr" && t >= 0 && u >= 0) { return {'x':ax1 + t * dx,'y':ay1 + t * dy}; }
+  },
+  OnPoly: function(PolyA,PolyB) { 
+    //Early escape test, if either polygon is fully contained in the other, any and every point will be inside the other
+    if (this.InPoly(PolyA[0],PolyA[1],PolyB) || this.InPoly(PolyB[0],PolyB[1],PolyA)) { return true; }
+    //Else: Iterate line segments and check for intersection
+    PolyA.push(PolyA[0]);
+    PolyA.push(PolyA[1]);
+    PolyB.push(PolyB[0]);
+    PolyB.push(PolyB[1]);
+    for (var i = 0; i < PolyA.length - 2; i += 2) {
+      for (var j = 0; j < PolyB.length - 2; j += 2) {
+        if (this.Intersect(PolyA[i],PolyA[i+1],PolyA[i+2],PolyA[i+3],PolyB[j],PolyB[j+1],PolyB[j+2],PolyB[j+3],"ll")) { return true; }
+      }
+    }
+    return false;
+  },
+  Update: function(Time) {
+    if (this._LastUpdate == undefined) { var DeltaTime = 0; }
+	  else { var DeltaTime = Time - this._LastUpdate; }
+	
+	  //Window prolly lost focus, avoid EXTREMELY LARGE timesteps updating stuff way outta bounds... (60ms is ~= 16 fps, we should always run well above this...)
+	  if (DeltaTime > 60) { DeltaTime = 60; }
+
+    //Check keypresses and apply forces to our player first
+	  this.CheckKeys(DeltaTime,Time);
+	
+	  //Score counter, give extra life every 10,000 points
+	  if ((this.Score - this.LastScore) >= 10000) {
+	    this.Lives++;
+	    this.LastScore = this.Score;
+	  }
+
+    //Ufo Countdown! Spawn ufo's based on time & level
+	  if (this.SpawnUfo > 0) { this.SpawnUfo -= DeltaTime; }
+	  else {
+      this.SpawnUfo = 5000 + (30000/(1+this.Level));
+	    //TODO: Avoid spawning ufo's onto player ship...
+	    this._Entities.push(new AsteroidsEntity((RandInt(1,30) <= this.Level ? "smallufo" : "ufo"),RandInt(this._Bounds[0],this._Bounds[2]),RandInt(this._Bounds[1],this._Bounds[3]),1,0,Math.random() / 10,Math.random() / 10,12,0,0,0,0)); 
+	  }
+	
+	  //If we destroyed every entity, initialize a new level! (Should remove UFO's from this list, I think the original game did new level on all rocks destroyed...
+    var RocksLeft = 0;
+    this._Entities.forEach((entity) => { 
+      if (/Rock/i.test(entity.type)) { RocksLeft = 1; }
+    });
+	  if (RocksLeft == 0) { this.GenerateRocks(); }
+	
+    //Combine all entity lists into one array
+	  var UpdList = this._Entities.slice(0).concat(this._Bullets,this._Missiles,this._Explosions);
+	  UpdList.push(this._Player);
+
+    //Don't waste time cleaning up items from our map, just start new every time... Collisions found after an update anyways...
+	  this._Map = [];
+
+    //Update every entity
+	  UpdList.forEach(function(Entity) { 
+      //Update each entity with the delta time
+      Entity.x += Entity.vx * DeltaTime;
+      Entity.y += Entity.vy * DeltaTime;
+
+
+      //Dirty wrap-around hack... Take integer value because Max.01 can get stuck in an infinite loop bouncing between +/-
+	    // Also allow our object to get beyond the bounds by it's radius (to get off-screen before wraping, to avoid the snap-effect)	  
+	    //TODO: Fix the problem with a rock remaining off-screen indefinately by traveling in a grid-aligned motion (1,0 or 0,1 and it's negative inverses)
+	    // this problem is rare, and usually a result of a larger rock being shot off screen and the two smaller ones just luckily land on this velocity vector.
+	    if (Entity.x < (this._Bounds[0] - Entity.radius) || Entity.x > (this._Bounds[2] + Entity.radius)) { Entity.x = parseInt(Entity.x * -1); }
+	    if (Entity.y < (this._Bounds[1] - Entity.radius) || Entity.y > (this._Bounds[3] + Entity.radius)) { Entity.y = parseInt(Entity.y * -1); }	
+	  
+	    if (Entity.rotmult != 0) {
+	      //Rotate our directional vector
+	      var Cosine = Math.cos(Entity.rotspeed * DeltaTime) , Sine = Math.sin(Entity.rotspeed * DeltaTime) * Entity.rotmult;
+	      var NewDx = Entity.dx * Cosine - Entity.dy * Sine , NewDy = Entity.dx * Sine + Entity.dy * Cosine;
+	      Entity.dx = NewDx;
+	      Entity.dy = NewDy;
+	    }
+	    if (Entity.change > 0) { Entity.change -= DeltaTime; }
+	    else {
+	      if (Entity.type == "ufo" || Entity.type == "smallufo") { 
+	        //Randomly change direction of travel
+		      Entity.vx = Math.random() / (RandInt(0,1) ? -10 : 10);
+		      Entity.vy = Math.random() / (RandInt(0,1) ? -10 : 10);		  
+		      Entity.change = 1800 + RandInt(100,1000) / (1 + this.Level);
+		    }
+	    }
+  	  if (Entity.shoot > 0) { Entity.shoot -= DeltaTime; }
+	    else {
+	      //Randomly shoot (small ufo's shoot at player)
+	      if (Entity.type == "ufo" || Entity.type == "smallufo") { 
+		      if (Entity.type == "ufo") {
+		        //Since we want a fixed bullet speed we can't cheat with math.random here... instead pick a random degree, and convert it to a directional vector, and apply a magnitude to it.
+		        var Angle = RandInt(0,359) * (Math.PI/180);
+	          this._Missiles.push(new AsteroidsEntity("Missile",Entity.x,Entity.y,1,0,Math.cos(Angle) * 0.2,Math.sin(Angle) * 0.2,5,0,0,0,0,1250)); 
+		        Entity.shoot = RandInt(500,1000); 
+	        }
+		      if (Entity.type == "smallufo") {
+		        //Subtract the positions of player vs ufo, and normalize to be left with a directional vector pointing in the direction of the player.
+		        var DiffX = this._Player.x - Entity.x , DiffY = this._Player.y - Entity.y , Mag = Math.sqrt(DiffX*DiffX+DiffY*DiffY);
+			      DiffX /= Mag;
+			      DiffY /= Mag;
+	          this._Missiles.push(new AsteroidsEntity("Missile",Entity.x,Entity.y,1,0,DiffX * 0.2,DiffY * 0.2,5,0,0,0,0,1250)); 
+		        Entity.shoot = 2000 + RandInt(500,22000); 
+		      }
+		    }
+	    }
+	    if (Entity.lifespan > 0) { Entity.lifespan -= DeltaTime; }
+	    else {
+	      //Destroy aged entities!
+	      if (Entity.type == "Bullet") { this._Bullets.splice(this._Bullets.indexOf(Entity),1); }
+		    else if (Entity.type == "Missile") { this._Missiles.splice(this._Missiles.indexOf(Entity),1); }
+		    else if (Entity.type == "Explosion") { this._Explosions.splice(this._Explosions.indexOf(Entity),1); }
+	    }
+	    //TODO: Avoid shoving in entities we just removed from lifespan decay... doesn't seem to hurt anything tho...
+	    if (Entity.type != "Explosion") { this.SpatialInsert(Entity); }
+	  },this);
+	
+	  //UpdList = this._Entities.slice(0);
+	  UpdList.reduceRight((_,ObjectA) => {
+	    var near = this.SpatialNearBy(ObjectA);
+      for (var ObjectB of near) {
+        if (ObjectA.type == "Bullet" && ObjectB.type == "Bullet") { break; }
+        else if (ObjectA.type == "Missile" && ObjectB.type == "Missile") { break; }
+        else if (/Rock\d$/.test(ObjectA.type) && /Rock\d$/.test(ObjectB.type)) { break; }
+        else if (/ship$/.test(ObjectA.type) && /ship$/.test(ObjectB.type)) { break; }
+        var SortA, SortB;
+        if (ObjectA.type == "Bullet" || ObjectA.type == "Missile") { SortA = ObjectB; SortB = ObjectA; }
+        else { SortA = ObjectA; SortB = ObjectB; }
+      
+	      var dmag = Math.pow(ObjectA.x - ObjectB.x,2) + Math.pow(ObjectA.y - ObjectB.y,2) , rmag = Math.pow(ObjectA.radius + ObjectB.radius,2) , collision = 0;
+		    //Dirty test... If their distance apart is less than the sum of their radii, it's a collision
+	      if (dmag <= rmag) {
+		      //TODO: Further investigate projectiles (point inside polygon) or entities (polygons overlap)
+	        if (/(?:Rock\d$|ship$|ufo$)/.test(SortA.type)) {
+            var APoly = this.TranslatePolygon(this.Polygons((/ufo/.test(SortA.type) ? SortA.type + "Outline" : SortA.type)),SortA.dx,SortA.dy,SortA.x,SortA.y);
+            if (SortB.type == "Bullet" || SortB.type == "Missile") {
+              if (this.InPoly(ObjectB.x,ObjectB.y,APoly)) {
+                if ((SortB.type == "Bullet" && /ship/.test(SortA.type)) || (SortB.type == "Missile" && /ufo/.test(SortA.type))) { collision = 0; }
+                else { collision = 1; }
+              }
+            }
+            else {
+              var BPoly = this.TranslatePolygon(this.Polygons((/ufo/.test(SortB.type) ? SortB.type + "Outline" : SortB.type)),SortB.dx,SortB.dy,SortB.x,SortB.y);
+              if (this.OnPoly(APoly,BPoly)) {
+                if (/Rock\d$/.test(SortA.type) && /Rock\d$/.test(SortB.type)) { collision = 0; }
+                else if (/ship$/.test(SortA.type) && /ship$/.test(SortB.type)) { collision = 0; }
+                else { collision = 1; }
+              }
+            }
+          }
+          if (collision == 1) {
+		  	    var NextRock, RotSpeed;
+		  	    if (/largeRock\d$/.test(SortA.type) || /largeRock\d$/.test(SortB.type)) { 
+		  	      NextRock = "medRock"; 
+		  	      RotSpeed = 0.025;
+		  	      if (SortB.type == "Bullet") { this.Score += 20; }
+		  	    }
+		  	    else if (/medRock\d$/.test(SortA.type) || /medRock\d$/.test(SortB.type)) { 
+		  	      NextRock = "smallRock"; 
+		  	      RotSpeed = 0.05;
+		  	      if (SortB.type == "Bullet") { this.Score += 50; }
+		  	    }
+            else if (/ufo$/.test(SortA.type) && SortB.type == "Bullet") { this.Score += 200; }
+			      else if (!/ship$/.test(SortA.type) && SortB.type == "Bullet") { this.Score += 100; }
+            if ((SortA.type == "ship" || SortB.type == "ship") && !this._Invul) {
+              //Death
+              this.Lives--;
+              this._Player = new AsteroidsEntity("ship",0,0,0,-1,0,0,12,0,0.2,0,0,0); //You!
+              this._Invul = true;
+            }
+
+            for (var i = 0; i < RandInt(10,64); i++) { this._Explosions.push(new AsteroidsEntity("Explosion",SortA.x,SortA.y,1,0,Math.random() / (RandInt(0,1) ? -5 : 5),Math.random() / (RandInt(0,1) ? -5 : 5),1,0,0,0,0,RandInt(500,1000))); }
+  	  		  if (NextRock) { for (var i = 0; i < 2; i++) { this._Entities.push(new AsteroidsEntity(NextRock + RandInt(1,3),SortA.x,SortA.y,1,0,Math.random() / (RandInt(0,1) ? -10 : 10),Math.random() / (RandInt(0,1) ? -10 : 10),24,(RandInt(0,1) ? -1 : 1),RotSpeed,0,0,0)); } }
+		        if (!/^ship$/.test(SortA.type)) { 
+              var i = this._Entities.indexOf(SortA);
+              if (i > -1) {
+                this.SpatialDelete(SortA); 
+                this._Entities.splice(i,1); 
+              }
+            }
+		        if (!/^ship$/.test(SortB.type)) { 
+	  	        if (SortB.type == "Bullet") { 
+                var i = this._Bullets.indexOf(SortB);
+                if (i > -1) {
+                  this.SpatialDelete(SortB); 
+                  this._Bullets.splice(i,1); 
+                }
+              }
+		          else if (SortB.type == "Missile") { 
+                var i = this._Missiles.indexOf(SortB);
+                if (i > -1) {
+                  this.SpatialDelete(SortB); 
+                  this._Missiles.splice(i,1); 
+                }
+              }
+              else { 
+                var i = this._Entities.indexOf(SortB);
+                if (i > -1) {
+                  this.SpatialDelete(SortB); 
+                  this._Entities.splice(i,1);
+                }                
+              }
+            }
+            break;
+          }
+		    }
+	    }
+	  },null);
+    if (this.Lives <= 0) { this.NewGame(); }
+    //Render the game scene.
+    this.Render(DeltaTime);	
+
+    //Log the time given from requestAnimationFrame so we can calculate the time passed from last frame
+    this._LastUpdate = Time;
+	  this._Animation = requestAnimationFrame(this.Update.bind(this));
+  },
+  Render: function(DeltaTime,Debug) {
+    //Clear the screen
+    this._Window.DrawRect("f","#000000",1,0,0,this._Canvas.width,this._Canvas.height);
+
+	//draw Every Entity
+	this._Entities.forEach(function(Entity) { 
+    this._Window.DrawPolygon("","#ffffff",1,this.TranslatePolygon(this.Polygons(Entity.type),Entity.dx,Entity.dy,Entity.x + this._ox,Entity.y + this._oy)); 
+	  if (Debug) { this._Window.DrawDot("","#40a0c0",Entity.radius,Entity.x + this._ox,Entity.y + this._oy); }
+  },this);
+	this._Bullets.forEach(function(Entity) { 
+    this._Window.DrawDot("f","#00fc00",2,Entity.x + this._ox,Entity.y + this._oy); 
+	  if (Debug) { this._Window.DrawDot("","#40a0c0",Entity.radius,Entity.x + this._ox,Entity.y + this._oy); }
+  },this);
+	this._Missiles.forEach(function(Entity) { 
+    this._Window.DrawDot("f","#ff0000",2,Entity.x + this._ox,Entity.y + this._oy); 
+	  if (Debug) { this._Window.DrawDot("","#40a0c0",Entity.radius,Entity.x + this._ox,Entity.y + this._oy); }
+  },this);
+	this._Explosions.forEach(function(Entity) {
+	  var colors = ["#740000","#743A00","#747400","#B50000","#B56300","#B5B500","#FF0000","#FF8C00","#FFFF00","#FF5959","#FFB459","#FFFF71"];
+	  this._Window.DrawDot("f",colors[RandInt(0,colors.length)],RandInt(1,3),Entity.x + this._ox,Entity.y + this._oy); 
+	},this);
+
+    //Draw Your Ship
+    this._Window.DrawPolygon((this._Invul != false ? "f" : ""),"#40a0c0",1,this.TranslatePolygon(this.Polygons(this._Player.type),this._Player.dx,this._Player.dy,this._Player.x + this._ox,this._Player.y + this._oy));
+	  if (Debug) { this._Window.DrawDot("","#40a0c0",this._Player.radius,this._Player.x + this._ox,this._Player.y + this._oy); }
+  
+  if (this._Keys[38]) { this._Window.DrawPolygon("f","#ffff00",1,this.TranslatePolygon(this.Polygons("flame"),this._Player.dx,this._Player.dy,this._Player.x + this._ox,this._Player.y + this._oy)); }
+
+    //draw some stats in the upper left corner   
+    this._Window.DrawText("","#ffffff","12px Arial",0,12,"Score: " + this.Score);
+    this._Window.DrawText("","#ffffff","12px Arial",0,24,"Level: " + this.Level);
+    this._Window.DrawText("","#ffffff","12px Arial",0,36,"Lives: " + this.Lives);
+    this._Window.DrawText("","#ffffff","12px Arial",0,48,"Entities: " + (this._Entities.length + this._Bullets.length + this._Missiles.length));
+    this._Window.DrawText("","#ffffff","12px Arial",0,60,"FPS: " + (1000 / DeltaTime).toFixed(2));
+  },
+  Polygons: function(Type) {
+    //Polygons are an array of Points (X,Y,X,Y,etc..), which are a distance away from the origin: 0,0
+    if (Type == "ufo") { return [-5,-5,-3,-9,3,-9,5,-5,-5,-5,-12,0,12,0,5,-5,12,0,7,4,-7,4,-12,0]; }
+    if (Type == "ufoOutline") { return [-5,-5,-3,-9,3,-9,5,-5,12,0,5,5,-5,5,-12,0]; }
+    if (Type == "smallufo") { return [-3,-3,-1.8,-5.4,1.8,-5.4,3,-3,-3,-3,-7.2,0,7.2,0,3,-3,7.2,0,4.2,2.4,-4.2,2.4,-7.2,0]; }
+    if (Type == "smallufoOutline") { return [-3,-3,-1.8,-5.4,1.8,-5.4,3,-3,7.2,0,3,3,-3,3,-7.2,0]; }
+    if (Type == "ship") { return [11,0,-11,-7,-7,-3,-7,3,-11,7]; }
+    if (Type == "flame") { return [-7,-2,-12,0,-7,2]; }
+    if (Type == "largeRock1") { return [-39,-25,-33,-8,-38,21,-23,25,-13,39,24,34,38,7,33,-15,38,-31,16,-39,-4,-34,-16,-39]; }
+    if (Type == "largeRock2") { return [-32,35,-4,32,24,38,38,23,31,-4,38,-25,14,-39,-28,-31,-39,-16,-31,4,-38,22]; }
+    if (Type == "largeRock3") { return [12,-39,-2,-26,-28,-37,-38,-14,-21,9,-34,34,-6,38,35,23,21,-14,36,-25]; }
+    if (Type == "medRock1") { return [-7,-19,-19,-15,-12,-5,-19,0,-19,13,-9,19,12,16,18,11,13,6,19,-1,16,-17]; }
+    if (Type == "medRock2") { return [9,-19,18,-8,7,0,15,15,-7,13,-16,17,-18,3,-13,-6,-16,-17]; }
+    if (Type == "medRock3") { return [2,18,18,10,8,0,18,-13,6,-18,-17,-14,-10,-3,-13,15]; }
+    if (Type == "smallRock1") { return [-8,-8,-5,-1,-8,3,0,9,8,4,8,-5,1,-9]; }     
+    if (Type == "smallRock2") { return [-6,8,1,4,8,7,10,-1,4,-10,-8,-6,-4,0]; }
+    if (Type == "smallRock3") { return [-8,-9,-5,-2,-8,5,6,8,9,6,7,-3,9,-9,0,-7]; }
+  },
+  TranslatePolygon: function(Points,Dx,Dy,X,Y) {
+    //Shove each Point through a rotational matrix and add our offset (rotate and move)
+    for (var i = 0; i < Points.length; i += 2) {
+	  var A = Points[i] , B = Points[i + 1];
+	  Points[i] = A * Dx - B * Dy + X; 
+	  Points[i + 1] = A * Dy + B * Dx + Y;
+	}
+	return Points;
+  }
+}
+
+/*---------------------------------------------------------------------------------------------------------
+  Helper Functions
+---------------------------------------------------------------------------------------------------------*/
+
+function RandInt(min,max) { return Math.floor(Math.random() * (max - min + 1) + min); }
+
+function JSClock(Window) {
+  //Where The Magic Gets Drawn!
+  this._Canvas = Window.Picture;
+  this._Window = Window;
+  this._FPSLimit = 60;
+  this._TimeDelta = Math.floor((1000 / this._FPSLimit) / 16) * 16;
+}
+JSClock.prototype = {
+  Update: function(Time) {
+    if (this._LastUpdate == undefined) { var DeltaTime = 0; this._LastUpdate = Time; }
+	  else { var DeltaTime = Time - this._LastUpdate; }
+	
+    //Check if browser window resized, make canvas follow the resize.
+    //if (this._Canvas.width != window.innerWidth || this._Canvas.height != window.innerHeight) {
+      //this._Canvas.width = window.innerWidth;
+      //this._Canvas.height = window.innerHeight
+
+      //Offset values to convert our cartesian grid coordinates to canvas coordinates
+      this._ox = this._Canvas.width / 2;
+      this._oy = this._Canvas.height / 2;
+      this.Radius = Math.min(this._ox,this._oy) - 10;
+	  //}
+
+    //Don't redraw until we meet or exceed our FPS limit
+    if (DeltaTime >= this._TimeDelta) {
+      //Render the scene.
+      this.Render(DeltaTime);	
+
+      //Log the time given from requestAnimationFrame so we can calculate the time passed from last frame
+      this._LastUpdate = Time;
+    }  
+	  this._Animation = requestAnimationFrame(this.Update.bind(this));
+  },
+  Render: function(DeltaTime) {
+    //Clear the screen
+    this._Window.DrawRect("f","#000000",1,0,0,this._Canvas.width,this._Canvas.height);
+    for (var x = 0; x <= 15; x++) {
+	  var Angle = x * Math.PI * 2 / 60 , Dx = this.Radius * Math.cos(Angle) , Dy = this.Radius * Math.sin(Angle);
+	  var ColSize = (x % 5 != 0 ? ["#ffffff",2] : ["#ff0000",4]);
+	  this._Window.DrawDot("f",ColSize[0],ColSize[1],Dx + this._ox,Dy * -1 + this._oy);
+	  this._Window.DrawDot("f",ColSize[0],ColSize[1],Dx * -1 + this._ox,Dy * -1 + this._oy);
+	  this._Window.DrawDot("f",ColSize[0],ColSize[1],Dx + this._ox,Dy + this._oy);
+	  this._Window.DrawDot("f",ColSize[0],ColSize[1],Dx * -1 + this._ox,Dy + this._oy);
+
+	  this._Window.DrawDot("f",ColSize[0],ColSize[1],Dx * 0.8 + this._ox,Dy * 0.8 * -1 + this._oy);
+	  this._Window.DrawDot("f",ColSize[0],ColSize[1],Dx * 0.8 * -1 + this._ox,Dy * 0.8 * -1 + this._oy);
+	  this._Window.DrawDot("f",ColSize[0],ColSize[1],Dx * 0.8 + this._ox,Dy * 0.8 + this._oy);
+	  this._Window.DrawDot("f",ColSize[0],ColSize[1],Dx * 0.8 * -1 + this._ox,Dy * 0.8 + this._oy);
+	  if (ColSize[1] == 4) { 
+	    this._Window.DrawText("c","#ffffff",this.Radius / 10 + "px Calibri",Dx * 0.92 + this._ox,Dy * -0.92 + this._oy,((15 - x) / 5 == 0 ? 12 : (15 - x) / 5));
+	    this._Window.DrawText("c","#ffffff",this.Radius / 10 + "px Calibri",Dx * 0.92 + this._ox,Dy * 0.92 + this._oy,x / 5 + 3);
+	    this._Window.DrawText("c","#ffffff",this.Radius / 10 + "px Calibri",Dx * -0.92 + this._ox,Dy * 0.92 + this._oy,(15 - x) / 5 + 6);
+	    this._Window.DrawText("c","#ffffff",this.Radius / 10 + "px Calibri",Dx * -0.92 + this._ox,Dy * -0.92 + this._oy,x / 5 + 9);
+
+	    this._Window.DrawText("c","#ffffff",this.Radius / 20 + "px Calibri",Dx * 0.72 + this._ox,Dy * -0.72 + this._oy,15 - x);
+	    this._Window.DrawText("c","#ffffff",this.Radius / 20 + "px Calibri",Dx * 0.72 + this._ox,Dy * 0.72 + this._oy,x + 15);
+	    this._Window.DrawText("c","#ffffff",this.Radius / 20 + "px Calibri",Dx * -0.72 + this._ox,Dy * 0.72 + this._oy,15 - x + 30);
+	    this._Window.DrawText("c","#ffffff",this.Radius / 20 + "px Calibri",Dx * -0.72 + this._ox,Dy * -0.72 + this._oy,(x + 45) % 60);
+	  }
+	}
+	var D = new Date(), H = D.getHours() + D.getMinutes() / 60, M = D.getMinutes() + D.getSeconds() / 60, S = D.getSeconds() + D.getMilliseconds() / 1000;
+    var HrAngle = (H - 3) * Math.PI * 2 / 12;
+    var MnAngle = (M - 15) * Math.PI * 2 / 60;
+    var ScAngle = (S - 15) * Math.PI * 2 / 60;
+
+    this._Window.DrawArrow("","#3f3f3f",8,this.Radius * 0.05,this._ox,this._oy,Math.cos(HrAngle) * this.Radius * 0.85 + this._ox,Math.sin(HrAngle) * this.Radius * 0.85 + this._oy);
+    this._Window.DrawArrow("","#3f3f3f",8,this.Radius * 0.05,this._ox,this._oy,Math.cos(MnAngle) * this.Radius * 0.95 + this._ox,Math.sin(MnAngle) * this.Radius * 0.95 + this._oy);
+    this._Window.DrawArrow("","#ff0000",4,this.Radius * 0.05,this._ox,this._oy,Math.cos(ScAngle) * this.Radius + this._ox,Math.sin(ScAngle) * this.Radius + this._oy);
+	  this._Window.DrawText("c","#ffffff",this.Radius / 10 + "px Calibri",this._ox,this._oy + this.Radius / 5,(D.getMonth() + 1).toString().padStart(2,"0") + "/" + D.getDate().toString().padStart(2,"0") + "/" + (1900 + D.getYear()));
+	  this._Window.DrawText("c","#ffffff",this.Radius / 10 + "px Calibri",this._ox,this._oy + this.Radius / 3,(D.getHours() > 12 ? D.getHours() - 12 : D.getHours()).toString().padStart(2,"0") + ":" + D.getMinutes().toString().padStart(2,"0") + ":" + D.getSeconds().toString().padStart(2,"0") + "." + D.getMilliseconds().toString().padStart(3,"0") + (D.getHours() > 12 ? " PM" : " AM"));
+	  this._Window.DrawText("","#ffffff",this.Radius / 10 + "px Calibri",0,0,"FPS: " + (1000 / DeltaTime).toFixed(2));
+  }
+}
+
+
+
+
 window.addEventListener('load',() => {
   var App = new WebIRC();
+  App.AddAlias('asteroids',App,(Sender,line,ctrlKey) => { 
+    if (!Sender._Root.Sessions[Sender._Cid].Windows.hasOwnProperty('@asteroids')) {
+      var tmp = App._NewSubWindow(Sender._Cid,"picture","@Asteroids",640,480);
+      tmp._Game = new Asteroids(tmp);
+      tmp._Game.NewGame();
+
+      //tmp.DrawText("","#40a0c0","12px Arial",0,0,"Hello!");
+      tmp.addEventListener('childEvent',(e) => { 
+        if (e.detail.QEvent == Qt.QEvent.Resize) { tmp._Game.NewGame(); } 
+        if (e.detail.QEvent == Qt.QEvent.Close) { cancelAnimationFrame(tmp._Game._Animation); } 
+      });
+      tmp.addEventListener('input',(e) => {
+        if (e.detail.hasOwnProperty('jsEvent')) {
+          var evt = e.detail.jsEvent;
+          if (evt.type == 'pointerdown' || evt.type == 'pointermove') { 
+            var rect = evt.target.getBoundingClientRect();
+            var x = evt.clientX - rect.left;
+            var y = evt.clientY - rect.top;
+            //if(evt.buttons) { tmp.DrawDot("F","#40a0c0",1,x,y); }
+          }
+          if (evt.type == 'keydown') { tmp._Game.KeyDown(evt); }
+          if (evt.type == 'keyup') { tmp._Game.KeyUp(evt); }
+          //tmp.DrawRect("f","#000000",1,0,20,200,40);
+          //tmp.DrawText("","#40a0c0","12px Arial",0,20,evt.key);
+        }
+      });      
+    }
+    else { this.MDI.setActiveSubWindow(Sender._Root.Sessions[Sender._Cid].Windows['@asteroids']); }
+  });
+  App.AddAlias('clock',App,(Sender,line,ctrlKey) => { 
+    if (!Sender._Root.Sessions[Sender._Cid].Windows.hasOwnProperty('@clock')) {
+      var tmp = App._NewSubWindow(Sender._Cid,"picture","@Clock",640,480);
+      tmp._Game = new JSClock(tmp);
+      tmp._Game.Update();
+      tmp.addEventListener('childEvent',(e) => { if (e.detail.QEvent == Qt.QEvent.Close) { cancelAnimationFrame(tmp._Game._Animation); } });
+    }
+    else { this.MDI.setActiveSubWindow(Sender._Root.Sessions[Sender._Cid].Windows['@clock']); }
+  });
 
   //Hack to force active the subwindow to scroll to bottom when the virtual keyboard opens...
   if (window.mobileCheck()) { 
@@ -1831,6 +2586,7 @@ window.addEventListener('load',() => {
         </tr>
       </table>
     </div>
+    <div id="emojis" style="display: none; overflow: auto;"></div>
     <div id="helpdoc" style="display: none; overflow: auto;">
       <h1>Key Combinations:</h1>
       <hr>

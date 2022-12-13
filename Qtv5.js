@@ -165,7 +165,7 @@ class QObject extends HTMLElement {
     this.addEventListener('childEvent',this);
 
     //insert into DOM (delay so all extensions get to execute modifiers)
-    if (parent) { this.setParent(parent); }
+    if (parent) { setTimeout(() => { this.setParent(parent); }); }
   }
   connectedCallback() { 
     var Parent = this.parent(); 
@@ -260,12 +260,12 @@ class QObject extends HTMLElement {
         console.log("Registering keyboard hooks");
       }
       if (before instanceof HTMLElement) { 
-        if (parent.hasOwnProperty('_CentralWidget')) { parent._CentralWidget.insertBefore(this,before); }
-        else { parent.insertBefore(this,before); }
+        if (parent.hasOwnProperty('_CentralWidget')) { if (Array.from(parent._CentralWidget.childNodes).includes(before)) { parent._CentralWidget.insertBefore(this,before); } }
+        else if (Array.from(parent.childNodes).includes(before)) { parent.insertBefore(this,before); }
       }
       else { parent.appendChild(this); }
       //console.log("Object " + this.metaObject() + " inserted into NON-QObject!");
-    } 
+    }
     return this;
   }
   setProperty(name,value) { this.setAttribute(name,value); return this; }
@@ -421,6 +421,7 @@ class QMdiArea extends QObject {
     }
     if (e.type == 'childEvent') {
       if (e.detail.QEvent == Qt.QEvent.ChildAdded) {
+        document.activeElement.blur();
         if (!e.detail.target._BlockReAdd) { this._cascadeNewSubWindow(e.detail.target); }
         e.detail.target._BlockReAdd = false;
         e.detail.target._customEvent('aboutToActivate',{ bubbles: false, detail: { target:  e.detail.target } }); 
@@ -513,6 +514,7 @@ class QMdiArea extends QObject {
   closeActiveSubWindow() { if (this.lastElementChild) { this.lastElementChild._customEvent('childEvent',{ bubbles: false, detail: { target: this.lastElementChild, 'QEvent': Qt.QEvent.Close } }); } }
   closeAllSubWindows() { this.Children().forEach((child) => { child._customEvent('childEvent',{ bubbles: false, detail: { target: child, 'QEvent': Qt.QEvent.Close } }); }); }
   setActiveSubWindow(Window,blockSetParent) { 
+    document.activeElement.blur();
     if (!blockSetParent) { Window.setParent(this); }
     else { Window._customEvent('aboutToActivate',{ bubbles: false, detail: { target: Window } }); }
     this._customEvent('subWindowActivated',{ bubbles: false, detail: { target: Window } }); 
@@ -825,7 +827,7 @@ class QWidget extends QObject {
     this._Handle = QuickElement('div',{class: "WindowTitleBar", style: "user-select: none; border-spacing: 0; margin: 0; padding: 0 2px; flex-wrap: nowrap; white-space: nowrap;"},'',this);
     //TODO: Move icon to QAction so we can do menu stuffs
 
-    this._Icon = new QAction('favicon.ico','',this._Handle).setMenu();
+    this._Icon = new QAction('favicon.ico').setMenu();
     new QAction('','Restore',this._Icon);
     new QAction('','Minimize',this._Icon).connect('triggered',this,(e) => { this._MinimizeBtn(e) });
     new QAction('','Maximize',this._Icon).connect('triggered',this,(e) => { this._MaximizeBtn(e) });;
@@ -881,6 +883,7 @@ class QWidget extends QObject {
     this._Close.addEventListener('pointerup',(e) => { this._CloseBtn(e); });
 
     this.setWindowFlags(flags || 0);
+    setTimeout(() => { this._Icon.setParent(this._Handle,this._Title); });
   }
   //connectedCallback() { super.connectedCallback(); }
   //disconnectedCallback() { super.disconnectedCallback(); }
@@ -1467,8 +1470,12 @@ class QTreeWidget extends QWidget {
   }
   setHeaderItem() { }
   setHeaderLabel() { }
-  setHeaderLabels(labels) { }
-
+  setHeaderLabels(labels) { 
+    labels.forEach((label,index) => { 
+      console.log(index + " " + label);
+      if (index < this.Header.childNodes.length) { this.Header.childNodes[index].innerHTML = label; }
+    });
+  }
 }
 // Define the new element
 customElements.define('q-treewidget', QTreeWidget);
