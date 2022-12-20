@@ -336,19 +336,19 @@ class WebIRC extends QMainWindow {
   }
   _ToggleHelp(e) { this.HelpDock.setVisible(e.detail.checked); }
   _ToggleAbout() { 
-    this.HelpDialog.style.left = (parseInt(document.body.firstElementChild.offsetWidth) / 2 - parseInt(this.HelpDialog.style.width) / 2) + "px";
-    this.HelpDialog.style.top = (parseInt(document.body.firstElementChild.offsetHeight) / 2 - parseInt(this.HelpDialog.style.height) / 2) + "px";
+    this.HelpDialog.style.left = (parseInt(document.body.offsetWidth) / 2 - parseInt(this.HelpDialog.style.width) / 2) + "px";
+    this.HelpDialog.style.top = (parseInt(document.body.offsetHeight) / 2 - parseInt(this.HelpDialog.style.height) / 2) + "px";
     this.HelpDialog.show();
   }
   _ToggleConfigGeneral() {
-    this.GeneralDialog.style.left = (parseInt(document.body.firstElementChild.offsetWidth) / 2 - parseInt(this.GeneralDialog.style.width) / 2) + "px";
-    this.GeneralDialog.style.top = (parseInt(document.body.firstElementChild.offsetHeight) / 2 - parseInt(this.GeneralDialog.style.height) / 2) + "px";
+    this.GeneralDialog.style.left = (parseInt(document.body.offsetWidth) / 2 - parseInt(this.GeneralDialog.style.width) / 2) + "px";
+    this.GeneralDialog.style.top = (parseInt(document.body.offsetHeight) / 2 - parseInt(this.GeneralDialog.style.height) / 2) + "px";
     this.GeneralDialog._Init();
     this.GeneralDialog.show();
   }
   _ToggleConfigColors() {
-    this.ColorsDialog.style.left = (parseInt(document.body.firstElementChild.offsetWidth) / 2 - parseInt(this.ColorsDialog.style.width) / 2) + "px";
-    this.ColorsDialog.style.top = (parseInt(document.body.firstElementChild.offsetHeight) / 2 - parseInt(this.ColorsDialog.style.height) / 2) + "px";
+    this.ColorsDialog.style.left = (parseInt(document.body.offsetWidth) / 2 - parseInt(this.ColorsDialog.style.width) / 2) + "px";
+    this.ColorsDialog.style.top = (parseInt(document.body.offsetHeight) / 2 - parseInt(this.ColorsDialog.style.height) / 2) + "px";
     this.ColorsDialog._InitList();
     this.ColorsDialog.show();
   }
@@ -1745,8 +1745,8 @@ class CustomWindow extends QMdiSubWindow {
     //console.log(this.GetDot(x,y) + " vs " + oldColor + " or " + newColor)
     //return;
     if (color == oldColor || color == newColor) { return; }
-    console.log(color + " == " + oldColor + " || " + color + " == " + newColor);
-    this.DrawDot("f",newColor,1,x,y);
+    console.log(x + "," + y + " " + color + " == " + oldColor + " || " + color + " == " + newColor);
+    this.PutDot(newColor,x,y);
     this.DrawFill('',newColor,oldColor,x+1,y);
     this.DrawFill('',newColor,oldColor,x-1,y);
     this.DrawFill('',newColor,oldColor,x,y+1);

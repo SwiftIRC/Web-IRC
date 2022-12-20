@@ -576,7 +576,10 @@ class SpatialEntity {
     return false;
   }
   function RandInt(min,max) { return Math.floor(Math.random() * (max - min + 1) + min); }
-
+  function IsBit(num,bit) { return num & (1 << (bit - 1)); }
+  function BitOn(num,bit) { return num | (1 << (bit - 1)); }
+  function BitOff(num,bit) { return num & ~(1 << (bit - 1)); }
+  
   function Billiards(Window,cmd) {
     var Cmd = cmd.split(" "), Game = Cmd[1] || '9' , Table = Cmd[2] || '5.5';
     this._Canvas = Window.Picture;
@@ -603,6 +606,7 @@ class SpatialEntity {
         SideThroat: 5,
         LineSegments: [],
         Pockets: [],
+        Cushons: [],
         firstBreak: true,
       }
 
@@ -653,6 +657,13 @@ class SpatialEntity {
       this.Table.Pockets.push(new SpatialEntity("pocket",[0,0],4,0,this.Table.Half.sh + 2.25));
       this.Table.Pockets.push(new SpatialEntity("pocket",[0,0],4,-this.Table.Half.sw,this.Table.Half.sh));
       this.Table.Pockets.forEach((Pocket) => { this.SpatialInsert(Pocket); });
+
+      this.Table.Cushons.push(new SpatialEntity("tmp",this.Table.Polygon.slice(0,9),1,0,0));
+      this.Table.Cushons.push(new SpatialEntity("tmp",this.Table.Polygon.slice(8,16),1,0,0));
+      this.Table.Cushons.push(new SpatialEntity("tmp",this.Table.Polygon.slice(16,24),1,0,0));
+      this.Table.Cushons.push(new SpatialEntity("tmp",this.Table.Polygon.slice(24,32),1,0,0));
+      this.Table.Cushons.push(new SpatialEntity("tmp",this.Table.Polygon.slice(32,40),1,0,0));
+      this.Table.Cushons.push(new SpatialEntity("tmp",this.Table.Polygon.slice(40,48),1,0,0));      
 
       for (var i = 0; i < this.Table.Polygon.length - 2; i += 2) { 
         var ent = new SpatialEntity("border",[this.Table.Polygon[i],this.Table.Polygon[i+1],this.Table.Polygon[i+2],this.Table.Polygon[i+3]],1);
@@ -914,7 +925,7 @@ class SpatialEntity {
       var scale = Math.min(scaleh,scalew);
       var gx = (x - this._Canvas.width / 2) / scale;
       var gy = (y - this._Canvas.height / 2) / scale;
-      if (e.type == 'pointermove' || e.type == 'pointerdown') {
+      if (e.type == 'pointermove') {
         if (this.hasOwnProperty('_Ghost')) {
           var dx = gx - this.Cue.position.x , dy = gy - this.Cue.position.y;
           var mag = Math.sqrt(dx*dx+dy*dy), NormalX = dx / mag, NormalY = dy / mag;
@@ -934,7 +945,7 @@ class SpatialEntity {
         this._Ghost.direction.isInverseVelocity = false;
         this.Cue.setDirection(-NormalX,-NormalY);
         this.Cue.applyForce(this.Cue.direction.x * pfactor,this.Cue.direction.y * pfactor);
-        console.log(this._Window.GetDot(x,y));
+        //console.log("Pos: " + x + "," + y + " Color: " + this._Window.GetDot(x,y));
       }
     },
     Render: function(DeltaTime) { 
@@ -943,11 +954,9 @@ class SpatialEntity {
       var scalew = Math.max(1,parseInt(this._Canvas.width / this.Table.Surface.w));
       var scaleh = Math.max(1,parseInt(this._Canvas.height / this.Table.Surface.h));
       var scale = Math.min(scaleh,scalew);
-      this.Table.Pockets.forEach((Pocket) => {
-        this._Window.DrawDot("f","#1F1F1F",Pocket.radius * scale,Pocket.position.x * scale + this._ox,Pocket.position.y * scale + this._oy);
-      }); 
+      this.Table.Pockets.forEach((Pocket) => { this._Window.DrawDot("f","#1F1F1F",Pocket.radius * scale,Pocket.position.x * scale + this._ox,Pocket.position.y * scale + this._oy); }); 
+      this.Table.Cushons.forEach((Cushon) => { this._Window.DrawPolygon("f","#0063B5",1,Cushon.OffsetPolygon(this._ox,this._oy,scale)); });
       this.Table.LineSegments.forEach((LineSeg) => { this._Window.DrawPolygon("","rgba(0,0,0,1)",1,LineSeg.OffsetPolygon(this._ox,this._oy,scale)); });
-      //this._Window.DrawFill("f","0063b5ff","000000ff",1,1);
 
       this._Entities.forEach((Entity) => { 
         if (this.Table.Game == 9) { var clr = ['white','yellow','blue','red','purple','orange','green','maroon','black','pink']; }
@@ -996,6 +1005,8 @@ class SpatialEntity {
       var hbars = (this._Canvas.width - this.Table.Surface.w * scale) / 2;
       this._Window.DrawRect("f","#000000",1,0,0,hbars,this._Canvas.height);
       this._Window.DrawRect("f","#000000",1,this._Canvas.width-hbars,0,this._Canvas.width,this._Canvas.height);
+
+      //this._Window.DrawFill("f","0063b5ff","000000ff",-3 * scale + this._ox,10);
 
       this._Window.DrawText("","#ffffff","10px Calibri",0,20,"FPS: " + (1000 / DeltaTime).toFixed(2));
     },
@@ -1068,4 +1079,32 @@ class SpatialEntity {
       this._Window.DrawText("","#ffffff",this.Radius / 10 + "px Calibri",0,20,"FPS: " + (1000 / DeltaTime).toFixed(2));
     }
   }
+  function Pinball(Window,cmd) {
+    this._Canvas = Window.Picture;
+    this._Window = Window;
+    this._FPSLimit = 60;
+    this._TimeDelta = Math.floor((1000 / this._FPSLimit) / 16) * 16;
+    //this.GenerateTable();
+  }
+  Pinball.prototype = {
+    NewGame: function() {
+      var Width = 360 , Height = 520, HW = Width / 2, HH = Height / 2;
+      //Offset values to convert our cartesian grid coordinates to canvas coordinates
+      this._ox = this._Canvas.width / 2;
+      this._oy = this._Canvas.height / 2;
   
+      //Spatial partitioning stuff, the bounds of our world, and the number of cells in the X and Y axis.
+      this._Bounds = [-HW,-HH,HW,HH];
+      this._Dimensions = [parseInt(Width / 40) - 1,parseInt(Height / 40) - 1];
+  
+      //The keystrokes currently active...
+      this._Keys = [];
+  
+      this._Map = []; //1D Collection of Entities per spatial partitioning grid cell (an array of arrays)
+      this._Entities = []; //Collection of Entities
+    },
+    GenerateTable: function() {
+
+    }
+
+  }
