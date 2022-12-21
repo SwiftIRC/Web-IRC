@@ -1739,7 +1739,7 @@ class CustomWindow extends QMdiSubWindow {
     imgData.data[y*imgData.width+x] = color;
     Ctx.putImageData(imgData, 0, 0);
   }
-  DrawFill(flags,newColor,oldColor,x,y) {
+  /*DrawFill(flags,newColor,oldColor,x,y) {
     if (x < 0 || y < 0 || x >= this.Picture.width || y >= this.Picture.height) { return; }
     var color = this.GetDot(x,y);
     //console.log(this.GetDot(x,y) + " vs " + oldColor + " or " + newColor)
@@ -1751,7 +1751,7 @@ class CustomWindow extends QMdiSubWindow {
     this.DrawFill('',newColor,oldColor,x-1,y);
     this.DrawFill('',newColor,oldColor,x,y+1);
     this.DrawFill('',newColor,oldColor,x,y-1);
-  }
+  }*/
 }
 customElements.define('web-customwindow', CustomWindow);
 

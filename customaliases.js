@@ -671,7 +671,7 @@ class SpatialEntity {
         this.Table.LineSegments.push(ent);
       }
       var centerx = this.Table.Width / 4 * -1
-      var RS = 1.129 , rs = 1.139 , ds = rs * 2 , fric = 0.00039 , xdec = Math.sqrt(Math.pow(ds,2) - Math.pow(rs,2));
+      var RS = 1.129 , rs = 1.129 , ds = rs * 2 , fric = 0.00039 , xdec = Math.sqrt(Math.pow(ds,2) - Math.pow(rs,2));
       if (Game == 9) {
         this._Entities.push(new SpatialEntity("ball1",[0,0],RS,centerx,0,1,0,0,0,0,fric));
         this._Entities.push(new SpatialEntity("ball2",[0,0],RS,centerx - xdec,0 - rs,1,0,0,0,0,fric));
@@ -937,8 +937,8 @@ class SpatialEntity {
       }
       if (!this._Motion && e.type == 'pointerup') {
         var dx = this.Cue.position.x - this._Ghost.position.x , dy = this.Cue.position.y - this._Ghost.position.y;
-        var mag = Math.sqrt(dx*dx+dy*dy), NormalX = dx / mag, NormalY = dy / mag, fdiv = 100;
-        if (!this.Table.hasOwnProperty('firstBreak') || this.Table.firstBreak) { fdiv = 60; this.Table.firstBreak = false; }
+        var mag = Math.sqrt(dx*dx+dy*dy), NormalX = dx / mag, NormalY = dy / mag, fdiv = 70;
+        if (!this.Table.hasOwnProperty('firstBreak') || this.Table.firstBreak) { fdiv = 50; this.Table.firstBreak = false; }
         var pfactor = parseInt(this.Table.Size) / fdiv;
         this._Ghost.setPosition(gx,gy);
         this._Ghost.setVelocity(dx,dy);
@@ -956,11 +956,12 @@ class SpatialEntity {
       var scale = Math.min(scaleh,scalew);
       this.Table.Pockets.forEach((Pocket) => { this._Window.DrawDot("f","#1F1F1F",Pocket.radius * scale,Pocket.position.x * scale + this._ox,Pocket.position.y * scale + this._oy); }); 
       this.Table.Cushons.forEach((Cushon) => { this._Window.DrawPolygon("f","#0063B5",1,Cushon.OffsetPolygon(this._ox,this._oy,scale)); });
-      this.Table.LineSegments.forEach((LineSeg) => { this._Window.DrawPolygon("","rgba(0,0,0,1)",1,LineSeg.OffsetPolygon(this._ox,this._oy,scale)); });
+      //this.Table.LineSegments.forEach((LineSeg) => { this._Window.DrawPolygon("","rgba(0,0,0,1)",1,LineSeg.OffsetPolygon(this._ox,this._oy,scale)); });
+      this._Window.DrawText("","#0063B5",(scale * 3) + "px Calibri",this._ox + 5 * scale,this._oy + 15 * scale,this.Table.Game + "-Ball Pool By: Talon");
 
       this._Entities.forEach((Entity) => { 
         if (this.Table.Game == 9) { var clr = ['white','yellow','blue','red','purple','orange','green','maroon','black','pink']; }
-        else { var clr = ['white','red','yellow','yellow','red','black','red','yellow','red','yellow','yellow','red','yellow','red','yellow','red']; }
+        else { var clr = ['white','red','yellow','yellow','red','red','red','yellow','black','yellow','yellow','red','yellow','red','yellow','red']; }
         if (/^ball(\d+)$/.test(Entity.name)) {
           if (RegExp.$1 == "0") { }
           this._Window.DrawDot("f",clr[RegExp.$1],Entity.radius * scale,Entity.position.x * scale + this._ox,Entity.position.y * scale + this._oy);
