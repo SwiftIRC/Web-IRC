@@ -225,24 +225,32 @@ class IALItem {
         else if (Event == "CAP") {
           this.Emit('raw',[this.CID,Event,Args.join(" ") + " " + Extra,IRCv3]);
           if (Args[1] == "LS") {
-            var Request = [];
+            var multiline = (Args[2] == "*" ? true : false);
             //mIRC 7.72 === away-notify invite-notify extended-join userhost-in-names multi-prefix cap-notify setname chghost account-notify message-tags batch server-time account-tag labeled-response
 
             Extra.split(' ').forEach((capability) => {
-              if (/^account-notify$/i.test(capability)) { Request.push(capability); this.IrcV3ReqCap.push(capability); }
-              else if (/^away-notify$/i.test(capability)) { Request.push(capability); this.IrcV3ReqCap.push(capability); }
-              else if (/^batch$/i.test(capability)) { Request.push(capability); this.IrcV3ReqCap.push(capability); }
-              else if (/^cap-notify$/i.test(capability)) { Request.push(capability); this.IrcV3ReqCap.push(capability); }
-              else if (/^chghost$/i.test(capability)) { Request.push(capability); this.IrcV3ReqCap.push(capability); }
-              else if (/^extended-join$/i.test(capability)) { Request.push(capability); this.IrcV3ReqCap.push(capability); }
-              else if (/^message-tags$/i.test(capability)) { Request.push(capability); this.IrcV3ReqCap.push(capability); }
-              else if (/^multi-prefix$/i.test(capability)) { Request.push(capability); this.IrcV3ReqCap.push(capability); }
-              else if (/^setname$/i.test(capability)) { Request.push(capability); this.IrcV3ReqCap.push(capability); }
-              else if (/^server-time$/i.test(capability)) { Request.push(capability); this.IrcV3ReqCap.push(capability); }
-              else if (/^userhost-in-names$/i.test(capability)) { Request.push(capability); this.IrcV3ReqCap.push(capability); }
+              if (/^account-notify$/i.test(capability)) { this.IrcV3ReqCap.push(capability); }
+              else if (/^away-notify$/i.test(capability)) { this.IrcV3ReqCap.push(capability); }
+              else if (/^batch$/i.test(capability)) { this.IrcV3ReqCap.push(capability); }
+              else if (/^cap-notify$/i.test(capability)) { this.IrcV3ReqCap.push(capability); }
+              else if (/^chghost$/i.test(capability)) { this.IrcV3ReqCap.push(capability); }
+              else if (/^extended-join$/i.test(capability)) { this.IrcV3ReqCap.push(capability); }
+              else if (/^message-tags$/i.test(capability)) { this.IrcV3ReqCap.push(capability); }
+              else if (/^multi-prefix$/i.test(capability)) { this.IrcV3ReqCap.push(capability); }
+              else if (/^setname$/i.test(capability)) { this.IrcV3ReqCap.push(capability); }
+              else if (/^server-time$/i.test(capability)) { this.IrcV3ReqCap.push(capability); }
+              else if (/^userhost-in-names$/i.test(capability)) { this.IrcV3ReqCap.push(capability); }
+              else if (/^sasl/i.test(capability)) {
+                if (/PLAIN/.test(capability)) {
+                  this.SaslMethods = capability.substr(5).split(",");
+                  this.IrcV3ReqCap.push('sasl'); 
+                }
+              }
             });
-            if (Request.length > 0) { 
-              if (this.Socket) { this.WSSend('CAP REQ :' + Request.join(" ")); }
+            if (!multiline) {
+              if (this.IrcV3ReqCap.length > 0) { 
+                if (this.Socket) { this.WSSend('CAP REQ :' + this.IrcV3ReqCap.join(" ")); }             
+              }
             }
           }
           else if (Args[1] == "ACK") {
@@ -251,22 +259,38 @@ class IALItem {
               else if (capability != "") {
                 this.IrcV3Cap.push(capability); 
                 if (this.IrcV3ReqCap.includes(capability)) { 
-                  if (this.IrcV3ReqCap.length == 1) { this.WSSend('CAP END') } //If last internally requested cap, send end. This prevents sending CAP END on user requested capabilities.
                   this.IrcV3ReqCap.splice(this.IrcV3ReqCap.indexOf(capability),1); 
                 }
               }
             });
+            if (this.IrcV3ReqCap.length == 0) {
+              if (this.IrcV3Cap.includes('sasl') && this.SaslMethods.includes("PLAIN") && (this.SaslNick && this.SaslPass)) {
+                if (this.Socket) { this.WSSend('AUTHENTICATE PLAIN'); }
+              }
+              else { if (this.Socket) { this.WSSend('CAP END'); } }
+            }
           }
           else if (Args[1] == "NAK") {
             Extra.split(' ').forEach((capability) => {
               if (capability != "" && this.IrcV3Cap.includes(capability)) { this.IrcV3Cap.splice(this.IrcV3Cap.indexOf(capability),1); }
               else if (capability != "" && this.IrcV3ReqCap.includes(capability)) { 
-                if (this.IrcV3ReqCap.length == 1) { this.WSSend('CAP END') } //If last internally requested cap, send end. This prevents sending CAP END on user requested capabilities.
                 this.IrcV3ReqCap.splice(this.IrcV3ReqCap.indexOf(capability),1); 
               }
             });
+            if (this.IrcV3ReqCap.length == 0) {
+              if (this.IrcV3Cap.indexOf('sasl') > -1 && this.SaslMethods.indexOf("PLAIN") > -1 && (!this.SaslNick && !this.SaslPass)) {
+                if (this.Socket) { this.WSSend('AUTHENTICATE PLAIN'); }
+              }
+              else { if (this.Socket) { this.WSSend('CAP END'); } }
+            }
           }
         }
+        else if (Event == "AUTHENTICATE") {
+          if (Args[0] == "+") {
+            if (this.Socket) { this.WSSend('AUTHENTICATE ' + btoa(this.SaslNick + "\0" + this.SaslNick + "\0" + this.SaslPass)); }
+          }
+        }
+        else if (Event == "903" || Event == "904") { this.WSSend('CAP END'); }
         else if (Event == "001") {
           this.Me = Args[0];
           this.Server = Nick;
@@ -322,6 +346,7 @@ class IALItem {
         }
         else if (Event == "367") { if (this.ICL.hasOwnProperty(Args[1].toLowerCase())) { this.ICL[Args[1].toLowerCase()].addBan(Args[2],Args[3],parseInt(Args[4])); } this.Emit('raw',[this.CID,Event,Args.join(" ") + " " + Extra,IRCv3]); }
         else if (Event == "376" || Event == "422") { this.Emit('connect',[this.CID,this.Socket.readyState]); this.Emit('raw',[this.CID,Event,Args.join(" ") + " " + Extra,IRCv3]); }
+        else if (Event == "728") { if (this.ICL.hasOwnProperty(Args[1].toLowerCase())) { this.ICL[Args[1].toLowerCase()].addQuiet(Args[2],Args[3],parseInt(Args[4])); } this.Emit('raw',[this.CID,Event,Args.join(" ") + " " + Extra,IRCv3]); }
   
         //IRCv3 special events
         else if (/^ACCOUNT$/i.test(Event)) { this.IALUpdate(Nick,{account: Args[0]}); }
@@ -502,7 +527,6 @@ class IALItem {
     else { return this.mask(nick + "!user@host",level); }
   }
   isChan(chan) { var tmp = new RegExp('^(?:[' + this.Prefix + '])?[' + this.ChanTypes + ']'); return tmp.test(chan); }
-  isQuery(nick) { return this.IQL.hasOwnProperty(nick) }
   isOn(nick,chan) { if (this.ICL.hasOwnProperty(chan.toLowerCase())) { return (this.ICL[chan.toLowerCase()].Nicks.indexOf(nick) == -1 ? false : true); } return false; }
   isOp(nick,chan) { if (this.IAL.hasOwnProperty(nick) && this.IAL[nick].channels.hasOwnProperty(chan.toLowerCase())) { return (this.IAL[nick].channels[chan.toLowerCase()].indexOf("@") == -1 ? false : true); } return false; }
   isHop(nick,chan) { if (this.IAL.hasOwnProperty(nick) && this.IAL[nick].channels.hasOwnProperty(chan.toLowerCase())) { return (this.IAL[nick].channels[chan.toLowerCase()].indexOf("%") == -1 ? false : true); } return false; }

@@ -705,7 +705,7 @@ Qt Style Tab Widget Constructor
 ===============================================================================*/
 
 class QTabWidget extends QObject {
-  constructor() {
+  constructor(parent) {
     super(parent);
 
 	  //Private Properties
@@ -769,9 +769,10 @@ class QTabWidget extends QObject {
   addTab(page,icon,label) {
     if (label && label != '') { icon.setIconText(label); }
     icon.connect('triggered',this,() => { 
-      this.setCurrentIndex(Array.from(this._TabBarAreas[page].childNodes).indexOf(icon),icon);
+      this.setCurrentIndex(Array.from(this._TabBarAreas["top"].childNodes).indexOf(icon),icon);
     })
-    this._TabBarAreas[page].appendChild(icon); 
+    this._TabBarAreas["top"].appendChild(icon); 
+    this._CentralWidget.appendChild(page);
   }
   clear() { }
   count() { }
@@ -1095,7 +1096,7 @@ class QWidget extends QObject {
   y() { return this.style.top; }
   
   //Public Slots
-  close() { }
+  close() { this._customEvent('childEvent',{ bubbles: false, detail: { target: this, 'QEvent': Qt.QEvent.Close } }); this.hide(); return this; }
   hide() { this.setVisible(false); return this; }
   setDisabled(bool) { }
   setEnabled(bool) { }
@@ -1118,9 +1119,15 @@ class QWidget extends QObject {
     return this; 
   }
   show() { this.setVisible(true); return this; }
-  showMaximized() { }
-  showMinimized() { }
-  showNormal() { }  
+  showMaximized() { this.setVisible(true); return this; }
+  showMinimized() { this.setVisible(true); return this; }
+  showNormal() { this.setVisible(true); return this; }
+  showCentered() { 
+    this.setVisible(true); 
+    this.style.left = (parseInt(document.body.offsetWidth) / 2 - parseInt(this.style.width) / 2) + "px";
+    this.style.top = (parseInt(document.body.offsetHeight) / 2 - parseInt(this.style.height) / 2) + "px";
+    return this;
+  }
 }
 customElements.define('q-widget', QWidget);
 
@@ -1274,29 +1281,31 @@ class QDockWidget extends QWidget {
     this._UnTab.style.display = (this._CentralWidget.childNodes.length > 1 ? '' : 'none');
   }
   _tabifyDockWidget(Widget) {
-    if (!Widget.hasOwnProperty('_TabData')) { Widget._TabData = {}; }
-    if (!Widget._TabData.hasOwnProperty('display')) { Widget._TabData.display = Widget.style.display; }
-    if (!Widget._TabData.hasOwnProperty('width')) { Widget._TabData.width = Widget.style.width; }
-    if (!Widget._TabData.hasOwnProperty('height')) { Widget._TabData.height = Widget.style.height; }
-    if (!Widget._TabData.hasOwnProperty('minWidth')) { Widget._TabData.minWidth = Widget.style.minWidth; }
-    if (!Widget._TabData.hasOwnProperty('minHeight')) { Widget._TabData.minHeight = Widget.style.minHeight; }
-    if (!Widget._TabData.hasOwnProperty('resizable')) { Widget._TabData.resizable = Widget.style.resize; }
-    if (!Widget._TabData.hasOwnProperty('wflags')) { Widget._TabData.wflags = Widget._WindowFlags; }
-    if (!Widget._TabData.hasOwnProperty('oparent')) { Widget._TabData.oparent = Widget.parentNode; }
-    if (Widget._TabData.hasOwnProperty('tabaction')) { Widget._TabData.tabaction.parentNode.removeChild(Widget._TabData.tabaction); }
-    Widget._TabData.tabaction = new QAction('',Widget.windowTitle()).connect('triggered',this,() => { this._setCurrentPage(Widget); });
+    if (Widget != this) {
+      if (!Widget.hasOwnProperty('_TabData')) { Widget._TabData = {}; }
+      if (!Widget._TabData.hasOwnProperty('display')) { Widget._TabData.display = Widget.style.display; }
+      if (!Widget._TabData.hasOwnProperty('width')) { Widget._TabData.width = Widget.style.width; }
+      if (!Widget._TabData.hasOwnProperty('height')) { Widget._TabData.height = Widget.style.height; }
+      if (!Widget._TabData.hasOwnProperty('minWidth')) { Widget._TabData.minWidth = Widget.style.minWidth; }
+      if (!Widget._TabData.hasOwnProperty('minHeight')) { Widget._TabData.minHeight = Widget.style.minHeight; }
+      if (!Widget._TabData.hasOwnProperty('resizable')) { Widget._TabData.resizable = Widget.style.resize; }
+      if (!Widget._TabData.hasOwnProperty('wflags')) { Widget._TabData.wflags = Widget._WindowFlags; }
+      if (!Widget._TabData.hasOwnProperty('oparent')) { Widget._TabData.oparent = Widget.parentNode; }
+      if (Widget._TabData.hasOwnProperty('tabaction')) { Widget._TabData.tabaction.parentNode.removeChild(Widget._TabData.tabaction); }
+      Widget._TabData.tabaction = new QAction('',Widget.windowTitle()).connect('triggered',this,() => { this._setCurrentPage(Widget); });
 
-    Widget.setResizable(false);
-    Widget.style.width = Widget.style.height = Widget.style.minWidth = Widget.style.minHeight = ''
-    Widget.style.display = 'none';
-    Widget.setWindowFlag(Qt.WindowType.WindowTitleHint,false);
-    this._CentralWidget.appendChild(Widget);
-    this._UnTab.style.display = (this._CentralWidget.childNodes.length > 1 ? '' : 'none');
+      Widget.setResizable(false);
+      Widget.style.width = Widget.style.height = Widget.style.minWidth = Widget.style.minHeight = ''
+      Widget.style.display = 'none';
+      Widget.setWindowFlag(Qt.WindowType.WindowTitleHint,false);
+      this._CentralWidget.appendChild(Widget);
+      this._UnTab.style.display = (this._CentralWidget.childNodes.length > 1 ? '' : 'none');
 
-    this._TabBarAreas['bottom'].appendChild(Widget._TabData.tabaction);
+      this._TabBarAreas['bottom'].appendChild(Widget._TabData.tabaction);
 
-    if (Widget.hasOwnProperty('_MetaObject') && Widget._MetaObject.includes('QDockWidget')) {
-      Widget._CentralWidget.querySelectorAll('q-dockwidget').forEach((child) => { this._tabifyDockWidget(child); });
+      if (Widget.hasOwnProperty('_MetaObject') && Widget._MetaObject.includes('QDockWidget')) {
+        Widget._CentralWidget.querySelectorAll('q-dockwidget').forEach((child) => { this._tabifyDockWidget(child); });
+      }
     }
   }
   _setCurrentPage(page) {
@@ -1399,6 +1408,7 @@ class QListView extends QWidget {
     this.classList.add((/^iconview$/i.test(mode) ? "IconView" : "Static"));
     return this;
   }
+  currentItem() { return this.querySelector('.selected'); }
   setCurrentItem(Action) {
     this.querySelectorAll('.selected').forEach((child) => { child.classList.remove('selected'); });
     Action.classList.add('selected');
@@ -1459,7 +1469,7 @@ class QTreeWidget extends QWidget {
   addTopLevelItem(Item) { }
   addTopLevelItems(Items) { }
   columnCount() { return this.Header.childNodes.length; }
-  currentItem() { }
+  currentItem() { return this.querySelector('.selected'); }
   headerItem() { }
   insertTopLevelItem(Before,Item) { }
   setColumnCount(count) { for (var i = this.Header.childNodes.length; i < count; i++) { QuickElement('div',{'class':"HeaderItem"},'',this.Header); } return this; }
@@ -1472,7 +1482,7 @@ class QTreeWidget extends QWidget {
   setHeaderLabel() { }
   setHeaderLabels(labels) { 
     labels.forEach((label,index) => { 
-      console.log(index + " " + label);
+      //console.log(index + " " + label);
       if (index < this.Header.childNodes.length) { this.Header.childNodes[index].innerHTML = label; }
     });
   }
@@ -1613,18 +1623,22 @@ class QMainWindow extends QWidget {
       var dragged = event.target;
       if (dragged.hasOwnProperty('_MetaObject')) {
         if (dragged._MetaObject.includes('QToolBar')) {
+          setTimeout(() => {
             Object.keys(this._ToolBarAreas).forEach((Area) => {
               if (((dragged._AllowedAreas & Qt.ToolBarArea.LeftToolBarArea) == Qt.ToolBarArea.LeftToolBarArea && Area == 'left') || ((dragged._AllowedAreas & Qt.ToolBarArea.RightToolBarArea) == Qt.ToolBarArea.RightToolBarArea && Area == 'right') || ((dragged._AllowedAreas & Qt.ToolBarArea.TopToolBarArea) == Qt.ToolBarArea.TopToolBarArea && Area == 'top') || ((dragged._AllowedAreas & Qt.ToolBarArea.BottomToolBarArea) == Qt.ToolBarArea.BottomToolBarArea && Area == 'bottom')) {
                 this._ToolBarAreas[Area].style.minWidth = "22px"; this._ToolBarAreas[Area].style.minHeight = "22px"; 
               }
             },this); 
+          },0);
         }
         if (dragged._MetaObject.includes('QDockWidget')) {
+          setTimeout(() => {
             Object.keys(this._DockWidgetAreas).forEach((Area) => { 
               if (((dragged._AllowedAreas & Qt.DockWidgetArea.LeftDockWidgetArea) == Qt.DockWidgetArea.LeftDockWidgetArea && Area == 'left') || ((dragged._AllowedAreas & Qt.DockWidgetArea.RightDockWidgetArea) == Qt.DockWidgetArea.RightDockWidgetArea && Area == 'right') || ((dragged._AllowedAreas & Qt.DockWidgetArea.TopDockWidgetArea) == Qt.DockWidgetArea.TopDockWidgetArea && Area == 'top') || ((dragged._AllowedAreas & Qt.DockWidgetArea.BottomDockWidgetArea) == Qt.DockWidgetArea.BottomDockWidgetArea && Area == 'bottom')) {
                 this._DockWidgetAreas[Area].style.minWidth = "22px"; this._DockWidgetAreas[Area].style.minHeight = "22px";
               }
             },this);
+          },0);
         }
         this._acceptDrops = true;
         event.stopPropagation();
@@ -1634,8 +1648,9 @@ class QMainWindow extends QWidget {
       var dragged = document.querySelector('.Qt-CurrentDragWidget');
       Object.keys(this._ToolBarAreas).forEach((Area) => { this._ToolBarAreas[Area].style.minWidth = ""; this._ToolBarAreas[Area].style.minHeight = ""; },this); 
       Object.keys(this._DockWidgetAreas).forEach((Area) => { this._DockWidgetAreas[Area].style.minWidth = ""; this._DockWidgetAreas[Area].style.minHeight = ""; },this); 
-      if (dragged) { dragged.classList.toggle('Qt-CurrentDragWidget') }
+      if (dragged) { dragged.classList.toggle('Qt-CurrentDragWidget'); }
       this._acceptDrops = false;
+      event.stopPropagation();
     },false);
 
     for (var area in this._ToolBarAreas) {
@@ -1849,12 +1864,12 @@ class QToolBar extends QWidget {
 	  //Private Properties
 	  this._MetaObject.push("QToolBar");
     this.classList.add("QToolBar");
-    this.style.userSelect = 'none';
+    //this.style.userSelect = 'none';
     this._AllowedAreas = Qt.ToolBarArea.AllToolBarAreas;
     this._Floatable = false; //TODO: make floating work!
 
     //Build UI Components
-    this._Handle = QuickElement('div',{class: "ToolBarHandle"},'',this);
+    this._Handle = QuickElement('div',{class: "ToolBarHandle", draggable: false},'',this);
 	  this._CentralWidget = QuickElement('div',{class: "CentralWidget"},'',this);
 
     /*==== Catched Signals ====================================
