@@ -768,9 +768,7 @@ class QTabWidget extends QObject {
   //Public Functions
   addTab(page,icon,label) {
     if (label && label != '') { icon.setIconText(label); }
-    icon.connect('triggered',this,() => { 
-      this.setCurrentIndex(Array.from(this._TabBarAreas["top"].childNodes).indexOf(icon),icon);
-    })
+    icon.connect('triggered',this,() => { this.setCurrentIndex(Array.from(this._TabBarAreas["top"].childNodes).indexOf(icon),icon); });
     this._TabBarAreas["top"].appendChild(icon); 
     this._CentralWidget.appendChild(page);
   }
@@ -782,7 +780,7 @@ class QTabWidget extends QObject {
   insertTab(index,page,icon,label) { }
   isMovable() { }
   movable() { } //bool
-  removeTab() { }
+  removeTab(index) { }
   setCurrentIndex(index,tab) { 
     Array.from(this._CentralWidget.childNodes).forEach((child,N) => {
       if (N != index) { child.style.display = 'none'; }

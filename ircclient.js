@@ -319,16 +319,16 @@ class IALItem {
         else if (Event == "302") { if (Extra.match(/^([^=*]+)(?:\*)?=(?:[+-])(.*)$/)) { this.IALUpdate(RegExp.$1,{address: RegExp.$2}); } this.Emit('raw',[this.CID,Event,Args.join(" ") + " " + Extra,IRCv3]); }
         else if (Event == "324") { 
           if (this.ICL.hasOwnProperty(Args[1].toLowerCase())) {
-            var arg = Args.slice(2).join(" ");
+            var arg = Args.slice(2).join(" ") + (Extra ? " " + Extra : "");
             if (arg.match(/^([^ ]+) ?(.*)?$/)) { this.ParseModes(FullAddress,"",Args[1],RegExp.$1,RegExp.$2); }
           }
           this.Emit('raw',[this.CID,Event,Args.join(" ") + " " + Extra,IRCv3]);
         }
         else if (Event == "329") { this.ICLUpdate(Args[1],{created: parseInt(Args[2])}); this.Emit('raw',[this.CID,Event,Args.join(" ") + " " + Extra,IRCv3]); }
         else if (Event == "332") { this.ICLUpdate(Args[1],{topic: Extra}); this.Emit('raw',[this.CID,Event,Args.join(" ") + " " + Extra,IRCv3]); }
-        else if (Event == "346") { if (this.ICL.hasOwnProperty(Args[1].toLowerCase())) { this.ICL[Args[1].toLowerCase()].addInvite(Args[2],Args[3],parseInt(Args[4])); } this.Emit('raw',[this.CID,Event,Args.join(" ") + " " + Extra,IRCv3]); }
-        else if (Event == "348") { if (this.ICL.hasOwnProperty(Args[1].toLowerCase())) { this.ICL[Args[1].toLowerCase()].addExcept(Args[2],Args[3],parseInt(Args[4])); } this.Emit('raw',[this.CID,Event,Args.join(" ") + " " + Extra,IRCv3]); }
-        else if (Event == "333") { this.ICLUpdate(Args[1],{topicby: Args[2],topicset: parseInt(Args[3])}); this.Emit('raw',[this.CID,Event,Args.join(" ") + " " + Extra,IRCv3]); }
+        else if (Event == "346") { if (this.ICL.hasOwnProperty(Args[1].toLowerCase())) { this.ICL[Args[1].toLowerCase()].addInvite(Args[2],Args[3],parseInt((Extra ? Extra : Args[4]))); } this.Emit('raw',[this.CID,Event,Args.join(" ") + " " + Extra,IRCv3]); }
+        else if (Event == "348") { if (this.ICL.hasOwnProperty(Args[1].toLowerCase())) { this.ICL[Args[1].toLowerCase()].addExcept(Args[2],Args[3],parseInt((Extra ? Extra : Args[4]))); } this.Emit('raw',[this.CID,Event,Args.join(" ") + " " + Extra,IRCv3]); }
+        else if (Event == "333") { this.ICLUpdate(Args[1],{topicby: Args[2],topicset: parseInt((Args.length > 3 ? Args[3] : Extra))}); this.Emit('raw',[this.CID,Event,Args.join(" ") + " " + Extra,IRCv3]); }
         else if (Event == "352") { this.IALUpdate(Args[5],{address: Args[2] + '@' + Args[3],away: Args[6],gecos: Extra.substr(Extra.indexOf(' ') +1)}); this.Emit('raw',[this.CID,Event,Args.join(" ") + " " + Extra,IRCv3]); }
         else if (Event == "353") {
           var chan = (!this.isChan(Args[1]) ? Args[2] : Args[1]);
@@ -344,7 +344,7 @@ class IALItem {
           if (this.ICL.hasOwnProperty(Args[1].toLowerCase())) { this.SortNicks(Args[1].toLowerCase(),this.ICL[Args[1].toLowerCase()].Nicks); } 
           this.Emit('raw',[this.CID,Event,Args.join(" ") + " " + Extra,IRCv3]);
         }
-        else if (Event == "367") { if (this.ICL.hasOwnProperty(Args[1].toLowerCase())) { this.ICL[Args[1].toLowerCase()].addBan(Args[2],Args[3],parseInt(Args[4])); } this.Emit('raw',[this.CID,Event,Args.join(" ") + " " + Extra,IRCv3]); }
+        else if (Event == "367") { if (this.ICL.hasOwnProperty(Args[1].toLowerCase())) { this.ICL[Args[1].toLowerCase()].addBan(Args[2],Args[3],parseInt((Extra ? Extra : Args[4]))); } this.Emit('raw',[this.CID,Event,Args.join(" ") + " " + Extra,IRCv3]); }
         else if (Event == "376" || Event == "422") { this.Emit('connect',[this.CID,this.Socket.readyState]); this.Emit('raw',[this.CID,Event,Args.join(" ") + " " + Extra,IRCv3]); }
         else if (Event == "728") { if (this.ICL.hasOwnProperty(Args[1].toLowerCase())) { this.ICL[Args[1].toLowerCase()].addQuiet(Args[2],Args[3],parseInt(Args[4])); } this.Emit('raw',[this.CID,Event,Args.join(" ") + " " + Extra,IRCv3]); }
   
@@ -486,15 +486,21 @@ class IALItem {
                 else {
                   //modify channel modes (requires parms)
                   if (porm == "+") {
-                    if (mode == "b") { this.ICL[target.toLowerCase()].addBan(InParm[parmcnt],nick,Math.floor(Date.now() / 1000)); handled = 1; }
-                    else if (mode == "e") { this.ICL[target.toLowerCase()].addExcept(InParm[parmcnt],nick,Math.floor(Date.now() / 1000)); handled = 1; }
-                    else if (mode == "I") { this.ICL[target.toLowerCase()].addInvite(InParm[parmcnt],nick,Math.floor(Date.now() / 1000)); handled = 1; }
+                    if (bothmodes.includes(mode)) {
+                      if (mode == "b") { this.ICL[target.toLowerCase()].addBan(InParm[parmcnt],nick,Math.floor(Date.now() / 1000)); handled = 1; }
+                      else if (mode == "e") { this.ICL[target.toLowerCase()].addExcept(InParm[parmcnt],nick,Math.floor(Date.now() / 1000)); handled = 1; }
+                      else if (mode == "I") { this.ICL[target.toLowerCase()].addInvite(InParm[parmcnt],nick,Math.floor(Date.now() / 1000)); handled = 1; }
+                      else if (mode == "q") { this.ICL[target.toLowerCase()].addQuiet(InParm[parmcnt],nick,Math.floor(Date.now() / 1000)); handled = 1; }
+                    }
                     else { this.ICL[target.toLowerCase()].addMode(mode,InParm[parmcnt]); }
                   }
                   else { 
-                    if (mode == "b") { this.ICL[target.toLowerCase()].delBan(InParm[parmcnt]); }
-                    else if (mode == "e") { this.ICL[target.toLowerCase()].delExcept(InParm[parmcnt]); }
-                    else if (mode == "I") { this.ICL[target.toLowerCase()].delInvite(InParm[parmcnt]); }
+                    if (bothmodes.includes(mode)) {
+                      if (mode == "b") { this.ICL[target.toLowerCase()].delBan(InParm[parmcnt]); }
+                      else if (mode == "e") { this.ICL[target.toLowerCase()].delExcept(InParm[parmcnt]); }
+                      else if (mode == "I") { this.ICL[target.toLowerCase()].delInvite(InParm[parmcnt]); }
+                      else if (mode == "q") { this.ICL[target.toLowerCase()].delQuiet(InParm[parmcnt]); }
+                    }
                     else { this.ICL[target.toLowerCase()].delMode(mode); }
                   }
                 }

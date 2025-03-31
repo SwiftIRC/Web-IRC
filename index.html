@@ -608,6 +608,7 @@ class WebIRC extends QMainWindow {
     });
 
     this.SelectFont = new FontSelect(this,fontAvailable).setBaseSize(300,230).setWindowTitle('Select Font').hide();
+    this.TabTest = new TabTest(this).setBaseSize(300,230).setWindowTitle('Testing Tabs').showCentered();
 
     setTimeout(() => {
       this.HelpDialog.setCentralWidget(document.getElementById('helpabout'));
@@ -903,6 +904,7 @@ class WebIRC extends QMainWindow {
             delete this._Sessions[cid].Windows[key];
           }, null);
         }
+        this._SendData(this._Sessions[cid].Client,"QUIT :" + this._Config.options.QuitMessage);
         this._Sessions[cid].Client.WSClose();
         delete this._Sessions[cid];
       }
@@ -1117,7 +1119,7 @@ class WebIRC extends QMainWindow {
         if (!this._Sessions[Sender._Cid].Windows.hasOwnProperty(Extra.toLowerCase())) { this._NewSubWindow(Sender._Cid,'query',Extra); }
         else { this.MDI.setActiveSubWindow(this._Sessions[Sender._Cid].Windows[Extra.toLowerCase()]); }
       }
-      else if (/^\x2f+quit$/i.test(Cmd)) { Sender._Root._SendData(Client,"QUIT" + (Extra ? " :" + Extra : " :" + Sender._Root._Config['options']['irc'].quitmsg)); }
+      else if (/^\x2f+quit$/i.test(Cmd)) { Sender._Root._SendData(Client,"QUIT" + (Extra ? " :" + Extra : " :" + Sender._Root._Config.options.QuitMessage)); }
       else if (/^\x2f+raw|quote$/i.test(Cmd)) { Sender._Root._SendData(Client,Extra); }
       //Window specific cmds
       else if (/^\x2f+me$/i.test(Cmd)) {
@@ -1540,7 +1542,7 @@ class WebIRC extends QMainWindow {
       this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + Object.keys(IAL.channels).join(",") + ": " + Line);
       if (!this._hasFocus) { 
         if (this._Config.options.EnableNotifications) {
-          if (Client.isChan(target) && this._Config.options.TipChanNickname) { this._ShowNotification('favicon.ico',"Channel Nickname - " + Client.Network + " - " + Object.keys(IAL.channels).join(","),Line,this._Config.options.TipDuration); }
+          if (this._Config.options.TipChanNickname) { this._ShowNotification('favicon.ico',"Channel Nickname - " + Client.Network + " - " + Object.keys(IAL.channels).join(","),Line,this._Config.options.TipDuration); }
         }
       }
     }
@@ -1598,7 +1600,7 @@ class WebIRC extends QMainWindow {
       this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + Object.keys(IAL.channels).join(",") + ": " + Line);
       if (!this._hasFocus) { 
         if (this._Config.options.EnableNotifications) {
-          if (Client.isChan(target) && this._Config.options.TipChanQuit) { this._ShowNotification('favicon.ico',"Channel Quit - " + Client.Network + " - " + Object.keys(IAL.channels).join(","),Line,this._Config.options.TipDuration); }
+          if (this._Config.options.TipChanQuit) { this._ShowNotification('favicon.ico',"Channel Quit - " + Client.Network + " - " + Object.keys(IAL.channels).join(","),Line,this._Config.options.TipDuration); }
         }
       }
     }
@@ -1620,8 +1622,9 @@ class WebIRC extends QMainWindow {
       else { var Line = "9<14" + IAL.channels[target.toLowerCase()].substr(0,1) + "" + nick + "9> " + msg; LineColor = this._Color('own'); }
 
       if (!this._hasFocus) { 
+        if (this._Config.options.EnableSounds && this._Config.options.BeepOnChannelMsg) { this._InternalBeep(); }
         if (this._Config.options.EnableNotifications && this._Config.options.TipChanMessage) {
-          this._ShowNotification('favicon.ico',"Channel Message - " + Client.Network,nick + " says: " + msg,this._Config.options.TipDuration); 
+          this._ShowNotification('favicon.ico',"Channel Message - " + Client.Network + " - " + target,nick + " says: " + msg,this._Config.options.TipDuration); 
         }
       }
 
@@ -1655,6 +1658,7 @@ class WebIRC extends QMainWindow {
         this._MonitorEcho(this.MonitorQueryViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + ": " + Line);
 
         if (!this._hasFocus) { 
+          if (this._Config.options.EnableSounds && this._Config.options.BeepOnQueryMsg) { this._InternalBeep(); }
           if (this._Config.options.EnableNotifications && this._Config.options.TipPrivateMessage) {
             this._ShowNotification('favicon.ico',"Private Message - " + Client.Network,nick + " says: " + msg,this._Config.options.TipDuration); 
           }

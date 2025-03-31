@@ -333,6 +333,9 @@ class ConfigGeneral extends QDialog {
     this._CNInvite.checked = this._Root._Config.options.TipOtherInvite;
     this._CNTimeout.value = this._Root._Config.options.TipDuration;
 
+    let checkboxes = this._Container.querySelectorAll('input[type=checkbox]');
+    checkboxes.forEach((box) => { box.addEventListener('change',(e) => { this._Save(); }) });
+
     /*
     this._EBeeps.checked = this._Root._Config['options']['irc'].ebeeps;
     this._Reconnect.checked = this._Root._Config['options']['irc'].reconnect;
@@ -345,6 +348,61 @@ class ConfigGeneral extends QDialog {
     this._WMsg.value = this._Root._Config['windows'].message;
     this._WHlt.value = this._Root._Config['windows'].highlight;
     */
+  }
+  _Save() {
+    //this._Root._Config.options.MNick = //this._MNick.value;
+    //this._Root._Config.options.ANick = //this._ANick.value;
+    //this._Root._Config.options.QuitMessage = //this._QMsg.value;
+    this._Root._Config.options.ConnectOnStartup = this._CStartup.checked;
+    this._Root._Config.options.ReconnectOnDisconnect = this._CReconnect.checked;
+    this._Root._Config.options.ShowQuickConnectOnStartup = this._CQStartup.checked;
+    this._Root._Config.options.UseInvisibleMode = this._CInvisible.checked;
+    this._Root._Config.options.PrefixMessages = this._CPrefix.checked;
+    this._Root._Config.options.StartQueriesMinimized = this._CQuery.checked;
+    this._Root._Config.options.WhoisOnQueryOpen = this._CWQuery.checked;
+    this._Root._Config.options.KeepChannelsOpen = this._CKeepChans.checked;
+    this._Root._Config.options.AutoJoinOnInvite = this._CInvite.checked;
+    this._Root._Config.options.RejoinWhenKicked = this._CRejoin.checked;
+    this._Root._Config.options.RejoinOnConnect = this._CRejoinConnect.checked;
+    this._Root._Config.options.ShortChannelEvents = this._CEvents.checked;
+    this._Root._Config.options.ShowUserAddress = this._CAddress.checked;
+    this._Root._Config.options.SendIRCv3Typing = this._CTyping.checked;
+    this._Root._Config.options.StripControlCodes = this._CStrip.checked;
+    this._Root._Config.options.SplitLongMessages = this._CSplit.checked;
+    this._Root._Config.options.TimestampEvents = this._CTime.checked;
+    //this._Root._Config.options.TimestampFormat = //this._CTimeFmt.value;
+    this._Root._Config.options.EnableSounds = this._CEnableSounds.checked;
+    this._Root._Config.options.BeepOnChannelMsg = this._CBeepChan.checked;
+    this._Root._Config.options.BeepOnQueryMsg = this._CBeepQuery.checked;
+    //this._Root._Config.options.StatusDoubleClick = //this._CPStatus.value;
+    //this._Root._Config.options.QueryDoubleClick = //this._CPQuery.value;
+    //this._Root._Config.options.ChannelDoubleClick = //this._CPChan.value;
+    //this._Root._Config.options.NicklistDoubleClick = //this._CPNick.value;
+    this._Root._Config.options.ShowNetworkInTitle = this._CDNetworkTitle.checked;
+    this._Root._Config.options.ShowNicknameInTitle = this._CDNickTitle.checked;
+    this._Root._Config.options.ShowNicknameInTree = this._CDTree.checked;
+    this._Root._Config.options.EmbedMediaUrls = this._CDEmbed.checked;
+    //this._Root._Config.options.WindowBuffer = //this._CDBuffer.value;
+    this._Root._Config.options.ConfirmCloseStatusStillConnected = this._COClose.checked;
+    this._Root._Config.options.ConfirmLargePastes = this._COPaste.checked;
+
+    this._Root._Config.options.EnableNotifications = this._CEnableNotifications.checked;
+    this._Root._Config.options.TipChanMessage = this._CNChanMessage.checked;
+    this._Root._Config.options.TipChanNotice = this._CNChanNotice.checked;
+    this._Root._Config.options.TipChanCTCP = this._CNChanCTCP.checked;
+    this._Root._Config.options.TipChanJoinPart = this._CNChanJoinPart.checked;
+    this._Root._Config.options.TipChanKick = this._CNChanKick.checked;
+    this._Root._Config.options.TipChanMode = this._CNChanMode.checked;
+    this._Root._Config.options.TipChanTopic = this._CNChanTopic.checked;
+    this._Root._Config.options.TipChanNickname = this._CNChanNickname.checked;
+    this._Root._Config.options.TipChanQuit = this._CNChanQuit.checked;
+    this._Root._Config.options.TipPrivateMessage = this._CNPrivateMessage.checked;
+    this._Root._Config.options.TipPrivateNotice = this._CNPrivateNotice.checked;
+    this._Root._Config.options.TipPrivateCTCP = this._CNPrivateCTCP.checked;
+    this._Root._Config.options.TipOtherConnect = this._CNConnect.checked;
+    this._Root._Config.options.TipOtherInvite = this._CNInvite.checked;    
+    this._Root._SaveConfig();
+    //this._CNTimeout.value = this._Root._Config.options.TipDuration;    
   }
 }
 customElements.define('web-configgeneral', ConfigGeneral);
