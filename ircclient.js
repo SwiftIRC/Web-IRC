@@ -40,7 +40,7 @@ class IALItem {
     }
     addBan(mask,setby,settime) { if (!this.IBL.hasOwnProperty(mask)) { this.IBL[mask] = {by: setby, date: settime}; } }
     delBan(mask) { if (this.IBL.hasOwnProperty(mask)) { delete this.IBL[mask]; } }
-    addExcept(mask,setby,settime) { if (!this.IEL.hasOwnProperty(banmask)) { this.IEL[mask] = {by: setby, date: settime}; } }
+    addExcept(mask,setby,settime) { if (!this.IEL.hasOwnProperty(mask)) { this.IEL[mask] = {by: setby, date: settime}; } }
     delExcept(mask) { if (this.IEL.hasOwnProperty(mask)) { delete this.IEL[mask]; } }
     addInvite(mask,setby,settime) { if (!this.IIL.hasOwnProperty(mask)) { this.IIL[mask] = {by: setby, date: settime}; } }
     delInvite(mask) { if (this.IIL.hasOwnProperty(mask)) { delete this.IIL[mask]; } }
@@ -76,11 +76,12 @@ class IALItem {
   ================================================================================================*/
   class IRCClient {
     constructor(cid,nick,server,args) {
-      this.Listeners = {action: [],batch: [],connect: [],chghost: [],ctcp: [],ctcpreply: [],disconnect: [],error: [],invite: [],join: [],kick: [],logon: [],mode: [],nick: [],notice: [],part: [],ping: [],pong: [],quit: [],raw: [],snotice: [],smode: [],privmsg: [],tagmsg: [],topic: [],umode: []}; //Collection of callbacks for IRC related events
+      this.Listeners = {action: [],batch: [],connect: [],chghost: [],ctcp: [],ctcpreply: [],disconnect: [],error: [],invite: [],join: [],kick: [],logon: [],mode: [],nick: [],notice: [],part: [],ping: [],pong: [],quit: [],raw: [],snotice: [],smode: [],privmsg: [],tagmsg: [],topic: [],umode: [],debugrawdata: [],chancentral: []}; //Collection of callbacks for IRC related events
       this.CID = cid;
       this.Server = server;
       this.Port = '';
       this.Me = nick || 'Guest-' + (Math.random() + 1).toString(36).substring(7);
+      this.Debug = false;
       this.InitDefaultValues();
     }
     InitDefaultValues() {
@@ -91,6 +92,8 @@ class IALItem {
       this.IrcV3ReqCap = []; //Collection of capabilities requested, pruned from CAP ACK/NAK to determine once empty to CAP END.
       this.IrcV3Batch = {}; //Blank storage for batches
       this.IrcV3ClientTagDeny = '';
+      this.UseNamesX = false;
+      this.UseUHNames = false;
       this.UMode = '';
       this.ChanModes = 'bIe,k,l';
       this.ChanTypes = '#&';
@@ -123,7 +126,10 @@ class IALItem {
     }
     WSSend(data) {
       if (this.hasOwnProperty('Socket')) {
-        if (this.Debug) { console.log("-> " + data); }
+        if (this.Debug) { 
+          //console.log("-> " + data);
+          this.Emit('debugrawdata',[this.CID,"-> " + data]);
+        }
         this.Socket.send(data);
         if (this.PingSocket) { clearInterval(this.PingSocket); }
         this.PingSocket = setInterval(() => { this.WSSend("PING " + new Date().getTime()); },"60000");
@@ -187,7 +193,10 @@ class IALItem {
     addUMode(mode) { if (this.UMode.indexOf(mode) < 0) { this.UMode += mode; } }
     delUMode(mode) { if (this.UMode.indexOf(mode) > -1) { this.UMode = this.UMode.replace(mode,""); } }
     ParseLine(data) {
-      if (this.Debug) { console.log("<- " + data); }
+      if (this.Debug) { 
+        //console.log("<- " + data);
+        this.Emit('debugrawdata',[this.CID,"<- " + data]);
+      }
       if (data.match(/^(?:@([^ ]+) )?(?:\x3a(\S+) )?(\d{3}|[a-zA-Z]+)(?: ((?:[^\x00\x0a\x0d\x20\x3a][^\x00\x0a\x0d\x20]*)(?: [^\x00\x0a\x0d\x20\x3a][^\x00\x0a\x0d\x20]*)*))?(?: \x3a([^\x00\x0a\x0d]*))?\x20*$/)) {
         var Tags = RegExp.$1 , FullAddress = RegExp.$2, Event = RegExp.$3, Args = RegExp.$4 || '', Extra = RegExp.$5, tmp = FullAddress.split(/!(.*)?$/,2), Nick = tmp[0], Address = tmp[1], IRCv3 = { clientonly: { } };
         if (Tags) { 
@@ -311,7 +320,11 @@ class IALItem {
               this.NickMode = RegExp.$1;
               this.Prefix = RegExp.$2;
             }
-            else if (arg.match(/^(?:NAMESX|UHNAMES)$/i)) { this.WSSend('PROTOCTL ' + arg); }
+            else if (arg.match(/^(?:NAMESX|UHNAMES)$/i)) { 
+              if (arg == "NAMESX") { this.UseNamesX = true; }
+              else if (arg == "UHNAMES") { this.UseUHNames = true; }        
+              this.WSSend('PROTOCTL ' + arg); 
+            }
           },this);
           this.Emit('raw',[this.CID,Event,Args.join(" ") + " " + Extra,IRCv3]);
         }
@@ -346,7 +359,11 @@ class IALItem {
         }
         else if (Event == "367") { if (this.ICL.hasOwnProperty(Args[1].toLowerCase())) { this.ICL[Args[1].toLowerCase()].addBan(Args[2],Args[3],parseInt((Extra ? Extra : Args[4]))); } this.Emit('raw',[this.CID,Event,Args.join(" ") + " " + Extra,IRCv3]); }
         else if (Event == "376" || Event == "422") { this.Emit('connect',[this.CID,this.Socket.readyState]); this.Emit('raw',[this.CID,Event,Args.join(" ") + " " + Extra,IRCv3]); }
-        else if (Event == "728") { if (this.ICL.hasOwnProperty(Args[1].toLowerCase())) { this.ICL[Args[1].toLowerCase()].addQuiet(Args[2],Args[3],parseInt(Args[4])); } this.Emit('raw',[this.CID,Event,Args.join(" ") + " " + Extra,IRCv3]); }
+        //Err Nickname in Use!
+        else if (Event == "433") { 
+          if (this.ANick && Args[2] != this.ANick) { this.WSSend('NICK ' + this.ANick); }
+        }
+        else if (Event == "728") { if (this.ICL.hasOwnProperty(Args[1].toLowerCase())) { this.ICL[Args[1].toLowerCase()].addQuiet(Args[3],Args[4],parseInt(Args[5])); } this.Emit('raw',[this.CID,Event,Args.join(" ") + " " + Extra,IRCv3]); }
   
         //IRCv3 special events
         else if (/^ACCOUNT$/i.test(Event)) { this.IALUpdate(Nick,{account: Args[0]}); }
@@ -382,8 +399,9 @@ class IALItem {
           if (Nick == this.Me) { 
             this.ICLAdd(chan);
             if (this.Socket) { 
-              this.WSSend('MODE ' + chan); 
-              if (this.IrcV3Cap.includes('away-notify')) { this.WSSend('WHO ' + chan); }
+              this.WSSend('MODE ' + chan);
+              this.ChanModes.substr(0,this.ChanModes.indexOf(',')).split("").forEach((mode) => { this.WSSend('MODE ' + chan + " +" + mode); });
+              if (this.IrcV3Cap.includes('away-notify') || (!this.IrcV3Cap.includes('userhost-in-names') && !this.Use)) { this.WSSend('WHO ' + chan); }
             }
           }
           else {
@@ -460,11 +478,11 @@ class IALItem {
       }
     }
   
-    ParseModes(nick,address,target,modes,parms) {
-      var bothmodes = this.NickMode + this.ChanModes, InMode = modes.split(""), InParm = parms.split(/ /), RequireParm = bothmodes.split(/,/), porm = "", parmcnt = 0;
-      if (this.isChan(target)) {
-        InMode.forEach(function(mode,index,_array) {
-        var rxMode = new RegExp("[" + mode + "]"), handled = 0;
+  ParseModes(nick,address,target,modes,parms) {
+    var bothmodes = this.NickMode + this.ChanModes, InMode = modes.split(""), InParm = parms.split(/ /), RequireParm = bothmodes.split(/,/), porm = "", parmcnt = 0;
+    if (this.isChan(target)) {
+      InMode.forEach(function(mode,indexa,_array) {
+        var rxMode = new RegExp("[" + mode + "]");
         if (/[+-]/.test(mode)) { porm = mode; }
         else {
           RequireParm.forEach(function(rparm,index,_array) {
@@ -481,38 +499,37 @@ class IALItem {
                       this.SortNicks(target.toLowerCase(),this.ICL[target.toLowerCase()].Nicks);
                     } 
                   }
-                  handled = 1;
                 }
                 else {
                   //modify channel modes (requires parms)
                   if (porm == "+") {
-                    if (bothmodes.includes(mode)) {
-                      if (mode == "b") { this.ICL[target.toLowerCase()].addBan(InParm[parmcnt],nick,Math.floor(Date.now() / 1000)); handled = 1; }
-                      else if (mode == "e") { this.ICL[target.toLowerCase()].addExcept(InParm[parmcnt],nick,Math.floor(Date.now() / 1000)); handled = 1; }
-                      else if (mode == "I") { this.ICL[target.toLowerCase()].addInvite(InParm[parmcnt],nick,Math.floor(Date.now() / 1000)); handled = 1; }
-                      else if (mode == "q") { this.ICL[target.toLowerCase()].addQuiet(InParm[parmcnt],nick,Math.floor(Date.now() / 1000)); handled = 1; }
+                    if (RequireParm[0].indexOf(mode) > -1) {
+                      if (mode == "b") { this.ICL[target.toLowerCase()].addBan(InParm[parmcnt],nick,Math.floor(Date.now() / 1000)); this.Emit('chancentral',[this.CID,target,nick,"+b",InParm[parmcnt]]); }
+                      else if (mode == "e") { this.ICL[target.toLowerCase()].addExcept(InParm[parmcnt],nick,Math.floor(Date.now() / 1000)); this.Emit('chancentral',[this.CID,target,nick,"+e",InParm[parmcnt]]); }
+                      else if (mode == "I") { this.ICL[target.toLowerCase()].addInvite(InParm[parmcnt],nick,Math.floor(Date.now() / 1000)); this.Emit('chancentral',[this.CID,target,nick,"+I",InParm[parmcnt]]); }
+                      else if (mode == "q") { this.ICL[target.toLowerCase()].addQuiet(InParm[parmcnt],nick,Math.floor(Date.now() / 1000)); this.Emit('chancentral',[this.CID,target,nick,"+q",InParm[parmcnt]]); }
                     }
                     else { this.ICL[target.toLowerCase()].addMode(mode,InParm[parmcnt]); }
                   }
                   else { 
-                    if (bothmodes.includes(mode)) {
-                      if (mode == "b") { this.ICL[target.toLowerCase()].delBan(InParm[parmcnt]); }
-                      else if (mode == "e") { this.ICL[target.toLowerCase()].delExcept(InParm[parmcnt]); }
-                      else if (mode == "I") { this.ICL[target.toLowerCase()].delInvite(InParm[parmcnt]); }
-                      else if (mode == "q") { this.ICL[target.toLowerCase()].delQuiet(InParm[parmcnt]); }
+                    if (RequireParm[0].indexOf(mode) > -1) {
+                      if (mode == "b") { this.ICL[target.toLowerCase()].delBan(InParm[parmcnt]); handled = 1; this.Emit('chancentral',[this.CID,target,nick,"-b",InParm[parmcnt]]); }
+                      else if (mode == "e") { this.ICL[target.toLowerCase()].delExcept(InParm[parmcnt]); this.Emit('chancentral',[this.CID,target,nick,"-e",InParm[parmcnt]]); }
+                      else if (mode == "I") { this.ICL[target.toLowerCase()].delInvite(InParm[parmcnt]); this.Emit('chancentral',[this.CID,target,nick,"-I",InParm[parmcnt]]); }
+                      else if (mode == "q") { this.ICL[target.toLowerCase()].delQuiet(InParm[parmcnt]); this.Emit('chancentral',[this.CID,target,nick,"-q",InParm[parmcnt]]); }
                     }
                     else { this.ICL[target.toLowerCase()].delMode(mode); }
                   }
                 }
                 parmcnt++;
               }
+              else {
+                //modify channel modes (no parms)
+                if (porm == "+") { this.ICL[target.toLowerCase()].addMode(mode,""); }
+                else { this.ICL[target.toLowerCase()].delMode(mode); }
+              }    
             }
           },this);
-          if (!handled) {
-            //modify channel modes (no parms)
-            if (porm == "+") { this.ICL[target.toLowerCase()].addMode(mode,""); }
-            else { this.ICL[target.toLowerCase()].delMode(mode); }
-          }
         }
       },this);
     }
@@ -527,7 +544,7 @@ class IALItem {
     }		
   }
   //useful Identifiers
-  //TODO: isban, isinvite and isexcept chan() comchan() ial() ialchan() ibl() iel() iil()
+  //TODO: chan() comchan() ial() ialchan() ibl() iel() iil()
   address(nick,level) { 
     if (this.IAL.hasOwnProperty(nick)) { return this.mask(nick + "!" + this.IAL[nick].address,level); }
     else { return this.mask(nick + "!user@host",level); }
@@ -539,6 +556,9 @@ class IALItem {
   isVoice(nick,chan) { if (this.IAL.hasOwnProperty(nick) && this.IAL[nick].channels.hasOwnProperty(chan.toLowerCase())) { return (this.IAL[nick].channels[chan.toLowerCase()].indexOf("+") == -1 ? false : true); } return false; }
   isReg(nick,chan) { if (this.IAL.hasOwnProperty(nick) && this.IAL[nick].channels.hasOwnProperty(chan.toLowerCase())) { return (this.IAL[nick].channels[chan.toLowerCase()] == "" ? true : false); } return false; }
   isNickMode(nick,mode,chan) { if (this.IAL.hasOwnProperty(nick) && this.IAL[nick].channels.hasOwnProperty(chan.toLowerCase())) { return (this.IAL[nick].channels[chan.toLowerCase()].indexOf(this.Prefix.substr(this.NickMode.indexOf(mode),1)) == -1 ? false : true); } return false; }
+  isBan(mask,chan) { if (this.ICL.hasOwnProperty(chan.toLowerCase())) { return (this.ICL[chan.toLowerCase()].IBL.indexOf(mask) == -1 ? false : true); } return false; }
+  isExcept(mask,chan) { if (this.ICL.hasOwnProperty(chan.toLowerCase())) { return (this.ICL[chan.toLowerCase()].IEL.indexOf(mask) == -1 ? false : true); } return false; }
+  isInvite(mask,chan) { if (this.ICL.hasOwnProperty(chan.toLowerCase())) { return (this.ICL[chan.toLowerCase()].IIL.indexOf(mask) == -1 ? false : true); } return false; }
       
   isWm(wc,mc) { var expr = new RegExp("^" + wc.replace(/(\W)/g,function(str,backref) { return (backref == "*" ? ".*" : (backref == "?" ? "." : "\\" + backref)); }) + "$","i");  return expr.test(mc); }
   isWmCS(wc,mc) { var expr = new RegExp("^" + wc.replace(/(\W)/g,function(str,backref) { return (backref == "*" ? ".*" : (backref == "?" ? "." : "\\" + backref)); }) + "$");  return expr.test(mc); }

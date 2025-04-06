@@ -8,6 +8,7 @@ class CustomWindow extends QMdiSubWindow {
       this._Highlight = 0;
       this._TypeObject = {};
       this._TypeTimer = '';
+      this._hopping = false;
   
       /*-------------------------------------------------------------------------------------------------
       Build UI Components
@@ -37,20 +38,36 @@ class CustomWindow extends QMdiSubWindow {
         this.List.style.color = this._Color('listboxtext');
         this.List.addEventListener('dblclick',(e) => { if (/^span$/i.test(e.target.tagName)) { this._Root._NewSubWindow(this._Cid,'query',e.target.parentNode.dataset.nick); } });
         this.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea,this.ListDock);
-  
+        
+        this.Buttons = QuickElement('div',{style: 'display: block'},'');
+        var Client = this._Root._Sessions[this._Cid].Client;
+        Client.NickMode.split("").forEach((mode,index,arr) => { 
+          let tmp = QuickElement('button',{},"~" + mode + "(" + Client.Prefix.slice(index,index+1) + ")")
+          tmp.addEventListener('click',(e) => { this._QuickMode(mode); });
+          this.Buttons.appendChild(tmp);
+        });
+
+        setTimeout(() => { 
+          this.ListDock._CentralWidget.appendChild(this.Buttons)
+        });
+
         this.Toolbar = new QToolBar();
         this.Info = new QAction('images/info.ico').setToolTip('Chan Info').setCheckable(true).connect('toggled',this,this._ToggleChanCentral);
+        this.Hop = new QAction('images/reload.png').setToolTip('Hop').connect('triggered',this,(e) => { this._hopping = true; this._Root._processInputLine(this,"/hop"); });
         this.Idle = new QAction('images/hourglass.ico').setToolTip('Channel Idle').setCheckable(true).connect('toggled',this,this._ToggleIdle);
         this.UserStats = new QAction('images/piechart.ico').setToolTip('User Statistics').setCheckable(true).connect('toggled',this,this._ToggleStats);
         this.ToggleNick = new QAction('images/users.ico').setToolTip('Toggle Nicklist').setCheckable(true).setChecked(true).connect('toggled',this,this._ToggleNicklist);
+        this.ToggleButtons = new QAction('images/editprop.png').setToolTip('Toggle Quick Modes').setCheckable(true).setChecked(true).connect('toggled',this,this._ToggleButtons);
         this.SetFont = new QAction('images/font.png').setToolTip('Set Font').connect('triggered',this._Root,this._Root._ToggleSelectFont);
 
         this.Toolbar.addAction(this.Info);
+        this.Toolbar.addAction(this.Hop);
         this.Toolbar.addAction(new QAction().setSeparator());
         this.Toolbar.addAction(this.Idle);
         this.Toolbar.addAction(this.UserStats);
         this.Toolbar.addAction(new QAction().setSeparator());
         this.Toolbar.addAction(this.ToggleNick);
+        this.Toolbar.addAction(this.ToggleButtons);
         this.Toolbar.addAction(new QAction().setSeparator());
         this.Toolbar.addAction(this.SetFont);
         this.addToolBar(Qt.ToolBarArea.TopToolBarArea,this.Toolbar);
@@ -58,23 +75,78 @@ class CustomWindow extends QMdiSubWindow {
         this.ChanCentral = QuickElement('div',{'class': 'chancentral', style: "display: none; flex-direction: column; background: inherit; flex: auto; overflow-y: scroll;"},'',this.Container);
         QuickElement('span',{},'Topic:<br>',this.ChanCentral);
         this.ChanCentralTopic = QuickElement('input',{style: 'flex: 0 1'},'',this.ChanCentral);
-        QuickElement('span',{},'Bans List:<br>',this.ChanCentral);
-        this.CentralTree = new QTreeWidget(this.ChanCentral);
-        this.CentralTree.setColumnCount(3);
-        this.CentralTree.setHeaderLabels(['mask','set by','time']);
-        this.ButtonSpan = QuickElement('span',{},'',this.ChanCentral);
-        QuickElement('button',{},'Bans',this.ButtonSpan);
-        QuickElement('button',{},'Excepts',this.ButtonSpan);
-        QuickElement('button',{},'Invites',this.ButtonSpan);
-        QuickElement('button',{},'Quiets',this.ButtonSpan);
-        QuickElement('button',{},'Edit',this.ButtonSpan);
-        QuickElement('button',{},'Remove',this.ButtonSpan);
+
+        this.TabWidget = new QTabWidget(this.ChanCentral);
+
+        this.bCentralTree = new QTreeWidget();
+        this.bCentralTree.setColumnCount(3);
+        this.bCentralTree.setHeaderLabels(['mask','set by','time']);
+
+        this.eCentralTree = new QTreeWidget();
+        this.eCentralTree.setColumnCount(3);
+        this.eCentralTree.setHeaderLabels(['mask','set by','time']);
+
+        this.ICentralTree = new QTreeWidget();
+        this.ICentralTree.setColumnCount(3);
+        this.ICentralTree.setHeaderLabels(['mask','set by','time']);
+
+        this.qCentralTree = new QTreeWidget();
+        this.qCentralTree.setColumnCount(3);
+        this.qCentralTree.setHeaderLabels(['mask','set by','time']);
+        this.TabWidget.addTab(this.bCentralTree,new QAction('',''),'Bans');
+        this.TabWidget.addTab(this.eCentralTree,new QAction('',''),'Excepts');
+        this.TabWidget.addTab(this.ICentralTree,new QAction('',''),'Invites');
+        this.TabWidget.addTab(this.qCentralTree,new QAction('',''),'Quiets');
+    
+        this.ButtonDiv = QuickElement('div',{},'');
+        QuickElement('button',{},'Remove',this.ButtonDiv);
   
-        //this.NickModeBar = new QToolBar();
-        //Client.NickMode.split("").forEach((mode) => { 
-        //  this.NickModeBar.addAction(new QAction('',"~" + mode).setToolTip('Toggle mode ' + mode).connect('triggered',this,() => { this._QuickMode(mode) }));
-        //});
-        //this.addToolBar(Qt.RightToolBarArea,this.NickModeBar);
+        this.OptionsDiv = QuickElement('div',{style: 'display: flex;'},'');
+        this.OptionsADiv = QuickElement('div',{style: 'flex: 1;'},'',this.OptionsDiv);
+        this.OptionsBDiv = QuickElement('div',{style: 'flex: 1;'},'',this.OptionsDiv);
+        this._Modet = QuickElement('input',{type: "checkbox"},'',this.OptionsADiv);
+        QuickElement('span',{},'Operators set topic',this.OptionsADiv);        
+        QuickElement('br',{},'',this.OptionsADiv);
+        this._Moden = QuickElement('input',{type: "checkbox"},'',this.OptionsADiv);
+        QuickElement('span',{},'No external messages',this.OptionsADiv);        
+        QuickElement('br',{},'',this.OptionsADiv);
+        this._Modei = QuickElement('input',{type: "checkbox"},'',this.OptionsADiv);
+        QuickElement('span',{},'Invite only',this.OptionsADiv);        
+        QuickElement('br',{},'',this.OptionsADiv);
+        this._Modem = QuickElement('input',{type: "checkbox"},'',this.OptionsADiv);
+        QuickElement('span',{},'Moderated',this.OptionsADiv);        
+        QuickElement('br',{},'',this.OptionsADiv);
+        this._Modep = QuickElement('input',{type: "checkbox"},'',this.OptionsADiv);
+        QuickElement('span',{},'Private',this.OptionsADiv);        
+        QuickElement('br',{},'',this.OptionsADiv);
+        this._Modes = QuickElement('input',{type: "checkbox"},'',this.OptionsADiv);
+        QuickElement('span',{},'Secret',this.OptionsADiv);        
+        QuickElement('br',{},'',this.OptionsADiv);
+    
+        this._Modek = QuickElement('input',{type: "checkbox"},'',this.OptionsBDiv);
+        QuickElement('span',{},'Key',this.OptionsBDiv);        
+        QuickElement('br',{},'',this.OptionsBDiv);
+        this._Key = QuickElement('input',{type: "text"},'',this.OptionsBDiv);
+        QuickElement('br',{},'',this.OptionsBDiv);
+        this._Model = QuickElement('input',{type: "checkbox"},'',this.OptionsBDiv);
+        QuickElement('span',{},'Maximum Users',this.OptionsBDiv);        
+        QuickElement('br',{},'',this.OptionsBDiv);
+        this._Limit = QuickElement('input',{type: "text"},'',this.OptionsBDiv);
+
+        /*
+        this.NickModeBar = new QToolBar();
+        var Client = this._Root._Sessions[this._Cid].Client;
+        Client.NickMode.split("").forEach((mode) => { 
+          this.NickModeBar.addAction(new QAction('',"~" + mode).setToolTip('Toggle mode ' + mode).connect('triggered',this,() => { this._QuickMode(mode) }));
+        });
+        this.addToolBar(Qt.ToolBarArea.RightToolBarArea,this.NickModeBar);
+        */
+        this.TabWidget.addTab(this.OptionsDiv,new QAction('',''),'Modes');
+
+        setTimeout(() => { 
+          this.ChanCentral.appendChild(this.ButtonDiv); 
+          //this.ChanCentral.appendChild(this.OptionsDiv); 
+        });
         this.IdleContainer = QuickElement('span',{style: 'padding: 0 4px; display: none;'},'Idle: 0',this.statusBar());
         this.StatsContainer = QuickElement('span',{style: 'padding: 0 4px; display: none;'},'Count: 0',this.statusBar());
       }
@@ -106,6 +178,15 @@ class CustomWindow extends QMdiSubWindow {
         this.addToolBar(Qt.ToolBarArea.TopToolBarArea,this.Toolbar);
         this.OnlineContainer = QuickElement('span',{style: 'padding: 0 4px; display: none'},'Online: -',this.statusBar());
       }
+      else if (Attributes.type == 'debug') {
+        this.ViewPort = QuickElement('div',{'class': 'viewport', style: "display: flex; flex-direction: column; background: inherit; flex: auto; text-indent: -1em; padding: 0 0 0 1.2em; word-wrap: break-word; white-space: pre-wrap; overflow-y: scroll;"},'',this.Container);
+        this.ViewPort.style.background = this._Color('viewport');
+
+        this.ViewPort.addEventListener('scroll',(e) => { 
+          this.ViewPort._LastTop = this.ViewPort.scrollTop; 
+          this.ViewPort._isEnd = ((this.ViewPort.scrollTop + this.ViewPort.clientHeight) == this.ViewPort.scrollHeight ? true : false);
+        });
+      }
       else if (Attributes.type == 'picture') {
         this.Picture = QuickElement('canvas',{id: this._Target.substr(1) },'',this.Container);
         this.Picture.addEventListener('pointerdown',(e) => { this._customEvent('input', { bubbles: true, detail: { target: this, jsEvent: e } }); });
@@ -113,9 +194,8 @@ class CustomWindow extends QMdiSubWindow {
         this.Picture.addEventListener('pointerup',(e) => { this._customEvent('input', { bubbles: true, detail: { target: this, jsEvent: e } }); });
         this.Picture.addEventListener('pointercancel',(e) => { this._customEvent('input', { bubbles: true, detail: { target: this, jsEvent: e } }); });
         //this.Canvas.addEventListener('keyboard',this._MainApp._picwinRelay.bind(this));
-  
-  
       }
+
       if (/^(status|channel|query)$/i.test(Attributes.type)) { 
         this.ViewPort = QuickElement('div',{'class': 'viewport', style: "display: flex; flex-direction: column; background: inherit; flex: auto; text-indent: -1em; padding: 0 0 0 1.2em; word-wrap: break-word; white-space: pre-wrap; overflow-y: scroll;"},'',this.Container);
         this.ViewPort.style.background = this._Color('viewport');
@@ -188,6 +268,10 @@ class CustomWindow extends QMdiSubWindow {
               var Client = this._Root._Sessions[this._Cid].Client , IAL = Client.GetIAL(Client.Me);
               if (IAL && IAL.channels.hasOwnProperty(this._Target.toLowerCase())) { Client.WSSend("PART " + this._Target); }
             }
+            else if (this._Type == 'debug') {
+              var Client = this._Root._Sessions[this._Cid].Client;
+              Client.Debug = false;
+            }
             this._Root._CloseSubWindow(this._Cid,this); 
           }
         }
@@ -233,7 +317,7 @@ class CustomWindow extends QMdiSubWindow {
         if (this.ViewPort.childNodes.length == this._Root._Config['options'].WindowBuffer) { this.ViewPort.removeChild(this.ViewPort.firstElementChild); }
         if (!this.hasOwnProperty('_DocumentFragment')) { this._DocumentFragment = document.createDocumentFragment(); }
         var Async = [] , str = this._Root.CC2Html(string + "\n") , embedmedia = this._Root._Config.options.EmbedMediaUrls;
-        if (this._Type != "status") { 
+        if (this._Type != "status" && this._Type != "debug") { 
           str = str.replace(/((?:https?|ftps?):\/\/(?:[\w_-]+(?:(?:\.[\w_-]+)+))(?:[\w.,@?^=%&:/~+#-;]*[\w@?^=%&/~+#-])?)/ig,function(match,url) {   
             if (embedmedia && /^https?:\/\/(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=)?(.+)/g.test(url)) { return '<iframe width="320" height="280" src="//www.youtube.com/embed/' + RegExp.$1 + '" frameborder="0" allowfullscreen></iframe>'; }
             else {
@@ -275,30 +359,43 @@ class CustomWindow extends QMdiSubWindow {
       if (this._Type == "status") { 
         this.TreeItem.setText((Client.Network != "" ? Client.Network : (Client.Server != "" ? Client.Server : "Status")) + (Client.Me != "" && this._Root._Config.options.ShowNicknameInTree ? " " + Client.Me : ""));
         this.TreeItem._SwitchItem.setText((Client.Network != "" ? Client.Network : (Client.Server != "" ? Client.Server : "Status")));
-        if (Client.Socket && Client.Socket.readyState == 1) { this.setWindowTitle("Status: " + Client.Me + " [+" + Client.UMode + "] on " + Client.Network + " (" + Client.Server + ")"); }
-        else { this.setWindowTitle("Status: Not Connected"); }
+        if (Client.Socket && Client.Socket.readyState == 1) { this.setWindowTitle("[" + Client.CID + "]" + "Status: " + Client.Me + " [+" + Client.UMode + "] on " + Client.Network + " (" + Client.Server + ")"); }
+        else { this.setWindowTitle("[" + Client.CID + "]" + "Status: Not Connected"); }
       }
       else if (this._Type == "channel") {
         var Chan = Client.GetICL(this._Target);
         if (Chan) { 
-          this.setWindowTitle(this._Target + (this._Root._Config.options.ShowNetworkInTitle == true ? " (" + Client.Network + ")" : "") + " [" + Chan.Nicks.length + "] [+" + Chan.mode + "]: " + this._Root.CC2Html(Chan.topic)); 
+          this.setWindowTitle("[" + Client.CID + "]" + this._Target + (this._Root._Config.options.ShowNetworkInTitle == true ? " (" + Client.Network + ")" : "") + " [" + Chan.Nicks.length + "] [+" + Chan.mode + "]: " + this._Root.CC2Html(Chan.topic)); 
           this.ChanCentralTopic.value = Chan.topic;
         }
         else { this.setWindowTitle(this._Target) }
       }
       else if (this._Type == "query") {
         var IAL = Client.GetIAL(this._Target);
-        this.setWindowTitle(this._Target + (this._Root._Config.options.ShowNetworkInTitle == true ? " (" + Client.Network + ")" : "") + (IAL ? " (" + IAL.address + ")" : ""));
+        this.setWindowTitle("[" + Client.CID + "]" + this._Target + (this._Root._Config.options.ShowNetworkInTitle == true ? " (" + Client.Network + ")" : "") + (IAL ? " (" + IAL.address + ")" : ""));
       }
     }
-    _addBan(mask,setby,time) {
-      let tmp = new QTreeWidgetItem('',mask,this.CentralTree);
-      tmp.setColumnText(1,setby);
-      tmp.setColumnText(2,AscTime(new Date(parseInt(time) * 1000),'ddd mmm dd HH:nn:ss yyyy'));
+    _ToggleButtons(e) { 
+      if (e.detail.checked) { this.Buttons.style.display = null; }
+      else { this.Buttons.style.display = 'none'; }
     }
     _ToggleChanCentral(e) {
       if (e.detail.checked) { 
-        this.ChanCentral.style.display = 'flex'; 
+        this.ChanCentral.style.display = 'flex';
+        var Client = this._Root._Sessions[this._Cid].Client , Chan = Client.GetICL(this._Target);
+        if (Chan) {
+          this._Modet.checked = Chan.Mode.hasOwnProperty('t');
+          this._Moden.checked = Chan.Mode.hasOwnProperty('n');
+          this._Modei.checked = Chan.Mode.hasOwnProperty('i');
+          this._Modem.checked = Chan.Mode.hasOwnProperty('m');
+          this._Modep.checked = Chan.Mode.hasOwnProperty('p');
+          this._Modes.checked = Chan.Mode.hasOwnProperty('s');
+         
+          this._Modek.checked = Chan.Mode.hasOwnProperty('k');
+          if (Chan.Mode.hasOwnProperty('k')) { this._Key.value = Chan.Mode['k']; }
+          this._Model.checked = Chan.Mode.hasOwnProperty('l');         
+          if (Chan.Mode.hasOwnProperty('l')) { this._Limit.value = Chan.Mode['l']; }
+        }  
         this.ViewPort.style.display = 'none'; 
       }
       else { this.ChanCentral.style.display = 'none'; this.ViewPort.style.display = 'flex'; }
@@ -357,6 +454,48 @@ class CustomWindow extends QMdiSubWindow {
     _ToggleNicklist(e) {
       if (e.detail.checked) { this.ListDock.show(); }
       else { this.ListDock.hide(); }
+    }
+    _QuickMode(mode) {
+      if (this.List.currentItem()) {
+        var Client = this._Root._Sessions[this._Cid].Client , Chan = Client.GetICL(this._Target) , nick = this.List.currentItem().dataset.nick
+        Client.WSSend("mode " + this._Target + (Client.isNickMode(nick,mode,this._Target) ? " -" : " +") + mode + " " + nick);
+      }
+    }
+
+    _handleChanCentralEvent(InMode,mask,setby,time) {
+      var Client = this._Root._Sessions[this._Cid].Client , Chan = Client.GetICL(this._Target) , porm;
+      let bans = this.bCentralTree;
+      let excepts = this.eCentralTree;
+      let invites = this.ICentralTree;
+      let quiets = this.qCentralTree;
+
+      InMode.split("").forEach((mode,index,_array) => {
+        if (/[+-]/.test(mode)) { porm = mode; }
+        else { 
+          if (porm == "+") {
+            let exists = false, tree;
+            if (mode == "b") { tree = bans; }
+            if (mode == "e") { tree = excepts; }
+            if (mode == "I") { tree = invites; }
+            if (mode == "q") { tree = quiets; }
+            tree._CentralWidget.querySelectorAll('q-treewidgetitem').forEach((widget) => { if (widget.getColumnText(0) == mask) { exists = true; } });
+            if (!exists) {
+              let tmp = new QTreeWidgetItem('',mask,tree);
+              tmp.setColumnText(1,setby);
+              tmp.setColumnText(2,AscTime(new Date(parseInt(time) * 1000),'ddd mmm dd HH:nn:ss yyyy'));
+            }
+          }
+          else { 
+            let tree;
+            if (mode == "b") { tree = bans; }
+            if (mode == "e") { tree = excepts; }
+            if (mode == "I") { tree = invites; }
+            if (mode == "q") { tree = quiets; }
+            let children = Array.from(tree._CentralWidget.querySelectorAll('q-treewidgetitem'));
+            children.reduceRight((Total,Widget,Index) => { if (Widget.getColumnText(0) == mask) { Widget.parentNode.removeChild(Widget); } },children[children.length -1]);
+          }
+        }
+      });
     }
     _handleNickListEvent(event,nick,newnick) {
       var Client = this._Root._Sessions[this._Cid].Client , Chan = Client.GetICL(this._Target);
@@ -426,112 +565,174 @@ class CustomWindow extends QMdiSubWindow {
       source.src = (!url ? 'data:' + [blob]: blob);
     }
   
-    DrawCopy(flags,Source,x,y,w,h,dx,dy,dw,dh) {
-      var Ctx = this.Picture.getContext("2d");
-      Ctx.putImageData(Source.getImageData(x,y,w,h),dx,dy); 
+  //Copies x,y,w,h from source and puts it onto canvas at destination dx,dy,dw,dh
+  DrawCopy(flags,Source,x,y,w,h,dx,dy,dw,dh) {
+    let Ctx = this.Picture.getContext("2d");
+    Ctx.putImageData(Source.getImageData(x,y,w,h),dx,dy); 
+  }
+  //Draws a Dot (Circle) with radius <size> at postion <x> <y>
+  //Note: Flags - f == fill, without it's just the outline.
+  DrawDot(flags,color,size,x,y) {  
+    let Ctx = this.Picture.getContext("2d");
+    Ctx.beginPath();
+    Ctx.arc(x,y,size,0,Math.PI*2);
+    Ctx.closePath();
+    Ctx.lineWidth = 1;	
+    if (flags.indexOf("f") != -1) {
+	    Ctx.fillStyle = color;
+      Ctx.fill();
     }
-    DrawDot(flags,color,size,x,y) {  
-      var Ctx = this.Picture.getContext("2d");
-      Ctx.beginPath();
-      Ctx.arc(x,y,size,0,Math.PI*2);
-      Ctx.closePath();
-      Ctx.lineWidth = 1;
-      
-      if (flags.indexOf("f") != -1) {
-          Ctx.fillStyle = color;
-        Ctx.fill();
-      }
-      else {
-        //this._ctx.lineWidth = size;
-          Ctx.strokeStyle = color;
-        Ctx.stroke();
-      }
+    else {
+      Ctx.strokeStyle = color;
+      Ctx.stroke();
     }
-    DrawLine(flags,color,size,x1,y1,x2,y2) {
-      var Ctx = this.Picture.getContext("2d");
-      Ctx.beginPath();
-      Ctx.moveTo(x1,y1);
-      Ctx.lineTo(x2,y2);
-      Ctx.closePath();
-  
+  }
+  //Draws a line from x1,y1 to x2,y2
+  DrawLine(flags,color,size,x1,y1,x2,y2) {
+    let Ctx = this.Picture.getContext("2d");
+    Ctx.lineWidth = size;
+    Ctx.lineCap = 'round';
+    Ctx.beginPath();
+    Ctx.moveTo(x1,y1);
+    Ctx.lineTo(x2,y2);
+    Ctx.moveTo(x2,y2);
+    Ctx.closePath();
+    Ctx.strokeStyle = color;
+    Ctx.stroke();
+  }
+  DrawPolygon(flags,color,size,Points) {
+    var Ctx = this.Picture.getContext("2d");
+    Ctx.beginPath();
+    Ctx.moveTo(Points[0],Points[1]);
+    for (var i = 2; i < Points.length; i += 2) { Ctx.lineTo(Points[i],Points[i+1]); }
+    //Ctx.lineTo(Points[0],Points[1]);
+    Ctx.closePath();
+    if (flags.indexOf("f") != -1) {
+      Ctx.fillStyle = color;
+      Ctx.fill();
+    }
+    else {
       Ctx.lineWidth = size;
       Ctx.strokeStyle = color;
       Ctx.stroke();
     }
-    DrawArrow(flags,color,size,headlen,x1,y1,x2,y2) {
-      var Ctx = this.Picture.getContext("2d") , angle = Math.atan2(y2-y1, x2-x1);
-      Ctx.beginPath();
-      Ctx.moveTo(x1,y1);
-      Ctx.lineTo(x2,y2);
-      Ctx.moveTo(x2,y2);
-      Ctx.lineTo(x2 - headlen * Math.cos(angle - Math.PI / 6), y2 - headlen * Math.sin(angle - Math.PI / 6));
-      Ctx.lineTo(x2,y2);
-      Ctx.lineTo(x2 - headlen * Math.cos(angle + Math.PI / 6), y2 - headlen * Math.sin(angle + Math.PI / 6));
+  }
+  DrawPoly(flags,color,size,Poly,ox,oy) {
+    let Ctx = this.Picture.getContext("2d");
+    Ctx.lineWidth = size;
+    Ctx.lineCap = 'round';
+    Ctx.beginPath();
+    if (flags.indexOf("f") != -1) {
+      Ctx.moveTo(Poly[0] + ox,Poly[1] + oy);
+      for (let x = 0; x < Poly.length; x += 2) {
+        let x2 = Poly[(x+2) % Poly.length] + ox , y2 = Poly[(x+3) % Poly.length] + oy;
+        Ctx.lineTo(x2,y2);
+      }
       Ctx.closePath();
-  
-      Ctx.lineWidth = size;
+	    Ctx.fillStyle = color;
+      Ctx.fill();
+    }
+    else {
+      for (let x = 0; x < Poly.length; x += 2) {
+        let x1 = Poly[x] + ox, y1 = Poly[x+1] + oy;
+        let x2 = Poly[(x+2) % Poly.length] + ox , y2 = Poly[(x+3) % Poly.length] + oy;
+        Ctx.moveTo(x1,y1);
+        Ctx.lineTo(x2,y2);
+        Ctx.moveTo(x2,y2);
+      }
+      Ctx.closePath();
       Ctx.strokeStyle = color;
-      Ctx.stroke();     
+      Ctx.stroke();
     }
-  
-    DrawRect(flags,color,size,x,y,w,h) {
-      var Ctx = this.Picture.getContext("2d");
-      Ctx.beginPath();
-      if (flags.indexOf("d") != -1) { }
-      else if (flags.indexOf("e") != -1) { }
-      else { Ctx.rect(x,y,w,h); }
-      Ctx.closePath();
-  
-      Ctx.lineWidth = size;
-      if (flags.indexOf("f") != -1) {
-        Ctx.fillStyle = color;
-        Ctx.fill();
-      }
-      else {
-        Ctx.strokeStyle = color;
-        Ctx.stroke();
-      }
-    }
-    DrawPolygon(flags,color,size,Points) {
-      var Ctx = this.Picture.getContext("2d");
-      Ctx.beginPath();
-      Ctx.moveTo(Points[0],Points[1]);
-      for (var i = 2; i < Points.length; i += 2) { Ctx.lineTo(Points[i],Points[i+1]); }
-      //Ctx.lineTo(Points[0],Points[1]);
-      Ctx.closePath();
-      if (flags.indexOf("f") != -1) {
-        Ctx.fillStyle = color;
-        Ctx.fill();
-      }
-      else {
-        Ctx.lineWidth = size;
-        Ctx.strokeStyle = color;
-        Ctx.stroke();
-      }
-    }
-    DrawText(flags,color,font,x,y,text) {
-      var Ctx = this.Picture.getContext("2d") , metrics = Ctx.measureText(text);
+  }
+  //Similar to drawline, but given a head length, it will draw the 45 degree angles off of x2,y2 to look like an arrow -->
+  DrawArrow(flags,color,size,headlen,x1,y1,x2,y2) {
+    let Ctx = this.Picture.getContext("2d") , angle = Math.atan2(y2-y1, x2-x1);
+    Ctx.beginPath();
+    Ctx.moveTo(x1,y1);
+    Ctx.lineTo(x2,y2);
+    Ctx.moveTo(x2,y2);
+    Ctx.lineTo(x2 - headlen * Math.cos(angle - Math.PI / 6), y2 - headlen * Math.sin(angle - Math.PI / 6));
+    Ctx.lineTo(x2,y2);
+    Ctx.lineTo(x2 - headlen * Math.cos(angle + Math.PI / 6), y2 - headlen * Math.sin(angle + Math.PI / 6));
+    Ctx.closePath();
+    Ctx.lineWidth = size;
+    Ctx.strokeStyle = color;
+    Ctx.stroke();     
+  }
+  DrawClear(color) {
+    let Ctx = this.Picture.getContext("2d");
+    Ctx.beginPath();
+    Ctx.rect(0,0,this.Picture.width,this.Picture.height);
+    Ctx.closePath();
+    Ctx.fillStyle = color;
+    Ctx.fill();
+  }
+  //Draws a rectanle at x,y given width/height
+  //Note: Flags - f == fill, without it's just the outline.
+  DrawRect(flags,color,size,x,y,w,h) {
+    let Ctx = this.Picture.getContext("2d");
+    Ctx.beginPath();
+    Ctx.rect(x,y,w,h);
+    Ctx.closePath();
+    Ctx.lineWidth = size;
+    if (flags.indexOf("f") != -1) {
       Ctx.fillStyle = color;
-      Ctx.font = font;
-      //metrics are funny... ascent+decent != actual height... *2 is too much... 1.5 is a crapshoot close guess...
-      Ctx.fillText(text,x,y);
-      //+ (metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent) * 1.5);
+      Ctx.fill();
     }
-    GetDot(x,y) { 
-      var Ctx = this.Picture.getContext("2d") , imgData = Ctx.getImageData(0,0,this.Picture.width,this.Picture.height);
-      var index = y*imgData.width+x , i = index*4 , d = imgData.data
-      return d[i].toString(16).padStart(2,0) + d[i+1].toString(16).padStart(2,0) + d[i+2].toString(16).padStart(2,0) + d[i+3].toString(16).padStart(2,0);
+    else {
+      Ctx.strokeStyle = color;
+      Ctx.stroke();
     }
-    PutDot(color,x,y) {
-      var Ctx = this.Picture.getContext("2d") , imgData = Ctx.getImageData(0,0,this.Picture.width,this.Picture.height);
-      var pixelData = {
-        width: imgData.width,
-        height: imgData.height,
-        data: new Uint32Array(imgData.data.buffer),
-      };
-      imgData.data[y*imgData.width+x] = color;
-      Ctx.putImageData(imgData, 0, 0);
+  }
+  //Draws text at a given x,y
+  DrawText(flags,color,font,x,y,text) {
+    let Ctx = this.Picture.getContext("2d") , metrics = Ctx.measureText(text) , oldFont = Ctx.font;
+    Ctx.fillStyle = color;
+    Ctx.font = font;
+    //metrics are funny... ascent+decent != actual height... *2 is too much... 1.5 is a crapshoot close guess...
+    Ctx.fillText(text,x,y);
+    //+ (metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent) * 1.5);
+    //Put back the last font data so a subsequent call with no font data doesn't retain the last font and size...
+    Ctx.font = oldFont;
+  }
+  DrawWrappedSphere(size,x,y,from,shift) {
+    let Ctx = this.Picture.getContext("2d");
+    let Image = Ctx.getImageData(0,0,this.Picture.width,this.Picture.height);
+    let Texture = from.getContext("2d").getImageData(0,0,from.width,from.height);
+    let rsq = size * size , area = size * size * 4;
+    for (var i = 0 ; i < area; i++) {
+      let tx = (i % (size * 2)) - size, ty = (i / (size * 2)) - size;
+      let msq = tx * tx + ty * ty;
+      if (msq <= rsq) {
+        let px = (Math.atan2(tx,Math.sqrt(rsq - msq)) / (2 * Math.PI) + 0.5) * (from.width - 1) , py = (Math.acos(-ty / size) / Math.PI) * (from.height - 1);
+        let ImageX = Math.floor(tx + x) , ImageY  = Math.floor(ty + y);
+        let TexX = Math.floor(px + shift) , TexY  = Math.floor(py);
+        if (TexX < 0) { TexX += from.width - 1; }
+        if (TexX >= from.width) { TexX = Math.floor(TexX % from.width); }
+        if (TexY < 0) { TexY += from.height - 1; }
+        if (TexY >= from.height) { TexY = Math.floor(TexY % from.height); }
+        let tindex = (ImageX + ImageY * this.Picture.width) * 4 , findex = (TexX + TexY * from.width) * 4;
+        for (var q = 0; q <= 3; q++) { Image.data[tindex + q] = Texture.data[findex + q]; }
+      }
     }
+    Ctx.putImageData(Image, 0, 0);
+  }
+  GetDot(x,y) { 
+    var Ctx = this.Picture.getContext("2d") , imgData = Ctx.getImageData(0,0,this.Picture.width,this.Picture.height);
+    var index = y*imgData.width+x , i = index*4 , d = imgData.data
+    return d[i].toString(16).padStart(2,0) + d[i+1].toString(16).padStart(2,0) + d[i+2].toString(16).padStart(2,0) + d[i+3].toString(16).padStart(2,0);
+  }
+  PutDot(color,x,y) {
+    var Ctx = this.Picture.getContext("2d") , imgData = Ctx.getImageData(0,0,this.Picture.width,this.Picture.height);
+     var pixelData = {
+      width: imgData.width,
+      height: imgData.height,
+      data: new Uint32Array(imgData.data.buffer),
+    };
+    imgData.data[y*imgData.width+x] = color;
+    Ctx.putImageData(imgData, 0, 0);
+  }
     /*DrawFill(flags,newColor,oldColor,x,y) {
       if (x < 0 || y < 0 || x >= this.Picture.width || y >= this.Picture.height) { return; }
       var color = this.GetDot(x,y);
@@ -545,11 +746,11 @@ class CustomWindow extends QMdiSubWindow {
       this.DrawFill('',newColor,oldColor,x,y+1);
       this.DrawFill('',newColor,oldColor,x,y-1);
     }
-    DrawFill(flags,fillColor,StopColor,x,y) {
-      function getPixel(pixelData, x, y) {
-        if (x < 0 || y < 0 || x >= pixelData.width || y >= pixelData.height) { return -1; } 
-        else { return pixelData.data[y * pixelData.width + x]; }
-      }    
+  DrawFill(flags,fillColor,StopColor,x,y) {
+    function getPixel(pixelData, x, y) {
+      if (x < 0 || y < 0 || x >= pixelData.width || y >= pixelData.height) { return -1; } 
+      else { return pixelData.data[y * pixelData.width + x]; }
+    }    
       // read the pixels in the canvas
       var Ctx = this.Picture.getContext("2d") , imageData = Ctx.getImageData(0,0,this.Picture.width,this.Picture.height);
   
@@ -578,49 +779,49 @@ class CustomWindow extends QMdiSubWindow {
               if (!inSpan) {
                 inSpan = true;
                 start = x;
-              }
-            } 
-            else {
-              if (inSpan) {
-                inSpan = false;
-                addSpan(start, x - 1, y, direction);
-              }
+            }
+          } 
+          else {
+            if (inSpan) {
+              inSpan = false;
+              addSpan(start, x - 1, y, direction);
             }
           }
-          if (inSpan) {
-            inSpan = false;
-            addSpan(start, x - 1, y, direction);
-          }
         }
-        addSpan(x, x, y, 0);
-        while (spansToCheck.length > 0) {
-          const {left, right, y, direction} = spansToCheck.pop();
-        
-          // do left until we hit something, while we do this check above and below and add
-          let l = left;
-          for (;;) {
-            --l;
-            const color = getPixel(pixelData, l, y);
-            if (color !== targetColor) { break; }
-          }
-          ++l
-        
-          let r = right;
-          for (;;) {
-            ++r;
-            const color = getPixel(pixelData, r, y);
-            if (color !== targetColor) { break; }
-          }
-          const lineOffset = y * pixelData.width;
-          pixelData.data.fill(fillColor, lineOffset + l, lineOffset + r);
-          if (direction <= 0) { checkSpan(l, r, y - 1, -1); } 
-          else { checkSpan(l, left, y - 1, -1); checkSpan(right, r, y - 1, -1); }
-          if (direction >= 0) { checkSpan(l, r, y + 1, +1); } 
-          else { checkSpan(l, left, y + 1, +1); checkSpan(right, r, y + 1, +1); }     
+        if (inSpan) {
+          inSpan = false;
+          addSpan(start, x - 1, y, direction);
         }
-        // put the data back
-        Ctx.putImageData(imageData, 0, 0);
       }
-    }*/
-  }
-  customElements.define('web-customwindow', CustomWindow);  
+      addSpan(x, x, y, 0);
+      while (spansToCheck.length > 0) {
+        const {left, right, y, direction} = spansToCheck.pop();
+      
+        // do left until we hit something, while we do this check above and below and add
+        let l = left;
+        for (;;) {
+          --l;
+          const color = getPixel(pixelData, l, y);
+          if (color !== targetColor) { break; }
+        }
+        ++l
+      
+        let r = right;
+        for (;;) {
+          ++r;
+          const color = getPixel(pixelData, r, y);
+          if (color !== targetColor) { break; }
+        }
+        const lineOffset = y * pixelData.width;
+        pixelData.data.fill(fillColor, lineOffset + l, lineOffset + r);
+        if (direction <= 0) { checkSpan(l, r, y - 1, -1); } 
+        else { checkSpan(l, left, y - 1, -1); checkSpan(right, r, y - 1, -1); }
+        if (direction >= 0) { checkSpan(l, r, y + 1, +1); } 
+        else { checkSpan(l, left, y + 1, +1); checkSpan(right, r, y + 1, +1); }     
+      }
+      // put the data back
+      Ctx.putImageData(imageData, 0, 0);
+    }
+  }*/
+}
+customElements.define('web-customwindow', CustomWindow);  

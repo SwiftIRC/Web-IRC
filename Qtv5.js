@@ -372,8 +372,14 @@ class QAction extends QObject {
     }
     return this;
   }
-  setDisabled(bool) { }
-  setEnabled(bool) { }
+  setDisabled(bool) { 
+    if (bool) { this.setAttribute('disabled','disabled'); }
+    else { this.removeAttribute('disabled'); }  
+  }
+  setEnabled(bool) { 
+    if (!bool) { this.setAttribute('disabled','disabled'); }
+    else { this.removeAttribute('disabled'); }  
+  }
   setVisible(bool) { 
     if (bool) { this.style.display = null; }
     else { this.style.display = 'none'; }
@@ -767,9 +773,12 @@ class QTabWidget extends QObject {
 
   //Public Functions
   addTab(page,icon,label) {
-    if (label && label != '') { icon.setIconText(label); }
-    icon.connect('triggered',this,() => { this.setCurrentIndex(Array.from(this._TabBarAreas["top"].childNodes).indexOf(icon),icon); });
+    if (label && label != '') { icon.setIconText(label).setCheckable(true); }
     this._TabBarAreas["top"].appendChild(icon); 
+    icon.connect('toggled',this,(e) => { this.setCurrentIndex(Array.from(this._TabBarAreas["top"].childNodes).indexOf(icon),icon); });
+    page.dataset.oldstyle = (page.style.display != 'none' ? page.style.display : '');
+    if (Array.from(this._CentralWidget.childNodes).length == 0) { icon.toggle(); }
+    else { page.style.display = 'none'; }
     this._CentralWidget.appendChild(page);
   }
   clear() { }
@@ -783,10 +792,10 @@ class QTabWidget extends QObject {
   removeTab(index) { }
   setCurrentIndex(index,tab) { 
     Array.from(this._CentralWidget.childNodes).forEach((child,N) => {
-      if (N != index) { child.style.display = 'none'; }
-      else { child.style.display = ''; }
+      if (N != index) { child.style.display = 'none'; Array.from(this._TabBarAreas["top"].childNodes)[N].setChecked(false); }
+      else { child.style.display = child.dataset.oldstyle || ''; Array.from(this._TabBarAreas["top"].childNodes)[N].setChecked(true); }
     })
-    this.parent().setWindowTitle(tab.iconText())
+    //this.parent().setWindowTitle(tab.iconText());
   }
   setDocumentMode() { }
   setMovable() { }
@@ -1559,6 +1568,7 @@ class QTreeWidgetItem extends QObject {
   //removeChild(child) { this._removeChildObject(child); }
   setIcon(icon) { this._TreeIcon.src = icon; return this; }
   setText(text) { this._TreeLabel.innerHTML = text; return this; }
+  getColumnText(column) { return this._Columns[column].innerText; }
   setColumnText(column,text) { this._Columns[column].innerHTML = text; return this; }
   setColumnTexts(text) { text.forEach((caption,column) => { this._Columns[column].innerHTML = caption; }); return this; }
   setToolTip (tooltip) { this.title = tooltip; return this; }

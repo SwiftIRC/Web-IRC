@@ -535,11 +535,15 @@ class WebIRC extends QMainWindow {
         'fleenode.chat': 'wss://irc.fleenode.chat:8000',
         'DigitalIRC': 'wss://irc-websocket.digitalirc.org:8443',
         'LibertaCasa': 'wss://liberta.casa/webirc',
+        //'Getgle': 'wss://getgle.org:8097',
+        //'BugzbunnyNET': 'wss://irc.bugzbunny.net:8000',
+        //'null-net': 'wss://irc.null-net.net:8000',
       },
     }
     this._MergeConfig();
     this._Sessions = { };
     this._hasFocus = true;
+    this.Aliases = { };
 
     /*-------------------------------------------------------------------------------------------------
     Build UI Components
@@ -547,9 +551,14 @@ class WebIRC extends QMainWindow {
     this.setWindowTitle("Web-IRC"); //for giggles just incase we setwindowflags to give back titlehint...
 
     this.mFile = new QMenu('File');
-      this.fNew = new QAction('images/addserver.ico','New Server Window',this.mFile).connect('triggered',this,() => { this._NewSession('','',['text.ircv3.net']); });
+      this.fNew = new QAction('images/addserver.ico','New Server Window',this.mFile).connect('triggered',this,() => { this._NewSession(this._Config.options.MNick,'',['text.ircv3.net']); });
       new QAction('','',this.mFile).setSeparator();
       this.fOptions = new QAction('images/options.ico','Options',this.mFile).connect('triggered',this,this._ToggleConfigGeneral);
+      new QAction('','',this.mFile).setSeparator();
+      this.fQuickConnect = new QAction('images/connect.png','Quick Connect',this.mFile).connect('triggered',this,this._ToggleQuickConnect);
+      new QAction('','',this.mFile).setSeparator();
+      this.fConnect = new QAction('images/connect.ico','Connect',this.mFile);//.connect('triggered',this,this._ToggleConfigGeneral);
+      this.fDisconnect = new QAction('images/disconnect.ico','Disconnect',this.mFile).setEnabled(false);//.connect('triggered',this,this._ToggleConfigGeneral);
     this._MenuBar.addMenu(this.mFile);
 
     this.mView = new QMenu('View');
@@ -560,7 +569,6 @@ class WebIRC extends QMainWindow {
       this.vTree = new QAction('','Treebar',this.mView).setCheckable(true).setChecked(this._Config.states.Treebar).connect('toggled',this,this._ToggleTreebar);
       this.vSwitch = new QAction('','Switchbar',this.mView).setCheckable(true).setChecked(this._Config.states.Switchbar).connect('toggled',this,this._ToggleSwitch);
       this.vStatus = new QAction('','Statusbar',this.mView).setCheckable(true).setChecked(this._Config.states.Statusbar).connect('toggled',this,this._ToggleStatus);
-
       new QAction('','',this.mView).setSeparator();
       this.vMPToggle = new QAction('','Toggle All Monitor Panels',this.mView).connect('triggered',this,this._ToggleAll);
       new QAction('','',this.mView).setSeparator();
@@ -570,9 +578,12 @@ class WebIRC extends QMainWindow {
       this.vQuery = new QAction('','Private Messages',this.mView).setCheckable(true).setChecked(this._Config.states.PrivateMonitor).connect('toggled',this,this._ToggleQuery);
       this.vServer = new QAction('','Server Messages',this.mView).setCheckable(true).setChecked(this._Config.states.ServerMonitor).connect('toggled',this,this._ToggleServer);
     this._MenuBar.addMenu(this.mView);
+
     this.mHelp = new QMenu('Help');
       this.hHelp = new QAction('','Help Doc',this.mHelp).setCheckable(true).setChecked(false).connect('toggled',this,this._ToggleHelp);
       this.hAbout = new QAction('','About',this.mHelp).connect('triggered',this,this._ToggleAbout);
+      new QAction('','',this.mHelp).setSeparator();
+      this.hGithub = new QAction('','Visit Github',this.mHelp).connect('triggered',this,() => { window.open('https://github.com/SwiftIRC/Web-IRC','_blank'); });
     this._MenuBar.addMenu(this.mHelp);
 
     this.MDI = new QMdiArea(this);
@@ -590,7 +601,7 @@ class WebIRC extends QMainWindow {
     this.HelpDock = new QDockWidget('Help').setAllowedAreas(Qt.DockWidgetArea.RightDockWidgetArea | Qt.DockWidgetArea.LeftDockWidgetArea).setBaseSize(300,200).setResizable(true).setVisible(false);
 
     this.HelpDialog = new QDialog().setBaseSize(270,240).setWindowTitle('About Web-IRC').setWindowFlag(Qt.WindowType.WindowMinMaxButtonsHint,false).hide();
-    this.GeneralDialog = new ConfigGeneral(this).setBaseSize(320,290).setWindowTitle('Web-IRC Preferences').hide();
+    this.GeneralDialog = new ConfigGeneral(this).setBaseSize(420,290).setWindowTitle('Web-IRC Preferences').hide();
     this.ColorsDialog = new ConfigColors(this).setBaseSize(420,298).setWindowTitle('Web-IRC Colors').hide();
 
     this.QuickConnect = new QuickConnect(this).setBaseSize(300,230).setWindowTitle('Quick Connect').hide();
@@ -691,7 +702,7 @@ class WebIRC extends QMainWindow {
         this.MDI.Children().forEach((child) => { if (e.detail.QEvent == Qt.QEvent.Resize && child.hasOwnProperty('ViewPort') && child.ViewPort._isEnd == true) { child.ViewPort.scrollTop = child.ViewPort.scrollHeight; } })
         this._ToggleConnection(true);
       });
-    this._NewSession('','',['text.ircv3.net']);
+    this._NewSession(this._Config.options.MNick,'',['text.ircv3.net']);
     if (this._Config.options.ShowQuickConnectOnStartup) {
       setTimeout(() => { this._ToggleQuickConnect(); });
     }
@@ -872,6 +883,8 @@ class WebIRC extends QMainWindow {
     this._Sessions[x].Client.addListener('snotice',this,this.onSnotice);
     this._Sessions[x].Client.addListener('topic',this,this.onTopic);
     this._Sessions[x].Client.addListener('umode',this,this.onUmode);
+    this._Sessions[x].Client.addListener('debugrawdata',this,this.onDebug);
+    this._Sessions[x].Client.addListener('chancentral',this,this.onChanCentral);
     
     if (AutoJoin) { this._Sessions[x].TempAutoJoin = AutoJoin; }
     if (/^wss?:\/\//i.test(Server)) { this._Sessions[x].Client.WSConnect(this._Sessions[x].Client.Me,Server,Protocol); }
@@ -1013,10 +1026,10 @@ class WebIRC extends QMainWindow {
       if (this._Sessions[cid].Windows[target.toLowerCase()]._Type == "status") {
         this._Sessions[cid].Windows['status window']._updateTitle();
         var Client = this._Sessions[cid].Client;
-        this._MonitorEcho(this.MonitorServerViewPort,color,(Client.Network != "" ? Client.Network : Client.Server) + ": " + line)
+        this._MonitorEcho(this.MonitorServerViewPort,color,"[" + cid + "]" + (Client.Network != "" ? Client.Network : Client.Server) + ": " + line)
       }
     }
-    //else { console.log('Error: ' + cid + " has no window: " + target); }
+    else { console.log('Error: ' + cid + " has no window: " + target); }
   }
   _embedFragment(target) {
     if (target.hasOwnProperty('_DocumentFragment')) {
@@ -1040,14 +1053,13 @@ class WebIRC extends QMainWindow {
       //console.log('CMD: ' + Cmd + ' F: ' + Flags + ' Extra: ' + Extra);
         
       //Single Tier Cmds (No Flags)
-      /*Object.keys(this.Aliases).forEach((Alias) => { 
+      Object.keys(this.Aliases).forEach((Alias) => { 
         var exp = new RegExp("^\x2f+" + Alias + "$","i");
         if (exp.test(Cmd)) {
           this.Aliases[Alias].Call.apply(this.Aliases[Alias].Bind,[Sender,line,ctrlKey]);
           handled = 1;
         }
       });
-      */
 
       if (handled) { }
       else if (/^\x2f+shownotif/.test(Cmd)) {
@@ -1091,7 +1103,11 @@ class WebIRC extends QMainWindow {
         }
       }
       else if (/^\x2f+ctcpreply$/i.test(Cmd)) { if (/^([^ ]+) ([^ ]+)(.*)/.test(Extra)) { Sender._Root._SendData(Client,'NOTICE ' + RegExp.$1 + " :" + RegExp.$2 + RegExp.$3 + ""); } }
-      else if (/^\x2f+debug$/i.test(Cmd)) { Client.Debug = (/^on$/i.test(Extra) ? true : false ); }
+      else if (/^\x2f+debug$/i.test(Cmd)) { 
+        Client.Debug = (/^on$/i.test(Extra) ? true : false ); 
+        if (!this._Sessions[Sender._Cid].Windows.hasOwnProperty('@debug') && Client.Debug) { this._NewSubWindow(Sender._Cid,'debug','@Debug'); }
+        else if (Client.Debug) { this.MDI.setActiveSubWindow(this._Sessions[Sender._Cid].Windows['@debug']); }
+      }
       else if (/^\x2f+disconnect$/i.test(Cmd)) { Client.WSClose(); }
       else if (/^\x2f+ebeeps$/i.test(Cmd)) {
         var onoff = (/^on$/i.test(Extra) ? true : false );
@@ -1100,6 +1116,13 @@ class WebIRC extends QMainWindow {
       }
 
       else if (/^\x2f+help$/i.test(Cmd)) { this._ToggleHelp({detail:{checked: true}}); }
+      else if (/^\x2f+hop$/i.test(Cmd)) {
+        if (/^(channel)$/i.test(Sender._Type)) { 
+          Sender._hopping = true;
+          Sender._Root._SendData(Client,'PART ' + Sender._Target + (Extra ? ' :' + Extra : "")); 
+          Sender._Root._SendData(Client,'JOIN ' + Sender._Target); 
+        }        
+      }
       //else if (/^\x2f+invite$/i.test(Cmd)) { } /* Should be built in on an irc server? */
       else if (/^\x2f+kick$/i.test(Cmd)) { if (Extra.match(/^([^ ]+) ([^ ]+) ?(.*)$/)) { Sender._Root._SendData(Client,'KICK ' + RegExp.$1 + '' + RegExp.$2 + ' :' + RegExp.$3); } }
       //else if (/^\x2f+links$/i.test(Cmd)) { } /* GUI Server Links */
@@ -1172,10 +1195,15 @@ class WebIRC extends QMainWindow {
         }
       }
       else if (/^\x2f+server$/i.test(Cmd)) {
-        var Nick = Client.Me , Server = Extra , NS = false, AJ , Proto = ['text.ircv3.net'];
+        var Nick = Client.Me , ANick = Client.ANick, Server = Extra , NS = false, AJ , Proto = ['text.ircv3.net'];
         if (Flags.indexOf(' ') > -1) {
           if (/-[mn] ([^ ]+)/i.test(Flags)) { Server = RegExp.$1; NS = true; }
-          if (/-i ([^ ]+)/i.test(Flags)) { Nick = RegExp.$1; }
+          if (/-i ([^ ]+)/i.test(Flags)) { 
+            let nicks = (RegExp.$1).split(":");
+            Nick = nicks[0]; 
+            ANick = nicks[1];
+            Client.ANick = ANick;
+          }
 
           if (/-l sasl:([^:]+):([^: ]+)/i.test(Flags)) { Client.SaslNick = RegExp.$1; Client.SaslPass = RegExp.$2; }
           else { Client.SaslNick = ""; Client.SaslPass = ""; }
@@ -1288,7 +1316,7 @@ class WebIRC extends QMainWindow {
         var firstchr = Sender.EditBox.value.substr(0,1);
         if (firstchr || key == 8) {
           if (firstchr == "/" || key == 191) { return; }
-          this._SendData(Client,"TAGMSG " + Sender._Target,{clientonly: { typing: ((Sender.EditBox.value.length > 1 || key != 8) ? "active" : "done") }}); 
+          if (Sender._Root._Config.options.SendIRCv3Typing) { this._SendData(Client,"TAGMSG " + Sender._Target,{clientonly: { typing: ((Sender.EditBox.value.length > 1 || key != 8) ? "active" : "done") }}); }
           Sender.EditBox.dataset.typing = Date.now();
         }
       }
@@ -1301,6 +1329,15 @@ class WebIRC extends QMainWindow {
       Win._updateTypers();
     }
   }
+
+  AddAlias(alias,reciever,slot,args) { 
+    if (!this.Aliases.hasOwnProperty(alias)) { this.Aliases[alias] = { Bind: reciever, Call: slot, Args: args } } 
+    Object.keys(this._Sessions).forEach((session) => { 
+      if (this._Sessions[session].Windows.hasOwnProperty('status window')) { this._processInputLine(this._Sessions[session].Windows['status window'],"/echo -s *** Custom Alias Registered: /" + alias); }
+    });
+    return this; 
+  }
+  RemoveAlias(alias) { if (!this.Aliases.hasOwnProperty(alias)) { delete this.Aliases[alias]; } return this; }
 
   CC2Html(text) {
     // === CC var is a direct rip of $rgb($color(N)) converted to base 16. N is 0-99 for all 100 new colors added to mIRC.
@@ -1334,6 +1371,20 @@ class WebIRC extends QMainWindow {
     //return "<span style=\"color:" + (isNaN(linecolor) ? linecolor : cc[linecolor]) + "\">" + ret + "</span>";
   }
 
+  onDebug(cid,msg) {
+    var Client = this._Sessions[cid].Client , LineColor = this._Color('normal');
+    this._Echo(cid,"@debug",1,LineColor,msg);
+  }
+  onChanCentral(cid,target,nick,mode,parm) {
+    var Client = this._Sessions[cid].Client , LineColor = this._Color('action');
+    if (Client.isChan(target)) {
+      if (this._Sessions[cid].Windows.hasOwnProperty(target.toLowerCase())) {
+        let widget = this._Sessions[cid].Windows[target.toLowerCase()];
+        let info = Client.GetIAL(nick);
+        widget._handleChanCentralEvent(mode,parm,nick + "!" + info.address,new Date() / 1000);
+      }
+    }
+  }
   onAction(cid,nick,address,target,msg,ircv3) { 
     var Client = this._Sessions[cid].Client , LineColor = this._Color('action');
     if (Client.isChan(target)) {
@@ -1343,7 +1394,7 @@ class WebIRC extends QMainWindow {
         var exp = new RegExp("\\b" + toExp + "\\b","i");
         if (exp.test(msg)) { 
           LineColor = this._Color('highlight'); 
-          this._MonitorEcho(this.MonitorHighlightViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
+          this._MonitorEcho(this.MonitorHighlightViewPort,LineColor,"[" + cid + "]" + (Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
         }
       }
 
@@ -1351,7 +1402,7 @@ class WebIRC extends QMainWindow {
       if (ircv3.hasOwnProperty('batch') && ircv3.hasOwnProperty('time')) { var time = new Date(ircv3.time); }
       this._updateWindowTypers(this._Sessions[cid].Windows[target.toLowerCase()],nick,ircv3);
       this._Echo(cid,target,2,LineColor,Line,time);
-      this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
+      this._MonitorEcho(this.MonitorChanViewPort,LineColor,"[" + cid + "]" + (Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
     }
     else {
       var Line = "* " + nick + "  " + msg; 
@@ -1365,14 +1416,14 @@ class WebIRC extends QMainWindow {
         var exp = new RegExp("\\b" + toExp + "\\b","i");
         if (exp.test(msg)) { 
           LineColor = this._Color('highlight'); 
-          this._MonitorEcho(this.MonitorHighlightViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - Query: " + Line);
+          this._MonitorEcho(this.MonitorHighlightViewPort,LineColor,"[" + cid + "]" + (Client.Network != "" ? Client.Network : Client.Server) + " - Query: " + Line);
         }
 
         ircv3.clientonly.typing = "done";
         if (ircv3.hasOwnProperty('batch') && ircv3.hasOwnProperty('time')) { var time = new Date(ircv3.time); }
         this._updateWindowTypers(this._Sessions[cid].Windows[nick.toLowerCase()],nick,ircv3);
         this._Echo(cid,nick,2,LineColor,Line,time);
-        this._MonitorEcho(this.MonitorQueryViewPort,'inherit',(Client.Network != "" ? Client.Network : Client.Server) + ": " + Line);
+        this._MonitorEcho(this.MonitorQueryViewPort,'inherit',"[" + cid + "]" + (Client.Network != "" ? Client.Network : Client.Server) + ": " + Line);
       }
     }
   }
@@ -1477,11 +1528,12 @@ class WebIRC extends QMainWindow {
       if (!this._Sessions[cid].Windows.hasOwnProperty(target.toLowerCase())) { this._NewSubWindow(cid,'channel',target); }
       this._Sessions[cid].Windows[target.toLowerCase()]._BlockNAMES = true;
       this._Sessions[cid].Windows[target.toLowerCase()]._BlockWHO = true;
+      this._Sessions[cid].Windows[target.toLowerCase()]._hopping = false;
     }
     else if (this._Sessions[cid].Windows.hasOwnProperty(target.toLowerCase())) { this._Sessions[cid].Windows[target.toLowerCase()]._handleNickListEvent('join',nick); }
     var Line = "* Joins: " + nick + " (" + address + ")";
     this._Echo(cid,target,1,LineColor,Line);
-    this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
+    this._MonitorEcho(this.MonitorChanViewPort,LineColor,"[" + cid + "]" + (Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
     if (!this._hasFocus) { 
       if (this._Config.options.EnableNotifications) {
         if (Client.isChan(target) && this._Config.options.TipChanJoinPart) { this._ShowNotification('favicon.ico',"Channel Join - " + Client.Network + " - " + target,Line,this._Config.options.TipDuration); }
@@ -1503,7 +1555,7 @@ class WebIRC extends QMainWindow {
     }
     var Line = "* " + knick + " was kicked by: " + nick + " (" + msg + ")";
     this._Echo(cid,target,1,LineColor,Line);
-    this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
+    this._MonitorEcho(this.MonitorChanViewPort,LineColor,"[" + cid + "]" + (Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
     if (!this._hasFocus) { 
       if (this._Config.options.EnableNotifications) {
         if (Client.isChan(target) && this._Config.options.TipChanKick) { this._ShowNotification('favicon.ico',"Channel Kick - " + Client.Network + " - " + target,Line,this._Config.options.TipDuration); }
@@ -1515,7 +1567,7 @@ class WebIRC extends QMainWindow {
     if (this._Sessions[cid].Windows.hasOwnProperty(target.toLowerCase())) { this._Sessions[cid].Windows[target.toLowerCase()]._handleNickListEvent('mode',modes); }
     var Line = "* " + nick + " sets mode: " + modes;
     this._Echo(cid,target,1,LineColor,Line);
-    this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
+    this._MonitorEcho(this.MonitorChanViewPort,LineColor,"[" + cid + "]" + (Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
     if (!this._hasFocus) { 
       if (this._Config.options.EnableNotifications) {
         if (Client.isChan(target) && this._Config.options.TipChanMode) { this._ShowNotification('favicon.ico',"Channel Mode - " + Client.Network + " - " + target,Line,this._Config.options.TipDuration); }
@@ -1539,7 +1591,7 @@ class WebIRC extends QMainWindow {
         if (this._Sessions[cid].Windows.hasOwnProperty(target.toLowerCase())) { this._Sessions[cid].Windows[target.toLowerCase()]._handleNickListEvent('nick',nick,newnick); }
         this._Echo(cid,target,1,LineColor,Line);
       });
-      this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + Object.keys(IAL.channels).join(",") + ": " + Line);
+      this._MonitorEcho(this.MonitorChanViewPort,LineColor,"[" + cid + "]" + (Client.Network != "" ? Client.Network : Client.Server) + " - " + Object.keys(IAL.channels).join(",") + ": " + Line);
       if (!this._hasFocus) { 
         if (this._Config.options.EnableNotifications) {
           if (this._Config.options.TipChanNickname) { this._ShowNotification('favicon.ico',"Channel Nickname - " + Client.Network + " - " + Object.keys(IAL.channels).join(","),Line,this._Config.options.TipDuration); }
@@ -1559,7 +1611,7 @@ class WebIRC extends QMainWindow {
     var Line = "-" + nick + (Client.isChan(target) ? ":" + target : "") + "- " + msg;
     if (ircv3.hasOwnProperty('batch') && ircv3.hasOwnProperty('time')) { var time = new Date(ircv3.time); }
     this._Echo(cid,win,2,LineColor,Line,time);
-    this._MonitorEcho(this.MonitorNoticeViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + (Client.isChan(target) ? " - " + target : "") + ": " + Line);
+    this._MonitorEcho(this.MonitorNoticeViewPort,LineColor,"[" + cid + "]" + (Client.Network != "" ? Client.Network : Client.Server) + (Client.isChan(target) ? " - " + target : "") + ": " + Line);
     if (!this._hasFocus) { 
       if (this._Config.options.EnableNotifications) {
         if (Client.isChan(target) && this._Config.options.TipChanNotice) { this._ShowNotification('favicon.ico',"Channel Notice - " + Client.Network + " - " + target,nick + " says: " + msg,this._Config.options.TipDuration); }
@@ -1571,11 +1623,15 @@ class WebIRC extends QMainWindow {
     var Client = this._Sessions[cid].Client , LineColor = this._Color('part');
     if (this._Sessions[cid].Windows.hasOwnProperty(target.toLowerCase())) { 
       this._Sessions[cid].Windows[target.toLowerCase()]._handleNickListEvent('part',nick); 
-      if (nick == Client.Me) { this._Sessions[cid].Windows[target.toLowerCase()]._customEvent('childEvent',{ bubbles: true, detail: { target: this, jsEvent: null, 'QEvent': QEvent.Close } }); }
+      if (nick == Client.Me) {
+        if (!this._Sessions[cid].Windows[target.toLowerCase()]._hopping) {
+          this._Sessions[cid].Windows[target.toLowerCase()]._customEvent('childEvent',{ bubbles: true, detail: { target: this, jsEvent: null, 'QEvent': QEvent.Close } }); 
+        }
+      }
     }
     var Line = "* Parts: " + nick + " (" + address + ")" + (msg ? " (" + msg + ")" : "");
     this._Echo(cid,target,1,LineColor,Line);
-    this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
+    this._MonitorEcho(this.MonitorChanViewPort,LineColor,"[" + cid + "]" + (Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
     if (!this._hasFocus) { 
       if (this._Config.options.EnableNotifications) {
         if (Client.isChan(target) && this._Config.options.TipChanJoinPart) { this._ShowNotification('favicon.ico',"Channel Join - " + Client.Network + " - " + target,Line,this._Config.options.TipDuration); }
@@ -1597,7 +1653,7 @@ class WebIRC extends QMainWindow {
         if (this._Sessions[cid].Windows.hasOwnProperty(target.toLowerCase())) { this._Sessions[cid].Windows[target.toLowerCase()]._handleNickListEvent('quit',nick); }
         this._Echo(cid,target,1,LineColor,Line);
       });
-      this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + Object.keys(IAL.channels).join(",") + ": " + Line);
+      this._MonitorEcho(this.MonitorChanViewPort,LineColor,"[" + cid + "]" + (Client.Network != "" ? Client.Network : Client.Server) + " - " + Object.keys(IAL.channels).join(",") + ": " + Line);
       if (!this._hasFocus) { 
         if (this._Config.options.EnableNotifications) {
           if (this._Config.options.TipChanQuit) { this._ShowNotification('favicon.ico',"Channel Quit - " + Client.Network + " - " + Object.keys(IAL.channels).join(","),Line,this._Config.options.TipDuration); }
@@ -1616,7 +1672,7 @@ class WebIRC extends QMainWindow {
         if (exp.test(msg)) { 
           var Line = "" + this._Color('highlight',true) + "<14" + (IAL && this._Config.options.PrefixMessages ? IAL.channels[target.toLowerCase()].substr(0,1) : "") + "" + nick + "" + this._Color('highlight',true) + "> " + msg; 
           Event = 3;
-          this._MonitorEcho(this.MonitorHighlightViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
+          this._MonitorEcho(this.MonitorHighlightViewPort,LineColor,"[" + cid + "]" + (Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
         }
       }
       else { var Line = "9<14" + IAL.channels[target.toLowerCase()].substr(0,1) + "" + nick + "9> " + msg; LineColor = this._Color('own'); }
@@ -1632,7 +1688,7 @@ class WebIRC extends QMainWindow {
       if (ircv3.hasOwnProperty('batch') && ircv3.hasOwnProperty('time')) { var time = new Date(ircv3.time); }
       this._updateWindowTypers(this._Sessions[cid].Windows[target.toLowerCase()],nick,ircv3);
       this._Echo(cid,target,Event,LineColor,Line,time);
-      this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
+      this._MonitorEcho(this.MonitorChanViewPort,LineColor,"[" + cid + "]" + (Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
     }
     else {
       if (nick == Client.Me) {
@@ -1649,13 +1705,13 @@ class WebIRC extends QMainWindow {
         if (exp.test(msg)) { 
           var Line = "" + this._Color('highlight',true) + "<" + nick + "" + this._Color('highlight',true) + "> " + msg; 
           Event = 3;
-          this._MonitorEcho(this.MonitorHighlightViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - Query: " + Line);
+          this._MonitorEcho(this.MonitorHighlightViewPort,LineColor,"[" + cid + "]" + (Client.Network != "" ? Client.Network : Client.Server) + " - Query: " + Line);
         }
         ircv3.clientonly.typing = "done";
         if (ircv3.hasOwnProperty('batch') && ircv3.hasOwnProperty('time')) { var time = new Date(ircv3.time); }
         this._updateWindowTypers(this._Sessions[cid].Windows[nick.toLowerCase()],nick,ircv3);
         this._Echo(cid,nick,Event,LineColor,Line,time);
-        this._MonitorEcho(this.MonitorQueryViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + ": " + Line);
+        this._MonitorEcho(this.MonitorQueryViewPort,LineColor,"[" + cid + "]" + (Client.Network != "" ? Client.Network : Client.Server) + ": " + Line);
 
         if (!this._hasFocus) { 
           if (this._Config.options.EnableSounds && this._Config.options.BeepOnQueryMsg) { this._InternalBeep(); }
@@ -1677,13 +1733,14 @@ class WebIRC extends QMainWindow {
     if (numeric == "332") { this._Echo(cid,Tokens[1],1,this._Color('topic'),"* Topic is '" + Tokens.slice(2).join(" ") + "'"); }
     else if (numeric == "333") { this._Echo(cid,Tokens[1],1,this._Color('topic'),"* Set by " + Tokens[2] + " on " + AscTime(new Date(parseInt(Tokens[3]) * 1000),'ddd mmm dd HH:nn:ss yyyy')); }
     //Prevent these for now... caused by joining channels
-    else if (numeric == "321") { 
+    /*else if (numeric == "321") { 
       if (this._Sessions.hasOwnProperty(cid) && this._Sessions[cid].Windows.hasOwnProperty('channels list')) {
         this._Sessions[cid].Windows['channels list']._customEvent('childEvent',{ bubbles: true, detail: { target: this._Sessions[cid].Windows['channels list'], 'QEvent': Qt.QEvent.Close } });
       }
       this._NewSubWindow(cid,"chanlist","channels list");
-    }
+    }*/
     else if (numeric == "322") { 
+      if (this._Sessions.hasOwnProperty(cid) && !this._Sessions[cid].Windows.hasOwnProperty('channels list')) { this._NewSubWindow(cid,"chanlist","channels list"); }
       if (this._Sessions.hasOwnProperty(cid) && this._Sessions[cid].Windows.hasOwnProperty('channels list')) {
         if (Client.isChan(Tokens[1])) { new QTreeWidgetItem('','',this._Sessions[cid].Windows['channels list'].TreeList).setColumnTexts([Tokens[1],Tokens[2],this.CC2Html(Tokens.slice(3).join(" "))]); }
       }
@@ -1691,7 +1748,7 @@ class WebIRC extends QMainWindow {
     else if (numeric == "323") { 
       if (this._Sessions.hasOwnProperty(cid) && this._Sessions[cid].Windows.hasOwnProperty('channels list')) {
         var array = this._Sessions[cid].Windows['channels list'].TreeList.Children();
-        var sorted = array.sort((a,b) => { return (parseInt(a._Container.childNodes[1].innerText) < parseInt(b._Container.childNodes[1].innerText)); });
+        var sorted = array.sort((a,b) => { return (parseInt(b._Container.childNodes[1].innerText) - parseInt(a._Container.childNodes[1].innerText)); });
         sorted.forEach((item) => { item.parentNode.appendChild(item); });
       }
     }
@@ -1730,19 +1787,31 @@ class WebIRC extends QMainWindow {
     } //channel end of names
 
     else if (numeric == "346") { 
+      if (this._Sessions.hasOwnProperty(cid) && this._Sessions[cid].Windows.hasOwnProperty(Tokens[1].toLowerCase())) {
+        var UI = this._Sessions[cid].Windows[Tokens[1].toLowerCase()];
+        UI._handleChanCentralEvent("+I",Tokens[2],Tokens[3],Tokens[4]);
+      }
       this._Echo(cid,"status window",1,this._Color('normal'),(/^\d+/.test(numeric) ? "" : numeric + " ") + (numeric == 372 ? "" : "") + Tokens.slice(1).join(" "));
     } //Invite List
     else if (numeric == "348") { 
+      if (this._Sessions.hasOwnProperty(cid) && this._Sessions[cid].Windows.hasOwnProperty(Tokens[1].toLowerCase())) {
+        var UI = this._Sessions[cid].Windows[Tokens[1].toLowerCase()];
+        UI._handleChanCentralEvent("+e",Tokens[2],Tokens[3],Tokens[4]);
+      }
       this._Echo(cid,"status window",1,this._Color('normal'),(/^\d+/.test(numeric) ? "" : numeric + " ") + (numeric == 372 ? "" : "") + Tokens.slice(1).join(" "));
     } //Except List
     else if (numeric == "367") { 
       if (this._Sessions.hasOwnProperty(cid) && this._Sessions[cid].Windows.hasOwnProperty(Tokens[1].toLowerCase())) {
         var UI = this._Sessions[cid].Windows[Tokens[1].toLowerCase()];
-        UI._addBan(Tokens[2],Tokens[3],Tokens[4]);
+        UI._handleChanCentralEvent("+b",Tokens[2],Tokens[3],Tokens[4]);
       }
       this._Echo(cid,"status window",1,this._Color('normal'),(/^\d+/.test(numeric) ? "" : numeric + " ") + (numeric == 372 ? "" : "") + Tokens.slice(1).join(" "));
     } //Ban List
     else if (numeric == "728") { 
+      if (this._Sessions.hasOwnProperty(cid) && this._Sessions[cid].Windows.hasOwnProperty(Tokens[1].toLowerCase())) {
+        var UI = this._Sessions[cid].Windows[Tokens[1].toLowerCase()];
+        UI._handleChanCentralEvent("+q",Tokens[3],Tokens[4],Tokens[5]);
+      }
       this._Echo(cid,"status window",1,this._Color('normal'),(/^\d+/.test(numeric) ? "" : numeric + " ") + (numeric == 372 ? "" : "") + Tokens.slice(1).join(" "));
     } //Quiet List
 
@@ -1766,14 +1835,14 @@ class WebIRC extends QMainWindow {
     if (this._Sessions[cid].Windows.hasOwnProperty(target.toLowerCase())) { this._Sessions[cid].Windows[target.toLowerCase()]._handleNickListEvent('mode',modes); }
     var Line = "* " + nick + " sets mode: " + modes;
     this._Echo(cid,target,1,LineColor,Line);
-    this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
+    this._MonitorEcho(this.MonitorChanViewPort,LineColor,"[" + cid + "]" + (Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
   }
   onTopic(cid,nick,address,target,topic) { 
     var Client = this._Sessions[cid].Client , LineColor = this._Color('topic');
     var Line = "* " + nick + " changes topic to '" + topic + "'";
     this._Echo(cid,target,1,LineColor,Line);
     this._Sessions[cid].Windows[target.toLowerCase()]._updateTitle(); 
-    this._MonitorEcho(this.MonitorChanViewPort,LineColor,(Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
+    this._MonitorEcho(this.MonitorChanViewPort,LineColor,"[" + cid + "]" + (Client.Network != "" ? Client.Network : Client.Server) + " - " + target + ": " + Line);
     if (!this._hasFocus) { 
       if (this._Config.options.EnableNotifications) {
         if (Client.isChan(target) && this._Config.options.TipChanTopic) { this._ShowNotification('favicon.ico',"Channel Topic - " + Client.Network + " - " + target,Line,this._Config.options.TipDuration); }
@@ -1839,6 +1908,45 @@ window.addEventListener('load',() => {
     await document.fonts.ready;
     for (const font of fontCheck.values()) { if (document.fonts.check(`12px "${font}"`) && isFontAvailable(`${font}`)) { fontAvailable.add(font); } }
     var App = new WebIRC();
+
+    /*
+    App.AddAlias('billiards',App,(Sender,line,ctrlKey) => { 
+    if (!Sender._Root._Sessions[Sender._Cid].Windows.hasOwnProperty('@billiards')) {
+      var tmp = App._NewSubWindow(Sender._Cid,"picture","@Billiards",320,240);
+      tmp._Game = new Billiards(tmp,line);
+      tmp._Game.Update(0);
+      tmp.addEventListener('childEvent',(e) => { 
+        //if (e.detail.QEvent == Qt.QEvent.Resize) { tmp._Game.GenerateTable('5.5'); } 
+        if (e.detail.QEvent == Qt.QEvent.Close) { cancelAnimationFrame(tmp._Game._Animation); } 
+      });
+      tmp.addEventListener('input',(e) => {
+        if (e.detail.hasOwnProperty('jsEvent')) {
+          var evt = e.detail.jsEvent;
+          if (/^pointer/.test(evt.type)) { 
+            var rect = evt.target.getBoundingClientRect();
+            var x = evt.clientX - rect.left;
+            var y = evt.clientY - rect.top;
+            tmp._Game.Mouse(evt,x,y);
+            //if(evt.buttons) { tmp.DrawDot("F","#40a0c0",1,x,y); }
+          }
+          if (evt.type == 'keydown') { tmp._Game.Mouse(evt); }
+          if (evt.type == 'keyup') { tmp._Game.Mouse(evt); }
+        }
+      });      
+    }
+    else { App.MDI.setActiveSubWindow(Sender._Root._Sessions[Sender._Cid].Windows['@billiards']); }
+  });
+  App.AddAlias('clock',App,(Sender,line,ctrlKey) => { 
+    if (!Sender._Root._Sessions[Sender._Cid].Windows.hasOwnProperty('@clock')) {
+      var tmp = App._NewSubWindow(Sender._Cid,"picture","@Clock",640,480);
+      tmp._Game = new JSClock(tmp);
+      tmp._Game.Update();
+      tmp.addEventListener('childEvent',(e) => { if (e.detail.QEvent == Qt.QEvent.Close) { cancelAnimationFrame(tmp._Game._Animation); } });
+    }
+    else { App.MDI.setActiveSubWindow(Sender._Root._Sessions[Sender._Cid].Windows['@clock']); }
+  });
+  */
+
   })();
 
 
@@ -1861,10 +1969,11 @@ window.addEventListener('load',() => {
           <td>
             Web-IRC&reg;<br>Internet Relay Chat Client<p>
               By Sean Everett (Talon)<p>
-              Copyright &copy; 2022<br>
+              Copyright &copy; 2022-2025<br>
               Talon Co. Ltd.<br>
               All Rights Reserved.<p>
-              <a href='https://chat.swiftirc.net/' target='_blank'>https://chat.swiftirc.net/</a><p>
+              <a href='https://chat.swiftirc.net/' target='_blank'>https://chat.swiftirc.net/</a><br>
+              <a href='https://github.com/SwiftIRC/Web-IRC' target='_blank'>https://github.com/SwiftIRC/Web-IRC</a><p>
               Special Thanks to: Ryan William O'Hara (Dragon) and all other contributers and users! 
           </td>
         </tr>
